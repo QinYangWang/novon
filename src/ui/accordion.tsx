@@ -32,7 +32,7 @@ function Accordion({
         data-variant={variant}
         className={cn(
           "flex w-full flex-col gap-1",
-          variant === "default" && "rounded-[1.25rem] bg-background p-1 shadow-well dark:bg-input/32",
+          variant === "default" && "rounded-[calc(var(--radius)*2)] bg-background p-1 shadow-well dark:bg-input/32",
           className
         )}
         {...props}
@@ -114,7 +114,12 @@ function AccordionTrigger({
 }
 
 /** Panel with a springy height reveal (eases out without bounce on close). */
-function AccordionPanel({ className, children, ...props }: AccordionPrimitive.Panel.Props) {
+type AccordionPanelProps = AccordionPrimitive.Panel.Props & {
+  /** Turns prose styles back on for this panel's content inside a `typeset` container (or names a preset when used on its own). */
+  typeset?: boolean | "docs" | "reading" | "chat"
+}
+
+function AccordionPanel({ className, children, typeset, ...props }: AccordionPanelProps) {
   const variant = React.useContext(AccordionVariantContext)
   return (
     <AccordionPrimitive.Panel
@@ -127,9 +132,12 @@ function AccordionPanel({ className, children, ...props }: AccordionPrimitive.Pa
     >
       <div
         data-slot="accordion-content"
+        data-typeset={typeset === true ? "" : typeset || undefined}
         className={cn(
           // Ghost rows with a leading icon indent the content to the label (px-3 + 16px icon + gap-2.5).
-          "px-3 pb-3 text-ui-sm leading-5 text-muted-foreground transition-[opacity,translate] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-ending-style/accordion-panel:-translate-y-1.5 group-data-ending-style/accordion-panel:opacity-0 group-data-starting-style/accordion-panel:-translate-y-1.5 group-data-starting-style/accordion-panel:opacity-0 motion-reduce:transition-none",
+          // Prose content (typeset) keeps the surrounding text size and colour.
+          !typeset && "text-ui-sm leading-5 text-muted-foreground",
+          "px-3 pb-3 transition-[opacity,translate] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-ending-style/accordion-panel:-translate-y-1.5 group-data-ending-style/accordion-panel:opacity-0 group-data-starting-style/accordion-panel:-translate-y-1.5 group-data-starting-style/accordion-panel:opacity-0 motion-reduce:transition-none",
           variant === "ghost" && "group-has-data-[slot=accordion-icon]/accordion-item:pl-9.5",
           className
         )}
@@ -141,4 +149,4 @@ function AccordionPanel({ className, children, ...props }: AccordionPrimitive.Pa
 }
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionPanel }
-export type { AccordionVariant }
+export type { AccordionVariant, AccordionPanelProps }

@@ -3,12 +3,18 @@
  * chat messages). Three controls drive the rhythm: --typeset-size (base size),
  * --typeset-leading (line height) and --typeset-flow (space between blocks).
  * Elements with data-slot (every library component) and anything inside
- * .not-typeset / [data-not-typeset] are left alone. Utilities on an element win.
- * Presets for this library are at the end of the file.
+ * .not-typeset / [data-not-typeset] are left alone. A component content slot
+ * that itself has `.typeset` or `data-typeset` (a tab or accordion panel, card
+ * content) turns prose styles back on for its own content, inheriting the
+ * surrounding preset; components nested in it stay excluded. Re-enabling works
+ * three levels deep (a panel in a panel in a panel). Utilities on an element win. Presets are at the end.
  */
 
 @layer components {
-  .typeset {
+  /* Defaults on a typeset root. A slot re-enabled inside prose inherits instead. */
+  :is(.typeset, [data-typeset]):not(
+      :where(:is(.typeset, [data-typeset]) [data-slot], :is(.typeset, [data-typeset]) [data-typeset])
+    ) {
     --typeset-font-body: inherit;
     --typeset-font-heading: inherit;
     --typeset-font-mono: var(--font-mono);
@@ -19,7 +25,7 @@
 }
 
 @layer components {
-  .typeset {
+  :is(.typeset, [data-typeset]) {
     font-family: var(--typeset-font-body);
     font-size: calc(var(--typeset-size) * 1.125);
     line-height: var(--typeset-leading);
@@ -41,15 +47,42 @@
     );
   }
 
-  .typeset
+  /*
+   * An element is styled when its nearest boundary (a component slot or .not-typeset)
+   * is a typeset root. Boundaries are B, roots T:
+   *   T *            not inside T B
+   *   T B T *        not inside T B T B
+   *   T B T B T *    not inside T B T B T B
+   *   T B T B T B T *  not inside T B T B T B T B
+   */
+  :is(.typeset, [data-typeset]) *:not(
+      :where(
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]),
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) *
+      )
+    ),
+  :where(:is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]))
+    :is(.typeset, [data-typeset])
     *:not(
       :where(
-        .not-typeset,
-        [data-not-typeset],
-        .not-typeset *,
-        [data-not-typeset] *,
-        .typeset [data-slot],
-        .typeset [data-slot] *
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]),
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) *
+      )
+    ),
+  :where(:is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]))
+    :is(.typeset, [data-typeset])
+    *:not(
+      :where(
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]),
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) *
+      )
+    ),
+  :where(:is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]))
+    :is(.typeset, [data-typeset])
+    *:not(
+      :where(
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]),
+        :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) :is(.typeset, [data-typeset]) :is([data-slot], .not-typeset, [data-not-typeset]):not(.typeset, [data-typeset]) *
       )
     ) {
     /* Paragraphs. */
@@ -463,7 +496,7 @@
 
   /* Components (anything with data-slot) keep their own styles. A component
      placed directly in the flow gets the same space above as a paragraph. */
-  .typeset
+  :is(.typeset, [data-typeset])
     > :where([data-slot]):not(
       :where(
         .not-typeset,
@@ -476,7 +509,7 @@
   }
 
   /* First child adds no space above. Last so it wins ties. */
-  .typeset
+  :is(.typeset, [data-typeset])
     > :where(:first-child):not(
       :where(
         .not-typeset,
@@ -485,7 +518,7 @@
         [data-not-typeset] *
       )
     ),
-  .typeset
+  :is(.typeset, [data-typeset])
     > :where(:first-child)
     > :where(:first-child):not(
       :where(
@@ -495,7 +528,7 @@
         [data-not-typeset] *
       )
     ),
-  .typeset
+  :is(.typeset, [data-typeset])
     :where(
       li > :first-child,
       blockquote > :first-child,
@@ -516,29 +549,30 @@
   }
 }
 
-/* Presets. Pick one per context: `typeset typeset-docs`, `typeset typeset-reading`, `typeset typeset-chat`. */
+/* Presets. Pick one per context: `typeset typeset-docs`, `typeset typeset-reading`, `typeset typeset-chat`
+   (or `data-typeset="docs" | "reading" | "chat"`). */
 @layer components {
   /* Docs prose: notes, guides, changelog. Sits beside 13px UI text. */
-  .typeset-docs {
+  :is(.typeset-docs, [data-typeset="docs"]) {
     --typeset-size: 14px;
     --typeset-leading: 1.7;
     --typeset-flow: 1em;
     --typeset-code-wrap: nowrap;
   }
   /* Articles and blog posts. */
-  .typeset-reading {
+  :is(.typeset-reading, [data-typeset="reading"]) {
     --typeset-size: 16px;
     --typeset-leading: 1.75;
     --typeset-flow: 1.25em;
   }
   /* Chat messages and streamed responses. */
-  .typeset-chat {
+  :is(.typeset-chat, [data-typeset="chat"]) {
     --typeset-size: 14px;
     --typeset-leading: 1.6;
     --typeset-flow: 0.75em;
   }
   /* The first block never adds space above the container (margin-trim is not everywhere yet). */
-  .typeset > :first-child {
+  :is(.typeset, [data-typeset]) > :first-child {
     margin-block-start: 0;
   }
 }

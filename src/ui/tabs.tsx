@@ -43,7 +43,7 @@ const tabsTabVariants = cva(
       },
     },
     compoundVariants: [
-      { variant: "default", size: "xs", className: "h-5 rounded-[4px]" },
+      { variant: "default", size: "xs", className: "h-5 rounded-xs" },
       { variant: "default", size: "sm", className: "h-6 rounded-md" },
       { variant: "default", size: "default", className: "h-7 rounded-md" },
       { variant: "default", size: "lg", className: "h-8 rounded-md" },
@@ -91,7 +91,7 @@ function TabsList({ className, children, size = "default", variant = "default", 
           data-slot="tabs-indicator"
           className={cn(
             "absolute top-0 left-0 -z-10 transition-[translate,width,height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            v === "default" && (s === "xs" ? "rounded-[4px]" : "rounded-md"),
+            v === "default" && (s === "xs" ? "rounded-xs" : "rounded-md"),
             indicatorClass[v]
           )}
         />
@@ -112,10 +112,16 @@ function TabsTab({ className, ...props }: TabsPrimitive.Tab.Props) {
   )
 }
 
-function TabsPanel({ className, ...props }: TabsPrimitive.Panel.Props) {
+type TabsPanelProps = TabsPrimitive.Panel.Props & {
+  /** Turns prose styles back on for this panel's content inside a `typeset` container (or names a preset when used on its own). */
+  typeset?: boolean | "docs" | "reading" | "chat"
+}
+
+function TabsPanel({ className, typeset, ...props }: TabsPanelProps) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-panel"
+      data-typeset={typeset === true ? "" : typeset || undefined}
       className={cn("outline-none focus-visible:ring-2 focus-visible:ring-ring/50", className)}
       {...props}
     />
@@ -123,4 +129,5 @@ function TabsPanel({ className, ...props }: TabsPrimitive.Panel.Props) {
 }
 
 export { Tabs, TabsList, TabsTab, TabsPanel, tabsListVariants, tabsTabVariants }
+export type { TabsPanelProps }
 export type { TabsSize, TabsVariant }

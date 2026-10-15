@@ -38,8 +38,14 @@ type FileTreeNode = {
   children?: FileTreeNode[]
 }
 
-type FileTreeFolderProps = Omit<FileTreeNode, "type" | "children"> & { children?: React.ReactNode }
-type FileTreeFileProps = Omit<FileTreeNode, "type" | "children">
+/**
+ * Input shape for `items` and the declarative parts: `value` is optional and defaults to the
+ * path from the root (`parent/name`, or `name` at the top level).
+ */
+type FileTreeItem = Omit<FileTreeNode, "value" | "children"> & { value?: string; children?: FileTreeItem[] }
+
+type FileTreeFolderProps = Omit<FileTreeItem, "type" | "children"> & { children?: React.ReactNode }
+type FileTreeFileProps = Omit<FileTreeItem, "type" | "children">
 
 /** Declarative folder; rendered by <FileTree>, renders nothing on its own. */
 function FileTreeFolder(props: FileTreeFolderProps) {
@@ -55,8 +61,8 @@ function FileTreeFile(props: FileTreeFileProps) {
 
 type Row = { node: FileTreeNode; depth: number; parent: string | null; pos: number; size: number }
 
-function readNodes(children: React.ReactNode): FileTreeNode[] {
-  const out: FileTreeNode[] = []
+function readNodes(children: React.ReactNode): FileTreeItem[] {
+  const out: FileTreeItem[] = []
   React.Children.forEach(children, (child) => {
     if (!React.isValidElement(child)) return
     if (child.type === React.Fragment) {
@@ -69,6 +75,30 @@ function readNodes(children: React.ReactNode): FileTreeNode[] {
     }
   })
   return out
+}
+
+// Typed here so apps without Node types compile; bundlers replace process.env.NODE_ENV at build time.
+declare const process: { env: { NODE_ENV?: string } }
+
+function isDev() {
+  try {
+    return process.env.NODE_ENV !== "production"
+  } catch {
+    return false
+  }
+}
+
+/** Fill in missing values with the node's path and warn (in development) about duplicates. */
+function resolveNodes(items: FileTreeItem[], parent: string | null = null, seen = new Set<string>()): FileTreeNode[] {
+  return items.map((item) => {
+    const value = item.value ?? (parent === null ? item.name : `${parent}/${item.name}`)
+    if (seen.has(value) && isDev()) {
+      console.warn(`FileTree: two nodes share the value "${value}". Give one of them a unique \`value\`.`)
+    }
+    seen.add(value)
+    const { children, ...rest } = item
+    return { ...rest, value, children: children ? resolveNodes(children, value, seen) : undefined }
+  })
 }
 
 function flatten(nodes: FileTreeNode[], open: ReadonlySet<string>, depth = 0, parent: string | null = null): Row[] {
@@ -140,7 +170,7 @@ const PAD = 4
 type FileTreeProps = Omit<React.ComponentProps<"div">, "children" | "defaultValue" | "onChange"> & {
   children?: React.ReactNode
   /** Data alternative to declarative children. */
-  items?: FileTreeNode[]
+  items?: FileTreeItem[]
   value?: string | null
   defaultValue?: string | null
   onValueChange?: (value: string, node: FileTreeNode) => void
@@ -180,7 +210,7 @@ function FileTree({
   const selected = value === undefined ? internalValue : value
   const expandedList = expandedProp ?? internalExpanded
   const open = React.useMemo(() => new Set(expandedList), [expandedList])
-  const nodes = React.useMemo(() => items ?? readNodes(children), [items, children])
+  const nodes = React.useMemo(() => resolveNodes(items ?? readNodes(children)), [items, children])
   const rows = React.useMemo(() => flatten(nodes, open), [nodes, open])
 
   const [focused, setFocused] = React.useState<string | null>(selected)
@@ -395,4 +425,4 @@ function FileTree({
 }
 
 export { FileTree, FileTreeFolder, FileTreeFile, getFileKind }
-export type { FileTreeProps, FileTreeNode, FileTreeFolderProps, FileTreeFileProps, FileKind }
+export type { FileTreeProps, FileTreeNode, FileTreeItem, FileTreeFolderProps, FileTreeFileProps, FileKind }

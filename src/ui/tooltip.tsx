@@ -1,6 +1,9 @@
+"use client"
+
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
 import { cn } from "@/lib/utils"
+import { Kbd } from "@/ui/kbd"
 
 function TooltipProvider({ delay = 300, ...props }: TooltipPrimitive.Provider.Props) {
   return <TooltipPrimitive.Provider delay={delay} {...props} />
@@ -35,17 +38,9 @@ function TooltipContent({
   )
 }
 
-function TooltipKbd({ className, ...props }: React.ComponentProps<"kbd">) {
-  return (
-    <kbd
-      data-slot="tooltip-kbd"
-      className={cn(
-        "-mr-1 rounded-sm bg-muted px-1.5 py-px font-mono text-ui-2xs text-muted-foreground shadow-chip",
-        className
-      )}
-      {...props}
-    />
-  )
+/** A key inside a tooltip: a `Kbd` on the tooltip's own fill. */
+function TooltipKbd({ className, ...props }: React.ComponentProps<typeof Kbd>) {
+  return <Kbd data-slot="tooltip-kbd" size="sm" className={cn("-mr-1 rounded-sm bg-muted px-1.5 font-mono", className)} {...props} />
 }
 
 export { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, TooltipKbd }

@@ -24,7 +24,7 @@ export {
   Tab,
   Accordion,
   AccordionGroup,
-  CodeBlock,
+  Pre,
   CodeGroup,
   Term,
   Frame,

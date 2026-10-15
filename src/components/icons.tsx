@@ -874,10 +874,11 @@ export const ClipboardListIcon = (p: IconProps) => (
 );
 
 export const QinyangLogoIcon = (p: IconProps) => (
+  // Rounded square holding an uppercase Q.
   <Icon {...p}>
     <rect {...line} x="2" y="2" width="20" height="20" rx="6" />
-    <circle {...line} cx="11.5" cy="10.5" r="3.75" />
-    <path {...line} d="M15.25 7v10.5" />
+    <circle {...line} cx="11.6" cy="11.5" r="4.6" />
+    <path {...line} d="M13.2 13.2l3.8 3.8" />
   </Icon>
 );
 

@@ -85,6 +85,8 @@
     --color-accent-50: var(--accent-50);
     --radius-lg: var(--radius);
     --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-2xs: calc(var(--radius) * 0.3);
+    --radius-xs: calc(var(--radius) * 0.4);
 }
 
 :root {

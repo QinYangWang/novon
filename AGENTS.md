@@ -3,7 +3,7 @@
 - The name is always `novon`, lowercase, even at the start of a sentence: it
   spells the cat ฅ^•ﻌ•^ฅ and is only symmetric in lowercase.
 - UI comes from the qinyang/ui registry. `src/ui/`, `src/components/`,
-  `src/lib/utils.ts`, `src/styles/theme.css`, `src/styles/accents.css` and
+  `src/lib/utils.ts`, `src/styles/theme.css`, `src/app/theme-accents.css` and
   `src/app/typeset.css` are installed by `bun scripts/sync-ui.ts` and are never
   edited here. When a component is missing, buggy or awkward, fix it in the
   library and re-sync; do not copy or patch it in novon.

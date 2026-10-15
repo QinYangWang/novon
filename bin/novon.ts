@@ -60,7 +60,7 @@ async function main() {
   if (command === 'preview') {
     const { preview } = await import('../src/node/preview.ts')
     const server = preview(config, values.port ? Number(values.port) : undefined)
-    console.log(`Serving dist at ${server.url}`)
+    console.log(`Serving dist at ${new URL(config.base, server.url).href}`)
     return
   }
   throw new Error(`Unknown command "${command}"\n\n${help}`)

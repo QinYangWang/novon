@@ -39,7 +39,7 @@ const segmentedControlItemVariants = cva(
   {
     variants: {
       size: {
-        xs: "h-5 rounded-[4px] px-2 text-ui-xs [&_svg]:size-3",
+        xs: "h-5 rounded-xs px-2 text-ui-xs [&_svg]:size-3",
         sm: "h-6 rounded-md px-2.5 text-ui-sm",
         default: "h-7 rounded-md px-3 text-ui",
         lg: "h-8 rounded-md px-3.5 text-ui-lg [&_svg]:size-4",
@@ -52,7 +52,7 @@ const segmentedControlItemVariants = cva(
 type SegmentedControlSize = NonNullable<VariantProps<typeof segmentedControlVariants>["size"]>
 
 const thumbRadius: Record<SegmentedControlSize, string> = {
-  xs: "rounded-[4px]",
+  xs: "rounded-xs",
   sm: "rounded-md",
   default: "rounded-md",
   lg: "rounded-md",

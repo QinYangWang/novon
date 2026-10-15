@@ -11,7 +11,14 @@ export function preview(config: ResolvedConfig, port = 4173) {
     port,
     fetch(req) {
       let path = decodeURIComponent(new URL(req.url).pathname)
-      if (prefix && path.startsWith(prefix)) path = path.slice(prefix.length) || '/'
+      if (prefix) {
+        // Like the real host: the site lives under its base path and nowhere else.
+        if (path === '/') return Response.redirect(`${prefix}/`, 302)
+        if (path !== prefix && !path.startsWith(`${prefix}/`)) {
+          return new Response(`Not found. The site is served under ${prefix}/`, { status: 404 })
+        }
+        path = path.slice(prefix.length) || '/'
+      }
       const file = normalize(join(dist, path))
       if (!file.startsWith(dist)) return new Response('Forbidden', { status: 403 })
       const candidates = [file, join(file, 'index.html'), `${file}.html`]

@@ -39,7 +39,7 @@ export function Brand({ className }: { className?: string }) {
 }
 
 export function ThemeButton() {
-  return <ThemeToggle variant="ghost" aria-label="Toggle theme" />
+  return <ThemeToggle modes="tri" variant="ghost" aria-label="Theme" />
 }
 
 export function SocialLinks() {

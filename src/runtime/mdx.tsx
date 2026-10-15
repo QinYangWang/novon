@@ -7,13 +7,13 @@ import { cn } from '@/lib/utils'
 import { Alert, AlertContent, AlertDescription, AlertIcon, AlertTitle, type AlertVariant } from '@/ui/alert'
 import { Accordion as AccordionRoot, AccordionItem, AccordionPanel, AccordionTrigger } from '@/ui/accordion'
 import { Badge } from '@/ui/badge'
-import { Button } from '@/ui/button'
+import { CodeBlock, CodeGroup as CodeGroupRoot } from '@/ui/code-block'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/ui/card'
 import { FileTree, FileTreeFile, FileTreeFolder } from '@/ui/file-tree'
 import { IconChip } from '@/ui/icon-chip'
 import { Tabs as TabsRoot, TabsList, TabsPanel, TabsTab } from '@/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
-import { ArrowUpRightIcon, CheckIcon, CopyIcon } from '@/components/icons'
+import { ArrowUpRightIcon } from '@/components/icons'
 import { Icon } from './icons.tsx'
 import { Link, isInternal } from './link.tsx'
 import { PostList, TagList } from './posts.tsx'
@@ -142,7 +142,7 @@ export function Tabs({ children }: { children?: React.ReactNode }) {
         ))}
       </TabsList>
       {tabs.map((t, i) => (
-        <TabsPanel key={i} value={String(i)} className="typeset typeset-docs pt-3">
+        <TabsPanel key={i} value={String(i)} typeset className="pt-3">
           {t.props.children}
         </TabsPanel>
       ))}
@@ -155,7 +155,7 @@ export function Accordion({ title, children, defaultOpen }: { title: React.React
     <AccordionRoot className="not-typeset my-6" defaultValue={defaultOpen ? ['item'] : []}>
       <AccordionItem value="item">
         <AccordionTrigger>{title}</AccordionTrigger>
-        <AccordionPanel className="typeset typeset-docs">{children}</AccordionPanel>
+        <AccordionPanel typeset>{children}</AccordionPanel>
       </AccordionItem>
     </AccordionRoot>
   )
@@ -168,72 +168,40 @@ export function AccordionGroup({ children }: { children?: React.ReactNode }) {
 
 /* ---------- Code ---------- */
 
-function useCopy() {
-  const [copied, setCopied] = React.useState(false)
-  const copy = React.useCallback(async (text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }, [])
-  return { copied, copy }
-}
-
 type PreProps = React.ComponentProps<'pre'> & { 'data-title'?: string; 'data-language'?: string }
 
 /** Highlighted code from a fence, with its title and a copy button. */
-export function CodeBlock({ children, className, ...props }: PreProps) {
-  const ref = React.useRef<HTMLPreElement>(null)
-  const { copied, copy } = useCopy()
-  const title = props['data-title']
+export function Pre({ 'data-title': title, 'data-language': language, ...props }: PreProps) {
   return (
-    <figure data-code-block className="group/code relative">
-      {title && (
-        <figcaption className="!mt-0 mb-1.5 text-left font-mono text-ui-xs text-muted-foreground">{title}</figcaption>
-      )}
-      <div className="relative">
-        <pre
-          ref={ref}
-          className={cn('overflow-x-auto rounded-(--radius) bg-muted px-4 py-3 font-mono text-[0.875em] leading-normal [tab-size:2]', className)}
-          {...props}
-        >
-          {children}
-        </pre>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label={copied ? 'Copied' : 'Copy code'}
-          className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/code:opacity-100 focus-visible:opacity-100"
-          onClick={() => copy(ref.current?.textContent ?? '')}
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
-        </Button>
-      </div>
-    </figure>
+    <CodeBlock title={title} language={language} className="not-typeset my-6">
+      <pre {...props} />
+    </CodeBlock>
   )
 }
 
-/** Several fences shown as tabs, labelled by their titles or languages. */
-export function CodeGroup({ children }: { children?: React.ReactNode }) {
-  const blocks = React.Children.toArray(children).filter(React.isValidElement) as React.ReactElement<any>[]
-  const label = (el: React.ReactElement<any>, i: number) => {
-    const pre = el.props?.['data-title'] !== undefined || el.props?.['data-language'] !== undefined ? el.props : el.props?.children?.props
-    return pre?.['data-title'] ?? pre?.['data-language'] ?? `Code ${i + 1}`
-  }
+/** The fences among an MDX element's children; MDX wraps each one in a fragment. */
+function fences(children: React.ReactNode): React.ReactElement<PreProps>[] {
+  return React.Children.toArray(children).flatMap((child) => {
+    if (!React.isValidElement<{ children?: React.ReactNode }>(child)) return []
+    if (child.type === React.Fragment) return fences(child.props.children)
+    return [child as React.ReactElement<PreProps>]
+  })
+}
+
+/** Several fences shown as tabs, labelled by their titles or languages. Groups sharing a `storageKey` switch together. */
+export function CodeGroup({ storageKey, children }: { storageKey?: string; children?: React.ReactNode }) {
+  const blocks = fences(children)
   return (
-    <TabsRoot defaultValue="0" className="not-typeset my-6">
-      <TabsList variant="underline">
-        {blocks.map((b, i) => (
-          <TabsTab key={i} value={String(i)}>
-            {label(b, i)}
-          </TabsTab>
-        ))}
-      </TabsList>
-      {blocks.map((b, i) => (
-        <TabsPanel key={i} value={String(i)} className="typeset typeset-docs pt-2 [&_figcaption]:hidden">
-          {b}
-        </TabsPanel>
-      ))}
-    </TabsRoot>
+    <CodeGroupRoot storageKey={storageKey} className="not-typeset my-6">
+      {blocks.map((b, i) => {
+        const { 'data-title': title, 'data-language': language, ...props } = b.props
+        return (
+          <CodeBlock key={i} title={title} language={language}>
+            <pre {...props} />
+          </CodeBlock>
+        )
+      })}
+    </CodeGroupRoot>
   )
 }
 
@@ -283,7 +251,7 @@ function Anchor({ href = '', ...props }: React.ComponentProps<'a'>) {
 
 export const mdxComponents = {
   a: Anchor,
-  pre: CodeBlock,
+  pre: Pre,
   Callout,
   Note,
   Tip,

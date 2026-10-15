@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
  * `variant="inset"` is the two-layer card: a quiet tinted frame (4px padding)
  * that holds a raised CardPanel. Use it to present something (a demo, image,
  * code, a featured plan); keep dense dashboard cards on the default variant.
- * Radii stay concentric: frame rounded-2xl (16px) = panel rounded-xl (12px) + p-1.
+ * Radii stay concentric at every --radius: the inset frame publishes radius − 4px and the panel takes it (rounded-inner).
  * `outline` is a hairline with no fill or shadow (cards on a card), `ghost` is
  * spacing only (groups that need the card rhythm without a surface).
  * `size` sets the shared spacing (sm 12px, default 16px, lg 24px) that every part reads.
@@ -20,7 +20,7 @@ const cardVariants = cva(
         default: "bg-card shadow-raised",
         outline: "bg-transparent shadow-[inset_0_0_0_1px_var(--border)]",
         ghost: "bg-transparent",
-        inset: "gap-0 rounded-2xl bg-muted p-1 shadow-raised dark:bg-background",
+        inset: "frame-2xl frame-inset-1 gap-0 rounded-2xl bg-muted p-1 shadow-raised dark:bg-background",
       },
       size: {
         sm: "[--card-spacing:--spacing(3)]",
@@ -52,7 +52,7 @@ function CardPanel({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-panel"
       className={cn(
-        "flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) shadow-raised",
+        "flex flex-col gap-(--card-spacing) overflow-hidden rounded-inner bg-card py-(--card-spacing) shadow-raised",
         className
       )}
       {...props}
@@ -103,8 +103,20 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="card-content" className={cn("px-(--card-spacing)", className)} {...props} />
+type CardContentProps = React.ComponentProps<"div"> & {
+  /** Turns prose styles back on for this content inside a `typeset` container (or names a preset when used on its own). */
+  typeset?: boolean | "docs" | "reading" | "chat"
+}
+
+function CardContent({ className, typeset, ...props }: CardContentProps) {
+  return (
+    <div
+      data-slot="card-content"
+      data-typeset={typeset === true ? "" : typeset || undefined}
+      className={cn("px-(--card-spacing)", className)}
+      {...props}
+    />
+  )
 }
 
 function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
@@ -118,4 +130,4 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 export { Card, CardPanel, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter, cardVariants }
-export type { CardProps }
+export type { CardProps, CardContentProps }

@@ -3,8 +3,10 @@ import { withBase } from '../shared.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-/** Runs before first paint: picks light or dark from the stored choice or the system. */
-const themeScript = `(function(){try{var s=localStorage.getItem('theme');var d=s?s==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d)}catch(e){}})()`
+import { getThemeScript } from '@/ui/theme-toggle'
+
+/** Runs before first paint: light, dark or the system's choice, and follows the system while it is the choice. */
+const themeScript = getThemeScript()
 
 export interface DocumentParts {
   config: ResolvedConfig
