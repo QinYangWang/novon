@@ -1,0 +1,38 @@
+/*
+ * novon's stylesheet. theme.css, typeset.css and accents.css are installed from
+ * the component library (scripts/sync-ui.ts); this file only adds what a static
+ * site generator needs on top: highlighted code and heading anchors.
+ */
+@import "./theme.css";
+@import "../app/typeset.css";
+@import "./accents.css";
+
+@source "../";
+
+@layer base {
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Highlighted code: both themes are emitted, the page picks one. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+}
+
+@layer components {
+  .typeset [data-code-block] pre {
+    margin: 0;
+  }
+  .typeset :where(h2, h3, h4)[id] {
+    scroll-margin-top: 4.5rem;
+  }
+}

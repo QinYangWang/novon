@@ -1,0 +1,55 @@
+---
+title: Configuration
+description: Every option in novon.config.ts.
+icon: Settings
+order: 4
+---
+
+```ts title="novon.config.ts"
+import { defineConfig } from 'novon/config'
+
+export default defineConfig({
+  title: 'Acme',                  // required
+  description: 'Docs for Acme.',
+  url: 'https://acme.dev',        // absolute links in sitemap and feeds
+  base: '/',                      // serve from a sub-path, e.g. '/docs/'
+  lang: 'en',
+  layout: 'docs',                 // 'docs' | 'blog'
+  layers: [],                     // see Layouts
+  nav: [{ label: 'Guide', href: '/guide' }],
+  theme: {
+    accent: 'blue',               // blue, neutral, green, orange, rose, violet
+    radius: '0.75rem',
+    toc: true,
+    logo: '/logo.svg',
+    logoDark: '/logo-dark.svg',
+    favicon: '/favicon.svg',
+    social: { github: 'https://github.com/acme', email: 'hi@acme.dev' },
+    editLink: 'https://github.com/acme/site/edit/main/',
+    footer: { text: '© Acme', links: [{ label: 'Privacy', href: '/privacy' }] },
+    css: ['./styles/extra.css'],
+    override: { Footer: './theme/Footer.tsx' },
+  },
+  components: { Pricing: './components/Pricing.tsx' },
+  plugins: ['search', 'sitemap', 'rss', 'llms'],
+  mdx: {
+    highlight: { light: 'github-light', dark: 'github-dark' },
+    remarkPlugins: [],
+    rehypePlugins: [],
+  },
+})
+```
+
+## Plugins
+
+Built-in plugins are named by string. Your own plugin is an object with a
+`buildEnd` hook that runs after every page is written:
+
+```ts
+const robots = {
+  name: 'humans',
+  async buildEnd({ emit, pages }) {
+    await emit('humans.txt', `${pages.length} pages, written by people.`)
+  },
+}
+```

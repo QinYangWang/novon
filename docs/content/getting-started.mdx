@@ -1,0 +1,52 @@
+---
+title: Getting started
+description: From an empty folder to a deployed site.
+icon: Bolt
+order: 1
+---
+
+novon runs on [Bun](https://bun.sh) 1.2 or newer.
+
+<Steps>
+  <Step title="Install">
+    ```bash
+    bun add -g novon
+    ```
+  </Step>
+  <Step title="Create a site">
+    ```bash
+    novon new my-docs                  # docs layout
+    novon new my-blog --template blog  # blog layout
+    ```
+  </Step>
+  <Step title="Preview">
+    ```bash
+    cd my-docs
+    novon dev
+    ```
+    Pages reload as you save. New files show up in the sidebar.
+  </Step>
+  <Step title="Build">
+    ```bash
+    novon build    # writes dist/
+    novon preview  # serves dist/ locally
+    ```
+  </Step>
+</Steps>
+
+## What a site looks like
+
+```text
+my-docs/
+├── novon.config.ts
+├── content/
+│   ├── index.mdx            → /
+│   ├── getting-started.mdx  → /getting-started
+│   └── guide/
+│       ├── index.mdx        → /guide
+│       └── writing.mdx      → /guide/writing
+└── public/                  copied to the output root
+```
+
+Folders under `content/` become sidebar sections. A folder's `index.mdx` is the
+section's first page and names it.

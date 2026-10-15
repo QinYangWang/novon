@@ -1,0 +1,94 @@
+---
+title: Writing
+description: Components available in every MDX file without an import.
+icon: Edit
+order: 2
+---
+
+## Callouts
+
+<Note>Context the reader may want.</Note>
+<Tip title="Faster">A better way to do the same thing.</Tip>
+<Warning>Something that can go wrong.</Warning>
+<Danger>Something that loses data.</Danger>
+
+```mdx
+<Note>Context the reader may want.</Note>
+<Tip title="Faster">A better way to do the same thing.</Tip>
+```
+
+`Info` and `Caution` exist too. `<Callout type="tip">` is the long form.
+
+## Cards
+
+```mdx
+<CardGroup cols={2}>
+  <Card title="Guide" icon="Bookmark" href="/guide">Read this first.</Card>
+  <Card title="GitHub" icon="Github" href="https://github.com">Source.</Card>
+</CardGroup>
+```
+
+## Steps
+
+<Steps>
+  <Step title="Write">Add a file.</Step>
+  <Step title="Preview">Run `novon dev`.</Step>
+</Steps>
+
+## Tabs
+
+<Tabs>
+  <Tab title="bun">`bun add -g novon`</Tab>
+  <Tab title="npm">`npm i -g novon`</Tab>
+</Tabs>
+
+## Code
+
+Fences are highlighted at build time, in both themes. `title` adds a caption.
+
+```ts title="novon.config.ts"
+import { defineConfig } from 'novon/config'
+
+export default defineConfig({ title: 'My site' })
+```
+
+Several fences in a `CodeGroup` become tabs:
+
+<CodeGroup>
+
+```bash title="bun"
+bun add -g novon
+```
+
+```bash title="npm"
+npm i -g novon
+```
+
+</CodeGroup>
+
+## Accordion
+
+<AccordionGroup>
+  <Accordion title="Does a site need a package.json?">No. Imports resolve from novon itself.</Accordion>
+  <Accordion title="Can I use React components?">Yes, see Theming.</Accordion>
+</AccordionGroup>
+
+## Files
+
+<FileTree defaultExpanded={['content']}>
+  <Folder value="content" name="content">
+    <File value="index" name="index.mdx" />
+    <File value="writing" name="writing.mdx" />
+  </Folder>
+  <File value="config" name="novon.config.ts" />
+</FileTree>
+
+## Inline
+
+<Term tip="A URL that maps to a file in content/">Route</Term>,
+<Badge>badge</Badge>, and <Icon name="Heart" className="inline size-4" /> icons.
+
+## Icons
+
+`icon` takes any name from the icon set, with or without the `Icon` suffix:
+`Bolt`, `Edit`, `File`, `Folder`, `Github`, `Heart`, `Settings`, `Sparkles`…

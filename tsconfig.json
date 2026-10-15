@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "types": ["bun", "vite/client"],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["bin", "src", "tests", "templates/**/*.ts", "docs/*.ts"]
+}

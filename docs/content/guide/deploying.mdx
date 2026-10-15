@@ -1,0 +1,33 @@
+---
+title: Deploying
+description: dist/ is a plain static site.
+icon: Cloud
+order: 6
+---
+
+`novon build` writes `dist/`. Every page is a prerendered `index.html`, so any
+static host works.
+
+| Host | Build command | Output |
+| --- | --- | --- |
+| Cloudflare Pages | `bunx novon build` | `dist` |
+| Vercel | `bunx novon build` | `dist` |
+| GitHub Pages | see below | `dist` |
+
+On a sub-path (GitHub Pages project sites), set `base: '/repo/'`.
+
+```yaml title=".github/workflows/pages.yml"
+on: { push: { branches: [main] } }
+permissions: { pages: write, id-token: write }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bunx novon build
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+      - uses: actions/deploy-pages@v4
+```

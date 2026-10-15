@@ -1,0 +1,56 @@
+{
+  "name": "novon",
+  "version": "0.1.0",
+  "description": "MDX in, static site out. Docs and blogs on Bun, Vite and React.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "novon": "./bin/novon.ts"
+  },
+  "files": ["bin", "src", "templates", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "exports": {
+    ".": "./src/runtime/index.ts",
+    "./config": "./src/config.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "dev": "bun bin/novon.ts dev docs",
+    "build:docs": "bun bin/novon.ts build docs",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@mdx-js/react": "3",
+    "@mdx-js/rollup": "3",
+    "@shikijs/rehype": "4",
+    "@tailwindcss/vite": "4",
+    "@vitejs/plugin-react": "6",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "github-slugger": "^2.0.0",
+    "gray-matter": "^4.0.3",
+    "lenis": "^1.3.27",
+    "motion": "^14.3.0",
+    "react": "19",
+    "react-dom": "19",
+    "rehype-slug": "^6.0.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx-frontmatter": "^6.0.0",
+    "shiki": "4",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "4",
+    "vite": "8"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "@types/mdx": "^2.0.14",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

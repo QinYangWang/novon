@@ -1,0 +1,33 @@
+---
+title: Layouts
+description: Docs, blog, or both in one site.
+icon: Columns2
+order: 3
+---
+
+`layout` picks the layout for the whole site. `layers` mounts another layout
+under a URL prefix; the longest prefix wins.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  title: 'Acme',
+  layout: 'docs',
+  layers: [{ path: '/blog', layout: 'blog', title: 'Blog' }],
+  nav: [
+    { label: 'Docs', href: '/guide' },
+    { label: 'Blog', href: '/blog' },
+  ],
+})
+```
+
+## Docs
+
+A sidebar built from `content/`, search, page actions (copy as Markdown, view
+raw, edit), "On this page" and previous/next links.
+
+## Blog
+
+A single column. Pages with a `date` are posts, listed newest first at the
+layer root. Each tag gets a page at `<layer>/tags/<tag>`. An `index.mdx` at the
+layer root replaces the list; put `<PostList />` in it to keep the posts.
+Pages without a date, like an About page, render as plain pages.

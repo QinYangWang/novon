@@ -1,0 +1,51 @@
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+
+import { cn } from "@/lib/utils"
+
+function TooltipProvider({ delay = 300, ...props }: TooltipPrimitive.Provider.Props) {
+  return <TooltipPrimitive.Provider delay={delay} {...props} />
+}
+
+const Tooltip = TooltipPrimitive.Root
+const TooltipTrigger = TooltipPrimitive.Trigger
+
+function TooltipContent({
+  className,
+  side = "top",
+  sideOffset = 8,
+  align = "center",
+  children,
+  ...props
+}: TooltipPrimitive.Popup.Props & Pick<TooltipPrimitive.Positioner.Props, "side" | "sideOffset" | "align">) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Positioner className="z-50" side={side} sideOffset={sideOffset} align={align}>
+        <TooltipPrimitive.Popup
+          data-slot="tooltip-content"
+          className={cn(
+            "flex origin-(--transform-origin) items-center gap-1.5 rounded-lg bg-popover px-2 py-1 text-ui-sm text-popover-foreground shadow-surface transition-[opacity,scale,translate] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] data-ending-style:scale-98 data-ending-style:opacity-0 data-instant:duration-0 data-starting-style:scale-98 data-starting-style:opacity-0 data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </TooltipPrimitive.Popup>
+      </TooltipPrimitive.Positioner>
+    </TooltipPrimitive.Portal>
+  )
+}
+
+function TooltipKbd({ className, ...props }: React.ComponentProps<"kbd">) {
+  return (
+    <kbd
+      data-slot="tooltip-kbd"
+      className={cn(
+        "-mr-1 rounded-sm bg-muted px-1.5 py-px font-mono text-ui-2xs text-muted-foreground shadow-chip",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+export { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, TooltipKbd }

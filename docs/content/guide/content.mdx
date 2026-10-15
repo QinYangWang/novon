@@ -1,0 +1,47 @@
+---
+title: Content
+description: Routes, frontmatter and ordering.
+icon: File
+order: 1
+---
+
+## Routes
+
+The path of a file under `content/` is its URL. `index.mdx` stands for its
+folder. Both `.mdx` and `.md` work. Files and folders starting with `_` or `.`
+are skipped.
+
+## Frontmatter
+
+```yaml
+---
+title: Writing            # page title and <title>
+description: One line.    # under the title, in search and meta tags
+label: Write              # sidebar text, when it should differ from title
+order: 2                  # lower comes first; then alphabetical
+icon: Edit                # sidebar and search icon
+date: 2026-10-16          # makes a page a post in a blog layout
+tags: [release]           # blog tags
+cover: /cover.png         # blog cover image, from public/
+hidden: true              # left out of navigation, search and feeds
+draft: true               # left out of production builds
+---
+```
+
+The first `# Heading` is used when there is no `title`. Write the body from
+`##` down: the layout prints the title.
+
+## Headings
+
+`##` and `###` headings get ids and show up in "On this page" and in search.
+
+## Generated files
+
+`novon build` writes, next to the pages:
+
+| File | Plugin |
+| --- | --- |
+| `search.json` | `search` |
+| `sitemap.xml`, `robots.txt` | `sitemap` |
+| `rss.xml` | `rss` (blog layouts) |
+| `llms.txt` and `<page>.md` | `llms` |

@@ -1,0 +1,30 @@
+---
+title: Writing
+description: What you can use in MDX without an import.
+icon: Edit
+---
+
+## Callouts
+
+<Note>Neutral context.</Note>
+<Tip>A better way to do it.</Tip>
+<Warning>Something that can go wrong.</Warning>
+
+## Tabs
+
+<Tabs>
+  <Tab title="bun">Run `bun add -g novon`.</Tab>
+  <Tab title="npm">Run `npm i -g novon`.</Tab>
+</Tabs>
+
+## Code
+
+```ts title="novon.config.ts"
+import { defineConfig } from 'novon/config'
+
+export default defineConfig({ title: 'My site' })
+```
+
+## Terms
+
+A <Term tip="A page in content/">route</Term> is a URL.
