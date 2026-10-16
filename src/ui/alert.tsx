@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { AnimatePresence, motion, useReducedMotion, type HTMLMotionProps } from "motion/react"
@@ -14,10 +16,10 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "before:bg-transparent",
-        info: "before:bg-primary/7",
-        success: "before:bg-success/9",
-        warning: "before:bg-warning/11",
-        destructive: "before:bg-destructive/8",
+        info: "before:bg-primary-subtle",
+        success: "before:bg-success-subtle",
+        warning: "before:bg-warning-subtle",
+        destructive: "before:bg-destructive-subtle",
       },
       size: {
         sm: "gap-2.5 rounded-xl p-2.5 text-ui",

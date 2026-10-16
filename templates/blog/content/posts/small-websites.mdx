@@ -1,0 +1,37 @@
+---
+title: Notes on small websites
+description: A personal site doesn't need a framework, a CMS or an analytics script.
+date: 2026-08-21
+tags: [web, writing]
+author: Mira Chen
+cover: /covers/small-web.svg
+---
+
+This site is a folder of text files and one config file. It builds in under a
+second and costs nothing to host.
+
+## What a small site needs
+
+1. A way to write that you'll actually use.
+2. A URL that won't change.
+3. A feed, so readers can follow without an account.
+
+Everything else is optional.
+
+## Keep the URL
+
+Pick your domain and your URL scheme once. A post at `/notes-on-small-websites`
+should still be there in ten years. Redirects are a promise you'll forget.
+
+## Skip the analytics
+
+I used to check visitor counts daily. Now I read replies instead. The number
+never changed what I wrote; the replies sometimes do.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  title: 'Mira Chen',
+  layout: 'blog',
+  plugins: ['rss', 'sitemap'],
+})
+```

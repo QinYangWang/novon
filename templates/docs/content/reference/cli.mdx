@@ -1,0 +1,21 @@
+---
+title: CLI
+description: Every novon command and its flags.
+order: 1
+icon: Terminal
+---
+
+| Command | |
+| --- | --- |
+| `novon new <dir>` | Start a site. `--template docs` or `blog` |
+| `novon dev [dir]` | Preview with live reload. `--port`, `--host` |
+| `novon build [dir]` | Write the static site to `dir/dist` |
+| `novon preview [dir]` | Serve `dir/dist` under `base`. `--port` |
+
+## Examples
+
+```bash
+novon new my-docs --template docs
+novon dev my-docs --port 3000
+novon build my-docs
+```

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { withBase } from '../shared.ts'
+import { normalizeRoute, withBase } from '../shared.ts'
 import { useSite } from './site.tsx'
 
 const FILE = /\.[a-z0-9]{2,5}$/i
@@ -14,8 +14,11 @@ export type LinkProps = React.ComponentProps<'a'> & { href: string }
 /** An anchor that navigates in place for site routes. `href` is a route, without base. */
 export function Link({ href, onClick, onMouseEnter, ...props }: LinkProps) {
   const { site, navigate, prefetch } = useSite()
-  const internal = isInternal(href)
-  const target = internal ? withBase(site.base, href) : href
+  // Only routes this site renders navigate in place; anything else under the base
+  // (another site deployed beside it, a generated file) is a normal page load.
+  const local = isInternal(href)
+  const internal = local && site.pages.some((p) => p.route === normalizeRoute(href.split(/[?#]/)[0]))
+  const target = local ? withBase(site.base, href) : href
   return (
     <a
       href={target}

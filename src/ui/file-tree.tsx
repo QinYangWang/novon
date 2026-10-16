@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 
@@ -354,7 +356,7 @@ function FileTree({
               }}
               style={{ paddingLeft: PAD + row.depth * indent }}
               className={cn(
-                "group/file-tree-item relative flex h-[22px] shrink-0 cursor-pointer items-center gap-1.5 rounded-sm pr-2 text-muted-foreground outline-none select-none",
+                "group/file-tree-item relative flex h-[22px] shrink-0 cursor-pointer items-center gap-1.5 rounded-inner-or-sm pr-2 text-muted-foreground outline-none select-none",
                 "focus-visible:ring-inset",
                 "transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
                 isSelected && "font-medium text-foreground",
@@ -367,11 +369,11 @@ function FileTree({
                   layoutId={pillId}
                   aria-hidden
                   transition={reduce ? { duration: 0 } : SPRING}
-                  className="absolute inset-0 rounded-sm bg-secondary"
+                  className="absolute inset-0 rounded-inner-or-sm bg-secondary"
                 />
               )}
               {!isSelected && (
-                <span aria-hidden className="absolute inset-0 rounded-sm transition-colors group-hover/file-tree-item:bg-muted/60" />
+                <span aria-hidden className="absolute inset-0 rounded-inner-or-sm transition-colors group-hover/file-tree-item:bg-muted/60" />
               )}
 
               {/* indent guides, one per ancestor level, under that ancestor's chevron */}

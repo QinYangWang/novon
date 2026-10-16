@@ -1,3 +1,5 @@
+"use client"
+
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible"
 
 import { ChevronDownIcon } from "@/components/icons"

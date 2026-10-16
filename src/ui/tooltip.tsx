@@ -1,5 +1,6 @@
 "use client"
 
+import { useDirection } from "@base-ui/react/direction-provider"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
 import { cn } from "@/lib/utils"
@@ -20,8 +21,10 @@ function TooltipContent({
   children,
   ...props
 }: TooltipPrimitive.Popup.Props & Pick<TooltipPrimitive.Positioner.Props, "side" | "sideOffset" | "align">) {
+  // Portaled popups leave the DOM subtree that sets `dir`; carry the provider direction over.
+  const dir = useDirection() === "rtl" ? "rtl" : undefined
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal dir={dir}>
       <TooltipPrimitive.Positioner className="z-50" side={side} sideOffset={sideOffset} align={align}>
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"
@@ -40,7 +43,7 @@ function TooltipContent({
 
 /** A key inside a tooltip: a `Kbd` on the tooltip's own fill. */
 function TooltipKbd({ className, ...props }: React.ComponentProps<typeof Kbd>) {
-  return <Kbd data-slot="tooltip-kbd" size="sm" className={cn("-mr-1 rounded-sm bg-muted px-1.5 font-mono", className)} {...props} />
+  return <Kbd data-slot="tooltip-kbd" size="sm" className={cn("-me-1 rounded-sm bg-muted px-1.5 font-mono", className)} {...props} />
 }
 
 export { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent, TooltipKbd }

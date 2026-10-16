@@ -53,7 +53,7 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
     <li
       data-slot="breadcrumb-item"
       className={cn(
-        "inline-flex items-center gap-0.5 transition-[opacity,translate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] starting:-translate-x-1 starting:opacity-0 motion-reduce:transition-none",
+        "inline-flex items-center gap-0.5 transition-[opacity,translate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] starting:-translate-x-1 rtl:starting:translate-x-1 starting:opacity-0 motion-reduce:transition-none",
         className
       )}
       {...props}
@@ -104,7 +104,7 @@ function BreadcrumbSeparator({ className, children, ...props }: React.ComponentP
       className={cn("flex items-center text-muted-foreground/60", size === "sm" ? "[&>svg]:size-3" : size === "lg" ? "[&>svg]:size-4" : "[&>svg]:size-3.5", className)}
       {...props}
     >
-      {children ?? <ChevronRightIcon />}
+      {children ?? <ChevronRightIcon className="rtl:rotate-180" />}
     </li>
   )
 }

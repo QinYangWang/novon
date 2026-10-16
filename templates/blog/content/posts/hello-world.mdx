@@ -1,15 +1,31 @@
 ---
 title: Hello, world
-description: The first post.
-date: 2026-01-01
+description: How posts work on this site.
+date: 2026-06-11
 tags: [notes]
+author: Mira Chen
 ---
 
-Posts live anywhere under `content/`. Give them a `date` and they are listed
-newest first; `tags` group them.
+This is the first post. Keep it as a reference or delete it.
 
-## A heading
+## A post is a file
 
-```js
-console.log('ฅ^•ﻌ•^ฅ')
+Any `.mdx` file with a `date` is a post. The list on the home page is newest
+first, and every tag gets its own page.
+
+```mdx title="content/posts/hello-world.mdx"
+---
+title: Hello, world
+date: 2026-06-11
+tags: [notes]
+author: Mira Chen
+cover: /covers/hello.svg
+---
 ```
+
+## Covers and authors
+
+`cover` is an image under `public/`. `author` matches a name in
+`theme.authors` in `novon.config.ts`, which adds the card under the post.
+
+<Tip>Pages without a `date`, like About, render as plain pages.</Tip>

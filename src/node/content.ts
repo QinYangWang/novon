@@ -57,6 +57,13 @@ export function headingsOf(body: string): Heading[] {
   return out
 }
 
+/** Minutes to read: about 230 words or 450 CJK characters a minute. */
+export function readingTime(text: string): number {
+  const cjk = text.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g)?.length ?? 0
+  const words = text.replace(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g, ' ').split(/\s+/).filter(Boolean).length
+  return Math.max(1, Math.round(words / 230 + cjk / 450))
+}
+
 function asDate(value: unknown): string | undefined {
   if (value instanceof Date) return value.toISOString().slice(0, 10)
   if (typeof value === 'string' && value) return value
@@ -72,6 +79,7 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
   const route = routeFromFile(file)
   const layer = layerFor(route, config.layers, config.layout)
   const fallbackTitle = route === '/' ? config.title : humanize(route.split('/').at(-1)!)
+  const text = plainText(content)
   const title = fm.title ?? content.match(/^#\s+(.+)$/m)?.[1] ?? fallbackTitle
   let updated = asDate(fm.updated)
   if (!updated) updated = (await stat(abs)).mtime.toISOString().slice(0, 10)
@@ -88,11 +96,12 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
     tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
     author: fm.author,
     cover: fm.cover,
+    readingTime: readingTime(text),
     hidden: Boolean(fm.hidden),
     layer: layer.path,
     layout: layer.layout,
     kind: 'page',
-    text: plainText(content),
+    text,
     headings: headingsOf(content),
   }
 }

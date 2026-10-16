@@ -1,30 +1,71 @@
 ---
 title: Writing
-description: What you can use in MDX without an import.
+description: Components every page can use without an import.
 icon: Edit
+order: 1
 ---
 
 ## Callouts
 
-<Note>Neutral context.</Note>
-<Tip>A better way to do it.</Tip>
+<Note>Context the reader may want.</Note>
+<Tip title="Faster">A better way to do the same thing.</Tip>
 <Warning>Something that can go wrong.</Warning>
+
+```mdx
+<Note>Context the reader may want.</Note>
+<Tip title="Faster">A better way to do the same thing.</Tip>
+```
 
 ## Tabs
 
+Use tabs when readers pick one path, like an operating system.
+
 <Tabs>
-  <Tab title="bun">Run `bun add -g novon`.</Tab>
-  <Tab title="npm">Run `npm i -g novon`.</Tab>
+  <Tab title="macOS">Settings are in `~/Library/Application Support`.</Tab>
+  <Tab title="Linux">Settings are in `~/.config`.</Tab>
+  <Tab title="Windows">Settings are in `%APPDATA%`.</Tab>
 </Tabs>
 
 ## Code
 
-```ts title="novon.config.ts"
-import { defineConfig } from 'novon/config'
+Fences are highlighted at build time. `title` adds a caption.
 
-export default defineConfig({ title: 'My site' })
+```ts title="src/greet.ts"
+export function greet(name: string) {
+  return `Hello, ${name}`
+}
 ```
 
-## Terms
+Several fences in a `CodeGroup` become tabs:
 
-A <Term tip="A page in content/">route</Term> is a URL.
+<CodeGroup>
+
+```ts title="greet.ts"
+greet('world')
+```
+
+```py title="greet.py"
+greet("world")
+```
+
+</CodeGroup>
+
+## Steps
+
+<Steps>
+  <Step title="Write">Add a file under `content/`.</Step>
+  <Step title="Check">Read it in `novon dev`.</Step>
+  <Step title="Ship">Push; your host builds it.</Step>
+</Steps>
+
+## Accordion
+
+<AccordionGroup>
+  <Accordion title="Can a page import React components?">Yes. Import them at the top of the `.mdx` file, or register them in `components` in the config.</Accordion>
+  <Accordion title="Can I hide a page from the sidebar?">Set `hidden: true` in its frontmatter.</Accordion>
+</AccordionGroup>
+
+## Inline
+
+A <Term tip="A URL that maps to a file in content/">route</Term> is a URL,
+<Badge>beta</Badge> marks a status, and <Icon name="Heart" className="inline size-4" /> is an icon.

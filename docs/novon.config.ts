@@ -8,8 +8,10 @@ export default defineConfig({
   layout: 'docs',
   nav: [
     { label: 'Guide', href: '/guide' },
+    { label: 'Templates', href: '/templates' },
     { label: 'GitHub', href: 'https://github.com/QinYangWang/novon' },
   ],
+  components: { TemplateCard: './components/TemplateCard.tsx' },
   theme: {
     accent: 'blue',
     favicon: '/favicon.svg',

@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { Radio as RadioPrimitive } from "@base-ui/react/radio"
 import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group"
@@ -21,14 +19,15 @@ import { cn } from "@/lib/utils"
  */
 
 // Outer heights match Button (xs 24, sm 28, default 32, lg 36): items are 4px shorter
-// inside the p-0.5 well, and their radius is the well's minus 2px.
-const segmentedControlVariants = cva("relative inline-flex w-fit items-center gap-0.5 bg-muted p-0.5 shadow-well", {
+// inside the p-0.5 well, and their radius is the well's minus 2px (the well is a frame, so this holds at
+// every radius preset).
+const segmentedControlVariants = cva("relative inline-flex w-fit items-center gap-0.5 bg-muted frame-p-0.5 shadow-well", {
   variants: {
     size: {
-      xs: "rounded-sm",
-      sm: "rounded-lg",
-      default: "rounded-lg",
-      lg: "rounded-lg",
+      xs: "frame-sm",
+      sm: "frame-lg",
+      default: "frame-lg",
+      lg: "frame-lg",
     },
   },
   defaultVariants: { size: "default" },
@@ -39,10 +38,10 @@ const segmentedControlItemVariants = cva(
   {
     variants: {
       size: {
-        xs: "h-5 rounded-xs px-2 text-ui-xs [&_svg]:size-3",
-        sm: "h-6 rounded-md px-2.5 text-ui-sm",
-        default: "h-7 rounded-md px-3 text-ui",
-        lg: "h-8 rounded-md px-3.5 text-ui-lg [&_svg]:size-4",
+        xs: "h-5 rounded-inner px-2 text-ui-xs [&_svg]:size-3",
+        sm: "h-6 rounded-inner px-2.5 text-ui-sm",
+        default: "h-7 rounded-inner px-3 text-ui",
+        lg: "h-8 rounded-inner px-3.5 text-ui-lg [&_svg]:size-4",
       },
     },
     defaultVariants: { size: "default" },
@@ -51,12 +50,6 @@ const segmentedControlItemVariants = cva(
 
 type SegmentedControlSize = NonNullable<VariantProps<typeof segmentedControlVariants>["size"]>
 
-const thumbRadius: Record<SegmentedControlSize, string> = {
-  xs: "rounded-xs",
-  sm: "rounded-md",
-  default: "rounded-md",
-  lg: "rounded-md",
-}
 
 const SegmentedContext = React.createContext<{ id: string; size: SegmentedControlSize; value: unknown; reduce: boolean } | null>(null)
 
@@ -107,7 +100,7 @@ function SegmentedControlItem({ className, children, value, ...props }: RadioPri
           aria-hidden
           layoutId={`${ctx?.id}-thumb`}
           transition={ctx?.reduce ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 40, mass: 0.6 }}
-          className={cn("absolute inset-0 bg-card shadow-raised", thumbRadius[size])}
+          className="absolute inset-0 rounded-inner bg-card shadow-raised"
         />
       )}
       <span className="relative inline-flex items-center gap-1.5">{children}</span>

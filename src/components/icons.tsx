@@ -449,6 +449,17 @@ export const SmartphoneIcon = (p: IconProps) => (
     <path {...line} d="M10.5 18h3" />
   </Icon>
 );
+export const TabletIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect {...line} x="3.5" y="2.5" width="17" height="19" rx="4.5" />
+    <path {...line} d="M10.5 18h3" />
+  </Icon>
+);
+export const MaximizeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M3 8.5V7a4 4 0 014-4h1.5M15.5 3H17a4 4 0 014 4v1.5M21 15.5V17a4 4 0 01-4 4h-1.5M8.5 21H7a4 4 0 01-4-4v-1.5" />
+  </Icon>
+);
 export const PanelBottomIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect {...line} x="2.5" y="3.5" width="19" height="17" rx="4.5" />

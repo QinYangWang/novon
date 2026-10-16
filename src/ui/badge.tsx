@@ -12,11 +12,11 @@ const badgeVariants = cva(
     variants: {
       variant: {
         chip: "bg-muted text-foreground shadow-chip [a]:hover:shadow-raised-hover",
-        primary: "bg-primary/14 text-primary shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--primary)_28%,transparent)]",
-        success: "bg-success/12 text-success shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--success)_24%,transparent)]",
-        warning: "bg-warning/14 text-warning shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--warning)_26%,transparent)]",
+        primary: "bg-primary-subtle text-primary inset-ring inset-ring-primary-border",
+        success: "bg-success-subtle text-success inset-ring inset-ring-success-border",
+        warning: "bg-warning-subtle text-warning inset-ring inset-ring-warning-border",
         destructive:
-          "bg-destructive/12 text-destructive shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--destructive)_26%,transparent)]",
+          "bg-destructive-subtle text-destructive inset-ring inset-ring-destructive-border",
         outline: "text-muted-foreground shadow-[inset_0_0_0_1px_var(--input)]",
       },
       size: {

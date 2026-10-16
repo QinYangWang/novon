@@ -6,7 +6,10 @@ export default defineConfig({
   // url: 'https://example.com',
   layout: 'docs',
   // layers: [{ path: '/blog', layout: 'blog' }],
-  nav: [{ label: 'Guide', href: '/guide' }],
+  nav: [
+    { label: 'Guide', href: '/guide' },
+    { label: 'Reference', href: '/reference' },
+  ],
   theme: {
     accent: 'blue',
     social: {

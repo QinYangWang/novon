@@ -1,0 +1,46 @@
+---
+title: Deploying
+description: Put dist/ on any static host.
+icon: Sparkles
+order: 3
+---
+
+`novon build` writes plain HTML, CSS and JS to `dist/`. Any static host serves
+it as is.
+
+## Build
+
+```bash
+novon build
+```
+
+<Warning>Serving from a sub-path, like `example.com/docs/`? Set `base: '/docs/'` in the config first.</Warning>
+
+## Hosts
+
+<Tabs>
+  <Tab title="GitHub Pages">
+    Add a workflow that builds and uploads `dist/`:
+
+    ```yaml title=".github/workflows/docs.yml"
+    - uses: oven-sh/setup-bun@v2
+    - run: bunx novon build
+    - uses: actions/upload-pages-artifact@v3
+      with: { path: dist }
+    ```
+  </Tab>
+  <Tab title="Static host">
+    Set the build command to `bunx novon build` and the output folder to `dist`.
+  </Tab>
+  <Tab title="Your server">
+    Copy `dist/` to the web root. Missing pages fall back to `404.html`.
+  </Tab>
+</Tabs>
+
+## Checklist
+
+<Steps>
+  <Step title="Set url">Sitemaps and feeds need absolute links.</Step>
+  <Step title="Preview">`novon preview` serves `dist/` under `base`.</Step>
+  <Step title="Ship">Push and let the host build.</Step>
+</Steps>

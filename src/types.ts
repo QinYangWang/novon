@@ -33,10 +33,18 @@ export interface ThemeOptions {
   /** `base` + the page's file path gives "Edit this page". */
   editLink?: string
   footer?: { text?: string; links?: NavLink[] }
+  /** Blog authors by the name used in frontmatter `author`: a short bio and an avatar under `public/`. */
+  authors?: Record<string, Author>
   /** Extra stylesheets, relative to the site root. */
   css?: string[]
   /** Replace a built-in part with your own component file. */
   override?: Partial<Record<OverrideSlot, string>>
+}
+
+export interface Author {
+  bio?: string
+  avatar?: string
+  url?: string
 }
 
 export type OverrideSlot = 'Header' | 'Footer' | 'Sidebar' | 'NotFound' | 'PostHeader'
@@ -136,6 +144,8 @@ export interface PageMeta {
   tags: string[]
   author?: string
   cover?: string
+  /** Estimated minutes to read the body. */
+  readingTime?: number
   hidden: boolean
   /** Path of the layer that owns this page, `/` for the default. */
   layer: string

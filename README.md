@@ -37,8 +37,10 @@ my-docs/
 - **Extending.** Register React components for MDX, swap the header, footer,
   sidebar or 404 for your own, add stylesheets, or write a plugin.
 
-Documentation: [docs/content](docs/content) (built with novon:
-`bun run dev`).
+Documentation: <https://qinyangwang.github.io/novon/> (source in
+[docs/content](docs/content), `bun run dev`). Live demos of both templates:
+[docs](https://qinyangwang.github.io/novon/templates/docs/) and
+[blog](https://qinyangwang.github.io/novon/templates/blog/).
 
 ## The name
 
@@ -53,7 +55,7 @@ symmetric only in lowercase, so it is always written `novon`.
 | `src/node/` | Config loading, content scan, Vite setup, dev server, build, plugins |
 | `src/runtime/` | The browser app: routing, layouts, MDX components |
 | `src/ui/`, `src/components/`, `src/styles/theme.css`, `src/app/typeset.css` | Installed from the qinyang/ui registry; update with `bun scripts/sync-ui.ts`, never edit by hand |
-| `templates/` | Starter sites for `novon new` |
+| `templates/` | Starter sites for `novon new`; `bun run build:templates` builds them into `docs/dist/templates/` |
 | `docs/` | This project's own site |
 | `tests/` | `bun test` |
 

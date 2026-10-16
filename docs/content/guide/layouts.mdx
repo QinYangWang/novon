@@ -23,11 +23,27 @@ export default defineConfig({
 ## Docs
 
 A sidebar built from `content/`, search, page actions (copy as Markdown, view
-raw, edit), "On this page" and previous/next links.
+raw, edit), "On this page" and previous/next cards. A folder's `index.mdx`
+heads its section; nested folders fold under their index page.
 
 ## Blog
 
-A single column. Pages with a `date` are posts, listed newest first at the
-layer root. Each tag gets a page at `<layer>/tags/<tag>`. An `index.mdx` at the
-layer root replaces the list; put `<PostList />` in it to keep the posts.
-Pages without a date, like an About page, render as plain pages.
+The layer root lists posts: the newest as a featured card, then the rest.
+Pages with a `date` are posts; each tag gets a page at `<layer>/tags/<tag>`.
+An `index.mdx` at the layer root replaces the list; put `<PostList />` in it to
+keep the posts. Pages without a date, like an About page, render as plain pages.
+
+A post can set `cover` (an image under `public/`) and `author`. When `author`
+matches a name in `theme.authors`, the post ends with that author's card.
+
+```mdx
+---
+title: Plain text
+date: 2026-10-02
+tags: [writing]
+author: Ada Park
+cover: /covers/plain-text.svg
+---
+```
+
+See both on the [Templates](/templates) page.

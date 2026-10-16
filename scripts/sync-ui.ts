@@ -14,7 +14,7 @@ export const items = [
   'theme', 'theme-accents', 'typeset', 'icons', 'button', 'badge', 'card', 'alert', 'tabs', 'accordion',
   'collapsible', 'tooltip', 'menu', 'file-tree', 'marquee', 'scroll-progress', 'theme-toggle',
   'command-palette', 'breadcrumb', 'avatar', 'icon-chip', 'scroll-area', 'segmented-control', 'drawer',
-  'code-block', 'kbd', 'separator',
+  'code-block', 'kbd', 'separator', 'animated-sidebar', 'page-header',
 ]
 
 if (import.meta.main) {

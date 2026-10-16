@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import Lenis from "lenis"
 import { type MotionValue, useMotionValue, useReducedMotion } from "motion/react"
@@ -7,7 +5,7 @@ import { type MotionValue, useMotionValue, useReducedMotion } from "motion/react
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/ui/scroll-area"
 
-/* Lenis' exponential ease-out: quick to respond, long soft tail. */
+/* Exponential ease-out: quick to respond, long soft tail. */
 const easeScroll = (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t))
 
 type ScrollTarget = number | string | HTMLElement
@@ -22,9 +20,9 @@ type SmoothScrollToOptions = {
 }
 
 type SmoothScrollApi = {
-  /** The Lenis instance, or null on the native / reduced-motion path. */
+  /** The smooth-scroll instance, or null on the native / reduced-motion path. */
   lenis: Lenis | null
-  /** Whether scrolling is currently eased by Lenis. */
+  /** Whether scrolling is currently eased. */
   smooth: boolean
   /** The scroll container, or null when the provider drives the window. */
   container: React.RefObject<HTMLElement | null> | null

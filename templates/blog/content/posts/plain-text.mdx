@@ -1,0 +1,41 @@
+---
+title: Writing in plain text
+description: Why every draft I keep now starts as a Markdown file.
+date: 2026-10-02
+tags: [writing, tools]
+author: Mira Chen
+cover: /covers/plain-text.svg
+---
+
+For years my drafts lived in five apps. Now they live in one folder of text
+files, and I write more.
+
+## Files outlast apps
+
+A `.md` file opens in any editor, diffs in git and survives the app that made
+it. None of my old drafts in a notes app export cleanly; every text file does.
+
+> The best format is the one you can still open in ten years.
+
+## The setup
+
+One folder, one file per idea, named by date:
+
+```bash
+drafts/
+  2026-09-28-plain-text.md
+  2026-10-01-notifications.md
+```
+
+A draft becomes a post when I move it into `content/posts/` and add a date.
+
+## What I gave up
+
+- Inline images while drafting. I add them at the end.
+- Sync across five devices. Two is enough.
+- Tags that live in the app. They now live in the frontmatter.
+
+## What I got
+
+Search is `grep`. Backups are a git push. The writing itself didn't change, but
+starting a draft takes one keystroke instead of a decision.

@@ -21,12 +21,12 @@ type KbdProps = React.ComponentProps<"kbd"> & VariantProps<typeof kbdVariants>
 
 /** One key. Inside a tooltip or a primary button it picks up a muted fill instead of a chip. */
 function Kbd({ className, size = "default", ...props }: KbdProps) {
-  return <kbd data-slot="kbd" data-size={size} className={cn(kbdVariants({ size }), className)} {...props} />
+  return <kbd data-slot="kbd" data-size={size} dir="ltr" className={cn(kbdVariants({ size }), className)} {...props} />
 }
 
 /** Keys pressed together or in sequence, spaced evenly. */
 function KbdGroup({ className, ...props }: React.ComponentProps<"kbd">) {
-  return <kbd data-slot="kbd-group" className={cn("inline-flex items-center gap-1 align-middle", className)} {...props} />
+  return <kbd data-slot="kbd-group" dir="ltr" className={cn("inline-flex items-center gap-1 align-middle", className)} {...props} />
 }
 
 export { Kbd, KbdGroup, kbdVariants }

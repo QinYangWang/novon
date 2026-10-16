@@ -1,23 +1,53 @@
 ---
 title: Getting started
-description: Write a page and see it live.
+description: Preview, edit and build the site.
 icon: Bolt
 order: 1
 ---
 
+You need [Bun](https://bun.sh) 1.2 or newer. Nothing else: the site has no
+`package.json`.
+
 <Steps>
+  <Step title="Install novon">
+    <CodeGroup>
+
+    ```bash title="bun"
+    bun add -g novon
+    ```
+
+    ```bash title="npm"
+    npm i -g novon
+    ```
+
+    </CodeGroup>
+  </Step>
   <Step title="Start the preview">
     ```bash
     novon dev
     ```
+    Open the URL it prints. Pages reload as you save.
   </Step>
   <Step title="Add a page">
-    Create `content/guide/hello.mdx`. It appears in the sidebar right away.
+    Create `content/guide/hello.mdx`:
+
+    ```mdx title="content/guide/hello.mdx"
+    ---
+    title: Hello
+    description: My first page.
+    ---
+
+    Write Markdown here.
+    ```
+
+    It appears in the Guide section right away.
   </Step>
   <Step title="Build">
     ```bash
     novon build
     ```
-    The static site is in `dist/`.
+    The static site is in `dist/`. See [Deploying](/guide/deploying).
   </Step>
 </Steps>
+
+<Tip>Run `novon preview` after a build to check `dist/` the way a host serves it.</Tip>

@@ -16,6 +16,8 @@
   "scripts": {
     "dev": "bun bin/novon.ts dev docs",
     "build:docs": "bun bin/novon.ts build docs",
+    "build:templates": "bun scripts/build-templates.ts",
+    "build:site": "bun run build:docs && bun run build:templates",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

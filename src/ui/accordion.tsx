@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion"
 
@@ -32,7 +30,7 @@ function Accordion({
         data-variant={variant}
         className={cn(
           "flex w-full flex-col gap-1",
-          variant === "default" && "rounded-[calc(var(--radius)*2)] bg-background p-1 shadow-well dark:bg-input/32",
+          variant === "default" && "frame-3xl frame-p-1 bg-background shadow-well dark:bg-input/32",
           className
         )}
         {...props}
@@ -49,7 +47,7 @@ function AccordionItem({ className, ...props }: AccordionPrimitive.Item.Props) {
       className={cn(
         "group/accordion-item",
         variant === "default" &&
-          "rounded-2xl transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-open:bg-card data-open:shadow-raised",
+          "rounded-inner transition-[background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] data-open:bg-card data-open:shadow-raised",
         // Ghost: the item is the frame; the flush trigger follows it via rounded-inner.
         variant === "ghost" &&
           "frame-xl transition-[background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] data-open:bg-secondary",
@@ -74,10 +72,10 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "group/accordion-trigger flex flex-1 cursor-pointer items-center text-left text-ui font-medium text-foreground transition-[background-color] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 data-disabled:pointer-events-none",
+          "group/accordion-trigger flex flex-1 cursor-pointer items-center text-start text-ui font-medium text-foreground transition-[background-color] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 data-disabled:pointer-events-none",
           ghost
             ? "min-h-9 gap-2.5 rounded-inner px-3 py-1.5 hover:not-data-panel-open:bg-secondary data-disabled:opacity-64"
-            : "min-h-11 gap-3 rounded-2xl px-3 py-2 hover:not-data-panel-open:bg-card/50 data-disabled:opacity-50",
+            : "min-h-11 gap-3 rounded-inner px-3 py-2 hover:not-data-panel-open:bg-card/50 data-disabled:opacity-50",
           className
         )}
         {...props}
@@ -138,7 +136,7 @@ function AccordionPanel({ className, children, typeset, ...props }: AccordionPan
           // Prose content (typeset) keeps the surrounding text size and colour.
           !typeset && "text-ui-sm leading-5 text-muted-foreground",
           "px-3 pb-3 transition-[opacity,translate] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-ending-style/accordion-panel:-translate-y-1.5 group-data-ending-style/accordion-panel:opacity-0 group-data-starting-style/accordion-panel:-translate-y-1.5 group-data-starting-style/accordion-panel:opacity-0 motion-reduce:transition-none",
-          variant === "ghost" && "group-has-data-[slot=accordion-icon]/accordion-item:pl-9.5",
+          variant === "ghost" && "group-has-data-[slot=accordion-icon]/accordion-item:ps-9.5",
           className
         )}
       >

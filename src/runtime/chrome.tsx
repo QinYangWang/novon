@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/menu'
 import { ThemeToggle } from '@/ui/theme-toggle'
+import { Kbd } from '@/ui/kbd'
 import { CommandPalette, type CommandPaletteItem } from '@/components/command-palette'
 import {
   CheckIcon,
@@ -99,10 +100,17 @@ export function Search({ className, compact }: { className?: string; compact?: b
           <SearchIcon />
         </Button>
       ) : (
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className={cn('justify-start text-muted-foreground', className)}>
-          <SearchIcon data-icon="inline-start" />
-          <span className="flex-1 text-left">Search</span>
-          <kbd className="font-sans text-ui-xs text-muted-foreground">⌘K</kbd>
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label="Search"
+          aria-keyshortcuts="Meta+K"
+          onClick={() => setOpen(true)}
+          className={cn('w-8 px-0 text-muted-foreground sm:w-56 sm:justify-start sm:px-3', className)}
+        >
+          <SearchIcon />
+          <span className="hidden sm:inline">Search…</span>
+          <Kbd className="ms-auto max-sm:hidden">⌘K</Kbd>
         </Button>
       )}
       <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder="Search the site…" />

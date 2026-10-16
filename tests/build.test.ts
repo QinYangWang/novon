@@ -51,7 +51,7 @@ describe('docs template', async () => {
     expect(html).toContain('<title>Writing')
     expect(html).toContain('shiki-themes')
     expect(html).toContain('data-slot="code-block"')
-    expect(html).toContain('>novon.config.ts</span>')
+    expect(html).toContain('>src/greet.ts</span>')
     expect(html).toContain('id="callouts"')
     expect(await read(dir, 'blog/first/index.html')).toContain('hello-component')
   })

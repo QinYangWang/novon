@@ -1,0 +1,56 @@
+---
+title: Configuration
+description: Everything in novon.config.ts.
+icon: Settings
+order: 2
+---
+
+The config is one typed object. Only `title` is required.
+
+```ts title="novon.config.ts"
+import { defineConfig } from 'novon/config'
+
+export default defineConfig({
+  title: 'Acme',
+  description: 'Docs for Acme.',
+  url: 'https://docs.acme.dev',
+  nav: [{ label: 'Guide', href: '/guide' }],
+  theme: { accent: 'green' },
+})
+```
+
+## Site
+
+| Option | Default | |
+| --- | --- | --- |
+| `title` | | Shown in the header and tab |
+| `description` | | Meta description and home lede |
+| `url` | | Needed for the sitemap and feed |
+| `base` | `/` | Sub-path when the site isn't at the root |
+| `layout` | `docs` | `docs` or `blog` |
+
+## Theme
+
+| Option | Default | |
+| --- | --- | --- |
+| `accent` | `blue` | `blue`, `neutral`, `green`, `orange`, `rose` or `violet` |
+| `logo` | | Image under `public/` |
+| `toc` | `true` | The "On this page" column |
+| `editLink` | | Adds "Edit this page" |
+
+## Frontmatter
+
+Each page can set these at the top of its file:
+
+```mdx
+---
+title: Writing
+description: Shown under the title and in search.
+label: Write       # sidebar label
+order: 1           # lower comes first
+icon: Edit
+hidden: true       # out of navigation and search
+---
+```
+
+<Info>Icons take any name from the icon set, with or without the `Icon` suffix.</Info>

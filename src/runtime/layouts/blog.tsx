@@ -3,155 +3,258 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
 import { ScrollProgress } from '@/ui/scroll-progress'
 import { ArrowLeftIcon } from '@/components/icons'
-import { formatDate, postsOf, withBase } from '../../shared.ts'
+import { postsOf, withBase } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
-import { Brand, Footer, NotFound, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
+import { AuthorAvatar, useAuthor } from '../author.tsx'
+import { Footer, NotFound, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
 import { Link } from '../link.tsx'
-import { PostList, TagLink, TagList } from '../posts.tsx'
+import { Outline } from '../outline.tsx'
+import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
 import { useOverride, useSite } from '../site.tsx'
+
+function Container({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <div className={cn('mx-auto w-full max-w-5xl px-5 sm:px-8', className)}>{children}</div>
+}
+
+function Eyebrow({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="text-ui-xs font-medium tracking-wider text-muted-foreground uppercase">
+      {children}
+    </h2>
+  )
+}
+
+function BlogBrand() {
+  const { site } = useSite()
+  const { logo, logoDark } = site.theme
+  return (
+    <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-full font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+      {logo ? (
+        <>
+          <img src={withBase(site.base, logo)} alt="" className={cn('h-6 w-auto', logoDark && 'dark:hidden')} />
+          {logoDark && <img src={withBase(site.base, logoDark)} alt="" className="hidden h-6 w-auto dark:block" />}
+        </>
+      ) : (
+        <AuthorAvatar name={site.title} size="sm" />
+      )}
+      <span className="truncate">{site.title}</span>
+    </Link>
+  )
+}
 
 function DefaultHeader() {
   const { site, current } = useSite()
   return (
-    <header className="flex h-16 items-center gap-1">
-      <Brand className="mr-3" />
-      <nav className="flex items-center">
-        {site.nav.map((l) => {
-          const active = current.route === l.href || current.route.startsWith(`${l.href}/`)
-          return (
-            <Button key={l.href} variant="ghost" size="sm" className={cn(!active && 'text-muted-foreground')} nativeButton={false} render={<Link href={l.href} />}>
-              {l.label}
-            </Button>
-          )
-        })}
-      </nav>
-      <div className="flex-1" />
-      <Search compact />
-      <SocialLinks />
-      <ThemeButton />
+    <header className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur">
+      <Container className="flex h-full items-center gap-3">
+        <BlogBrand />
+        <nav aria-label="Main" className="ms-auto flex items-center gap-1">
+          {site.nav.map((l) => {
+            const active = l.href === '/' ? current.route === '/' : current.route === l.href || current.route.startsWith(`${l.href}/`)
+            return (
+              <Button key={l.href} variant="ghost" size="sm" className={cn(!active && 'text-muted-foreground')} nativeButton={false} render={<Link href={l.href} />}>
+                {l.label}
+              </Button>
+            )
+          })}
+          <Search compact />
+          <span className="flex items-center max-sm:hidden">
+            <SocialLinks />
+          </span>
+          <ThemeButton />
+        </nav>
+      </Container>
     </header>
   )
 }
 
-function DefaultPostHeader({ page }: { page: PageMeta }) {
-  const { site } = useSite()
+function BackLink({ layer }: { layer: string }) {
   return (
-    <header className="mb-10">
-      <Link href={page.layer} className="mb-6 inline-flex items-center gap-1 text-ui-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-3.5" /> All posts
-      </Link>
-      <h1 className="text-3xl font-semibold tracking-tight text-balance">{page.title}</h1>
-      {page.description && <p className="mt-2 text-lg text-muted-foreground">{page.description}</p>}
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-ui-sm text-muted-foreground">
-        {page.date && <time dateTime={page.date}>{formatDate(page.date, site.lang)}</time>}
-        {page.author && <span>· {page.author}</span>}
-        {page.tags.map((t) => (
-          <TagLink key={t} tag={t} layer={page.layer} />
-        ))}
+    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={layer} />} className="-ms-3 text-muted-foreground">
+      <ArrowLeftIcon data-icon="inline-start" />
+      All posts
+    </Button>
+  )
+}
+
+function DefaultPostHeader({ page }: { page: PageMeta }) {
+  return (
+    <header className="flex max-w-3xl flex-col items-start gap-5">
+      <BackLink layer={page.layer} />
+      <PostTags post={page} />
+      <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
+      {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
+      <div className="flex items-center gap-3">
+        {page.author && <AuthorAvatar name={page.author} />}
+        <div className="flex flex-col leading-tight">
+          {page.author && <span className="text-ui-sm font-medium">{page.author}</span>}
+          <PostMeta post={page} />
+        </div>
       </div>
-      {page.cover && (
-        <img src={withBase(site.base, page.cover)} alt="" className="mt-8 aspect-[2/1] w-full rounded-xl object-cover shadow-raised" />
-      )}
     </header>
   )
+}
+
+function AuthorCard({ name }: { name: string }) {
+  const author = useAuthor(name)
+  if (!author?.bio) return null
+  return (
+    <section aria-label="About the author" className="flex max-w-reading flex-col gap-4 rounded-2xl bg-card p-6 shadow-raised sm:flex-row sm:items-center sm:gap-5">
+      <AuthorAvatar name={name} size="xl" />
+      <div className="flex flex-col gap-1">
+        <p className="font-semibold">{name}</p>
+        <p className="text-ui leading-relaxed text-pretty text-muted-foreground">{author.bio}</p>
+      </div>
+      {author.url && (
+        <Button variant="secondary" size="sm" className="shrink-0 sm:ms-auto" nativeButton={false} render={<a href={author.url} target="_blank" rel="noreferrer" />}>
+          Follow
+        </Button>
+      )}
+    </section>
+  )
+}
+
+/** Up to three other posts: shared tags first, then the most recent. */
+function related(posts: PageMeta[], page: PageMeta): PageMeta[] {
+  const others = posts.filter((p) => p.route !== page.route)
+  const shared = (p: PageMeta) => p.tags.filter((t) => page.tags.includes(t)).length
+  return [...others].sort((a, b) => shared(b) - shared(a)).slice(0, 3)
 }
 
 function Post({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const PostHeader = useOverride('PostHeader', DefaultPostHeader)
-  const posts = postsOf(site.pages, page.layer)
-  const i = posts.findIndex((p) => p.route === page.route)
-  const newer = i > 0 ? posts[i - 1] : undefined
-  const older = i >= 0 ? posts[i + 1] : undefined
+  const more = related(postsOf(site.pages, page.layer), page)
+  const toc = site.theme.toc && (page.headings?.length ?? 0) > 1
   return (
     <>
-      <ScrollProgress className="fixed inset-x-0 top-0 z-50" />
-      <PostHeader page={page} />
-      <article className="typeset typeset-reading">
-        <PageContent />
-      </article>
-      {(newer || older) && (
-        <nav className="mt-16 grid gap-3 border-t border-border pt-6 text-ui sm:grid-cols-2">
-          {older && (
-            <Link href={older.route} className="group flex flex-col">
-              <span className="text-ui-xs text-muted-foreground">Older</span>
-              <span className="font-medium group-hover:text-primary">{older.title}</span>
-            </Link>
+      <ScrollProgress className="top-14" />
+      <Container className="flex flex-col gap-10 pt-10 pb-24 sm:pt-14">
+        <PostHeader page={page} />
+        <PostCover post={page} className="aspect-video rounded-2xl outline -outline-offset-1 outline-image-outline sm:aspect-[21/9]" />
+        <div className="flex justify-between gap-12">
+          <article className="typeset typeset-reading max-w-reading min-w-0 flex-1">
+            <PageContent />
+          </article>
+          {toc && (
+            <aside className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
+              <Outline headings={page.headings!} />
+            </aside>
           )}
-          {newer && (
-            <Link href={newer.route} className="group flex flex-col sm:col-start-2 sm:text-right">
-              <span className="text-ui-xs text-muted-foreground">Newer</span>
-              <span className="font-medium group-hover:text-primary">{newer.title}</span>
-            </Link>
-          )}
-        </nav>
-      )}
+        </div>
+        {page.author && <AuthorCard name={page.author} />}
+        {more.length > 0 && (
+          <section aria-labelledby="more-title" className="flex flex-col gap-6 pt-6">
+            <Eyebrow id="more-title">Keep reading</Eyebrow>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {more.map((p) => (
+                <PostCard key={p.route} post={p} />
+              ))}
+            </div>
+          </section>
+        )}
+      </Container>
     </>
   )
 }
 
 function PostsIndex({ page }: { page: PageMeta }) {
   const { site } = useSite()
+  const posts = postsOf(site.pages, page.layer)
+  const [latest] = posts
+  const description = page.description ?? (page.layer === '/' ? site.description : undefined)
   return (
-    <>
-      <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
-      {(page.description ?? (page.layer === '/' ? site.description : undefined)) && (
-        <p className="mt-2 text-muted-foreground">{page.description ?? site.description}</p>
+    <Container className="flex flex-col gap-20 py-16 sm:py-24">
+      <header className="flex max-w-2xl flex-col items-start gap-6">
+        {page.layer === '/' && !site.theme.logo && <AuthorAvatar name={site.title} size="xl" />}
+        <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
+        {description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{description}</p>}
+      </header>
+      {latest && (
+        <section aria-labelledby="latest-title" className="flex flex-col gap-6">
+          <Eyebrow id="latest-title">Latest</Eyebrow>
+          <PostCard post={latest} featured />
+        </section>
       )}
-      <div className="mt-10">
-        <PostList layer={page.layer} />
-      </div>
-      <div className="mt-10">
+      {posts.length > 1 && (
+        <section aria-labelledby="all-title" className="flex flex-col gap-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <Eyebrow id="all-title">All writing</Eyebrow>
+            <span className="text-ui-sm text-muted-foreground tabular-nums">{posts.length} posts</span>
+          </div>
+          <PostList layer={page.layer} skip={1} />
+        </section>
+      )}
+      <section aria-labelledby="topics-title" className="flex flex-col gap-4">
+        <Eyebrow id="topics-title">Topics</Eyebrow>
         <TagList layer={page.layer} />
-      </div>
-    </>
+      </section>
+      {!posts.length && <p className="text-muted-foreground">No posts yet.</p>}
+    </Container>
   )
 }
 
 function TagIndex({ page }: { page: PageMeta }) {
+  const { site } = useSite()
+  const count = postsOf(site.pages, page.layer).filter((p) => p.tags.includes(page.tag!)).length
   return (
-    <>
-      <Link href={page.layer} className="mb-6 inline-flex items-center gap-1 text-ui-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon className="size-3.5" /> All posts
-      </Link>
-      <h1 className="text-2xl font-semibold tracking-tight">{page.title}</h1>
-      <div className="mt-8">
-        <PostList layer={page.layer} tag={page.tag} />
+    <Container className="flex flex-col gap-10 py-10 sm:py-14">
+      <header className="flex flex-col items-start gap-4">
+        <BackLink layer={page.layer} />
+        <h1 className="text-4xl leading-tight font-semibold tracking-tight">{page.tag}</h1>
+        <p className="text-ui-sm text-muted-foreground tabular-nums">{count === 1 ? '1 post' : `${count} posts`}</p>
+      </header>
+      <PostList layer={page.layer} tag={page.tag} />
+    </Container>
+  )
+}
+
+function Page({ page }: { page: PageMeta }) {
+  return (
+    <Container className="py-10 sm:py-14">
+      <div className="mx-auto flex max-w-reading flex-col gap-8">
+        <header className="flex flex-col gap-3">
+          <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance">{page.title}</h1>
+          {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
+        </header>
+        <article className="typeset typeset-reading">
+          <PageContent />
+        </article>
       </div>
-    </>
+    </Container>
   )
 }
 
 function BlogBody() {
   const { current } = useSite()
   const page = current.page
-  if (!page) return <NotFound />
+  if (!page) {
+    return (
+      <Container>
+        <NotFound />
+      </Container>
+    )
+  }
   if (page.kind === 'posts') return <PostsIndex page={page} />
   if (page.kind === 'tag') return <TagIndex page={page} />
   // Undated pages (an about page, the layer's own index) are pages, not posts.
-  if (page.route === page.layer || !page.date) {
-    return (
-      <article className="typeset typeset-reading">
-        <h1>{page.title}</h1>
-        <PageContent />
-      </article>
-    )
-  }
+  if (page.route === page.layer || !page.date) return <Page page={page} />
   return <Post page={page} />
 }
 
 export function BlogLayout() {
   const Header = useOverride('Header', DefaultHeader)
   return (
-    <div className="min-h-dvh bg-background">
-      <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-5">
-        <Header />
-        <main className="flex-1 py-10">
-          <BlogBody />
-        </main>
-        <Footer className="border-t border-border py-6" />
+    <div className="flex min-h-dvh flex-col bg-background">
+      <Header />
+      <main className="flex-1">
+        <BlogBody />
+      </main>
+      <div className="border-t border-border py-10">
+        <Container>
+          <Footer />
+        </Container>
       </div>
     </div>
   )
 }
-

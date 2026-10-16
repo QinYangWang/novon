@@ -559,8 +559,9 @@
     --typeset-flow: 1em;
     --typeset-code-wrap: nowrap;
   }
-  /* Articles and blog posts. */
+  /* Articles and blog posts, set in the serif face. */
   :is(.typeset-reading, [data-typeset="reading"]) {
+    --typeset-font-body: var(--font-serif);
     --typeset-size: 16px;
     --typeset-leading: 1.75;
     --typeset-flow: 1.25em;

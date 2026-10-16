@@ -1,0 +1,24 @@
+---
+title: Output
+description: What novon build writes to dist/.
+order: 2
+icon: File
+---
+
+<FileTree defaultExpanded={['dist', 'dist/guide']}>
+  <Folder name="dist">
+    <File name="index.html" />
+    <File name="index.md" />
+    <Folder name="guide">
+      <File name="index.html" />
+      <File name="writing.md" />
+    </Folder>
+    <File name="404.html" />
+    <File name="search.json" />
+    <File name="sitemap.xml" />
+    <File name="llms.txt" />
+  </Folder>
+</FileTree>
+
+Every page is prerendered HTML plus a Markdown copy at the same path with
+`.md`, which the page's "Copy page" action uses. `llms.txt` lists them all.

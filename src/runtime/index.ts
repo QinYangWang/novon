@@ -4,7 +4,7 @@
  *
  *   import { Callout, Button } from 'novon'
  */
-export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink } from '../types.ts'
+export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink, Author } from '../types.ts'
 
 /* Writing components (also available in MDX without an import). */
 export {
@@ -35,7 +35,9 @@ export {
   type LinkCardProps,
   type MdxComponents,
 } from './mdx.tsx'
-export { PostList, PostItem, TagList, TagLink } from './posts.tsx'
+export { PostList, PostItem, PostCard, PostCover, PostMeta, PostTags, TagList, TagLink } from './posts.tsx'
+export { AuthorAvatar, useAuthor } from './author.tsx'
+export { Outline, useActiveHeading } from './outline.tsx'
 export { Icon, iconNames, resolveIcon, type IconProps } from './icons.tsx'
 
 /* Site state and navigation. */

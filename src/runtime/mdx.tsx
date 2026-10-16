@@ -17,6 +17,8 @@ import { ArrowUpRightIcon } from '@/components/icons'
 import { Icon } from './icons.tsx'
 import { Link, isInternal } from './link.tsx'
 import { PostList, TagList } from './posts.tsx'
+import { useSite } from './site.tsx'
+import { withBase } from '../shared.ts'
 
 /* ---------- Callouts ---------- */
 
@@ -244,9 +246,13 @@ export function YouTube({ id, title = 'Video' }: { id: string; title?: string })
 }
 
 function Anchor({ href = '', ...props }: React.ComponentProps<'a'>) {
+  const { site } = useSite()
   if (isInternal(href)) return <Link href={href} {...props} />
   const external = /^https?:/.test(href)
-  return <a href={href} {...(external ? { target: '_blank', rel: 'noreferrer' } : {})} {...props} />
+  // Root-relative files (a feed, a download) still live under the base.
+  const path: string = href
+  const target = path.startsWith('/') && !path.startsWith('//') ? withBase(site.base, path) : path
+  return <a href={target} {...(external ? { target: '_blank', rel: 'noreferrer' } : {})} {...props} />
 }
 
 export const mdxComponents = {

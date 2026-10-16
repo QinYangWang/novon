@@ -1,19 +1,42 @@
 ---
 title: __TITLE__
 label: Introduction
-description: Start here.
+description: Everything you need to write, run and ship these docs.
 icon: Home
 order: 0
 ---
 
-Every `.mdx` file under `content/` is a page. Its path is the URL, its folder is
-the sidebar section.
+These docs are a starter. Every page shows something you can use on your own
+pages, so read them once, then replace them.
 
 <CardGroup cols={2}>
-  <Card title="Getting started" icon="Sparkles" href="/getting-started">
-    Write and preview your first page.
+  <Card title="Getting started" icon="Bolt" href="/getting-started">
+    Preview, edit and build in three commands.
   </Card>
   <Card title="Writing" icon="Edit" href="/guide/writing">
     Callouts, tabs, steps and code.
   </Card>
+  <Card title="Configuration" icon="Settings" href="/guide/configuration">
+    Title, navigation, theme and plugins.
+  </Card>
+  <Card title="Deploying" icon="Sparkles" href="/guide/deploying">
+    Ship `dist/` to any static host.
+  </Card>
 </CardGroup>
+
+## How pages work
+
+Every `.mdx` file under `content/` is a page. Its path is the URL and its
+folder is the sidebar section.
+
+<FileTree defaultExpanded={['content', 'content/guide']}>
+  <Folder name="content">
+    <File name="index.mdx" />
+    <File name="getting-started.mdx" />
+    <Folder name="guide">
+      <File name="index.mdx" />
+      <File name="writing.mdx" />
+    </Folder>
+  </Folder>
+  <File name="novon.config.ts" />
+</FileTree>
