@@ -600,3 +600,18 @@
     border-radius: var(--frame-inner-1, var(--radius-lg));
     --frame-inner-2: max(calc(var(--frame-r) - var(--frame-p) - var(--frame-b)), min(2px, var(--frame-r)));
 }
+  @property --frame-r {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+  @property --frame-p {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+  @property --frame-b {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}

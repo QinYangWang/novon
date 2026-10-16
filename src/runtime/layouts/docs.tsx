@@ -21,7 +21,7 @@ import { Brand, Footer, NotFound, PageActions, PageContent, Search, SocialLinks,
 import { Icon } from '../icons.tsx'
 import { Link } from '../link.tsx'
 import { docsNav, flatten, type NavItem, type NavSection } from '../nav.ts'
-import { Outline } from '../outline.tsx'
+import { Outline, OutlinePopover } from '../outline.tsx'
 import { layoutOf, useOverride, useSite } from '../site.tsx'
 
 function useSections(): NavSection[] {
@@ -216,6 +216,11 @@ export function DocsPage() {
     <div className="flex min-w-0 justify-center gap-12 px-5 py-10 sm:px-8 lg:px-12">
       <main className="flex w-full max-w-reading min-w-0 flex-col gap-10">
         <DocsHeader page={page} />
+        {toc && (
+          <div className="sticky top-14 z-30 -my-4 bg-background py-2 xl:hidden">
+            <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
+          </div>
+        )}
         <article className="typeset typeset-docs">
           <PageContent />
         </article>
@@ -225,7 +230,7 @@ export function DocsPage() {
       </main>
       {toc && (
         <aside className="sticky top-24 w-56 shrink-0 self-start max-xl:hidden">
-          <Outline headings={page.headings!} />
+          <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
         </aside>
       )}
     </div>

@@ -19,13 +19,14 @@ title: Hello, world
 date: 2026-06-11
 tags: [notes]
 author: Mira Chen
-cover: /covers/hello.svg
+cover: /covers/small-web.svg
 ---
 ```
 
 ## Covers and authors
 
-`cover` is an image under `public/`. `author` matches a name in
-`theme.authors` in `novon.config.ts`, which adds the card under the post.
+`cover` is an image under `public/`. Without one, the post gets generated
+cover art, like this one; `cover: false` leaves it out. `author` matches a name
+in `theme.authors` in `novon.config.ts`, which adds the card under the post.
 
 <Tip>Pages without a `date`, like About, render as plain pages.</Tip>

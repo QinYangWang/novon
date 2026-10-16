@@ -115,7 +115,8 @@ export interface Frontmatter {
   updated?: string
   tags?: string[]
   author?: string
-  cover?: string
+  /** An image under `public/`; `false` for no cover. Without it a post gets generated cover art. */
+  cover?: string | false
   draft?: boolean
   /** Leave the page out of navigation, search and feeds. */
   hidden?: boolean
@@ -143,7 +144,7 @@ export interface PageMeta {
   updated?: string
   tags: string[]
   author?: string
-  cover?: string
+  cover?: string | false
   /** Estimated minutes to read the body. */
   readingTime?: number
   hidden: boolean

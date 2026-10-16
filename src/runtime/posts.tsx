@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/ui/badge'
+import { CoverArt } from '@/ui/cover-art'
 import { formatDate, postsOf, tagRoute, withBase } from '../shared.ts'
 import type { PageMeta } from '../types.ts'
 import { Link } from './link.tsx'
@@ -41,10 +42,11 @@ export function PostTags({ post, link = true }: { post: PageMeta; link?: boolean
   )
 }
 
-/** The post's `cover` image, framed. Renders nothing for posts without one. */
+/** The post's `cover` image, or generated cover art seeded by its route. Nothing for `cover: false`. */
 export function PostCover({ post, className }: { post: PageMeta; className?: string }) {
   const { site } = useSite()
-  if (!post.cover) return null
+  if (post.cover === false) return null
+  if (!post.cover) return <CoverArt seed={post.route.split('/').filter(Boolean).at(-1) ?? post.route} aria-hidden className={cn('w-full', className)} />
   return <img src={withBase(site.base, post.cover)} alt="" loading="lazy" className={cn('w-full object-cover', className)} />
 }
 
@@ -99,7 +101,7 @@ export function PostCard({ post, featured, className }: { post: PageMeta; featur
       href={post.route}
       className={cn(
         'not-typeset group grid grid-cols-1 overflow-hidden rounded-2xl bg-card shadow-raised transition-shadow duration-150 outline-none hover:shadow-raised-hover focus-visible:ring-2 focus-visible:ring-ring/50',
-        featured && post.cover && 'md:grid-cols-2',
+        featured && post.cover !== false && 'md:grid-cols-2',
         className,
       )}
     >
@@ -110,7 +112,7 @@ export function PostCard({ post, featured, className }: { post: PageMeta; featur
           <h3 className={cn('leading-snug font-medium text-balance text-foreground', featured && 'text-2xl leading-tight font-semibold tracking-tight')}>
             {post.title}
           </h3>
-          {(featured || !post.cover) && post.description && <p className="leading-relaxed text-pretty text-muted-foreground">{post.description}</p>}
+          {(featured || post.cover === false) && post.description && <p className="leading-relaxed text-pretty text-muted-foreground">{post.description}</p>}
         </div>
         {featured && <PostTags post={post} link={false} />}
       </div>

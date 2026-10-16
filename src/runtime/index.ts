@@ -37,7 +37,7 @@ export {
 } from './mdx.tsx'
 export { PostList, PostItem, PostCard, PostCover, PostMeta, PostTags, TagList, TagLink } from './posts.tsx'
 export { AuthorAvatar, useAuthor } from './author.tsx'
-export { Outline, useActiveHeading } from './outline.tsx'
+export { Outline, OutlinePopover, outlineItems, useActiveHeading, type OutlineItem, type OutlineProps, type OutlinePopoverProps } from './outline.tsx'
 export { Icon, iconNames, resolveIcon, type IconProps } from './icons.tsx'
 
 /* Site state and navigation. */

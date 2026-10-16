@@ -8,7 +8,7 @@ import type { PageMeta } from '../../types.ts'
 import { AuthorAvatar, useAuthor } from '../author.tsx'
 import { Footer, NotFound, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
 import { Link } from '../link.tsx'
-import { Outline } from '../outline.tsx'
+import { Outline, OutlinePopover } from '../outline.tsx'
 import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
 import { useOverride, useSite } from '../site.tsx'
 
@@ -133,12 +133,19 @@ function Post({ page }: { page: PageMeta }) {
         <PostHeader page={page} />
         <PostCover post={page} className="aspect-video rounded-2xl outline -outline-offset-1 outline-image-outline sm:aspect-[21/9]" />
         <div className="flex justify-between gap-12">
-          <article className="typeset typeset-reading max-w-reading min-w-0 flex-1">
-            <PageContent />
-          </article>
+          <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-10">
+            {toc && (
+              <div className="sticky top-14 z-30 -my-4 bg-background py-2 lg:hidden">
+                <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
+              </div>
+            )}
+              <article className="typeset typeset-reading">
+              <PageContent />
+            </article>
+          </div>
           {toc && (
             <aside className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
-              <Outline headings={page.headings!} />
+              <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
             </aside>
           )}
         </div>

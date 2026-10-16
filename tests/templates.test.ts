@@ -10,13 +10,14 @@ describe('blog template', async () => {
   const read = (file: string) => readFile(join(dist, file), 'utf8')
 
   test('writes posts, tag pages, about and feed', () => {
-    for (const f of ['index.html', 'about/index.html', 'posts/plain-text/index.html', 'tags/writing/index.html', 'rss.xml', 'covers/plain-text.svg'])
+    for (const f of ['index.html', 'about/index.html', 'posts/plain-text/index.html', 'tags/writing/index.html', 'rss.xml', 'covers/small-web.svg'])
       expect(existsSync(join(dist, f))).toBe(true)
   })
   test('home features the newest post and lists the rest', async () => {
     const html = await read('index.html')
     expect(html).toContain('Mira Chen')
-    expect(html).toContain('/demo/blog/covers/plain-text.svg')
+    // The newest post has no cover image, so it gets generated cover art.
+    expect(html).toContain('data-slot="cover-art"')
     expect(html.indexOf('Writing in plain text')).toBeLessThan(html.indexOf('A week without notifications'))
     expect(html).toContain('min read')
   })
@@ -26,6 +27,12 @@ describe('blog template', async () => {
     expect(html).toContain('Lives in Lisbon')
     expect(html).toContain('On this page')
     expect(html).toContain('Keep reading')
+    // The full outline is in the prerendered HTML.
+    for (const id of ['files-outlast-apps', 'the-setup', 'what-i-gave-up', 'what-i-got']) expect(html).toContain(`data-outline-id="${id}"`)
+  })
+  test('a cover image wins over cover art', async () => {
+    const html = await read('posts/small-websites/index.html')
+    expect(html).toContain('/demo/blog/covers/small-web.svg')
   })
   test('root-relative file links keep the base', async () => {
     expect(await read('about/index.html')).toContain('href="/demo/blog/rss.xml"')

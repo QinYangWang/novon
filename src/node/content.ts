@@ -95,7 +95,7 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
     updated,
     tags: Array.isArray(fm.tags) ? fm.tags.map(String) : [],
     author: fm.author,
-    cover: fm.cover,
+    cover: fm.cover === false ? false : typeof fm.cover === 'string' && fm.cover ? fm.cover : undefined,
     readingTime: readingTime(text),
     hidden: Boolean(fm.hidden),
     layer: layer.path,
