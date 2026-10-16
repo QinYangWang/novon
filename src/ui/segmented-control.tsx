@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import * as React from "react"
 import { Radio as RadioPrimitive } from "@base-ui/react/radio"

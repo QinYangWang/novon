@@ -75,6 +75,11 @@ describe('docs template', async () => {
     expect(html).toContain('<a href="/guide" data-slot="sidebar-nav-section-link"')
     expect(html).toContain('href="/guide/writing" data-slot="sidebar-nav-link" data-active="" aria-current="page"')
   })
+  test('a folder index icon sits on its section label', async () => {
+    const html = await read(dir, 'guide/writing/index.html')
+    // guide/index.mdx has `icon: Bookmark`
+    expect(html).toMatch(/<a href="\/guide" data-slot="sidebar-nav-section-link"[^>]*>(?:(?!<\/a>).)*data-slot="sidebar-nav-section-icon"/s)
+  })
   test('sidebar sections follow folders', () => {
     // the blog layer is not part of the docs sidebar
     expect(config.layers[0].path).toBe('/blog')
@@ -87,5 +92,10 @@ describe('nav', () => {
     const sections = docsNav([page('/'), page('/a', { order: 1 }), page('/guide'), page('/guide/z'), page('/guide/b')], '/')
     expect(sections[0].items.map((i) => i.page.route)).toEqual(['/a', '/'])
     expect(sections[1].items.map((i) => i.page.route)).toEqual(['/guide', '/guide/b', '/guide/z'])
+  })
+  test('a section takes its index page icon', () => {
+    const page = (route: string, extra = {}) => ({ route, file: 'x', title: route, label: route, order: Infinity, tags: [], hidden: false, layer: '/', layout: 'docs' as const, kind: 'page' as const, ...extra })
+    const sections = docsNav([page('/guide', { icon: 'Bookmark' }), page('/guide/a'), page('/ref/x')], '/')
+    expect(sections.map((s) => s.icon)).toEqual(['Bookmark', undefined])
   })
 })

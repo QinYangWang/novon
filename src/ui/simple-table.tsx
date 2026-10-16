@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils"
 
 /*
  * A plain HTML table on a raised surface, for reference content: prop tables, token lists,
- * comparisons. It scrolls sideways when the columns don't fit. For data people sort, select or
+ * comparisons. It scrolls sideways when the columns don't fit (inline code never breaks and body
+ * text keeps a minimum width). For data people sort, select or
  * page through, use Table.
  *
  *   <SimpleTable>
@@ -43,16 +44,21 @@ function SimpleTableRow({ className, ...props }: React.ComponentProps<"tr">) {
 
 type SimpleTableAlign = "left" | "center" | "right" | "justify" | "char"
 
-/** `align` from Markdown (`:--`, `:-:`, `--:`), mapped to logical sides so it flips under RTL. */
+/**
+ * `align` takes the Markdown / HTML values: `left` (`:--`), `center` (`:-:`) and `right` (`--:`)
+ * map to logical start, center and end, so they flip under RTL. `justify` justifies; `char` is
+ * accepted and falls back to start.
+ */
 const alignClass = (align: string | undefined) =>
   align === "center" ? "text-center" : align === "right" ? "text-end" : align === "justify" ? "text-justify" : "text-start"
 
 /*
  * Bare `<code>` (what Markdown writes) gets the library's inline-code chip. `:where()` keeps it at
- * element weight, and `:not([class])` leaves code you style yourself alone.
+ * element weight, and `:not([class])` leaves code you style yourself alone. The chip never breaks
+ * inside a word, so a column of identifiers keeps its min-content width.
  */
 const inlineCode =
-  "[:where(&)_code:not([class])]:rounded-md [:where(&)_code:not([class])]:bg-muted [:where(&)_code:not([class])]:px-1.5 [:where(&)_code:not([class])]:py-0.5 [:where(&)_code:not([class])]:font-mono [:where(&)_code:not([class])]:text-ui-sm [:where(&)_code:not([class])]:text-foreground [:where(&)_code:not([class])]:box-decoration-clone [:where(&)_code:not([class])]:wrap-anywhere"
+  "[:where(&)_code:not([class])]:rounded-md [:where(&)_code:not([class])]:bg-muted [:where(&)_code:not([class])]:px-1.5 [:where(&)_code:not([class])]:py-0.5 [:where(&)_code:not([class])]:font-mono [:where(&)_code:not([class])]:text-ui-sm [:where(&)_code:not([class])]:text-foreground [:where(&)_code:not([class])]:whitespace-nowrap [:where(&)_code:not([class])]:break-normal"
 
 type SimpleTableHeadProps = Omit<React.ComponentProps<"th">, "align"> & { align?: SimpleTableAlign }
 
@@ -68,8 +74,8 @@ function SimpleTableHead({ className, align, ...props }: SimpleTableHeadProps) {
 }
 
 const cellVariants = {
-  /** Body text. */
-  default: cn("text-muted-foreground", inlineCode),
+  /** Body text. Wraps between words but keeps an 8rem floor, so a narrow table scrolls instead of squeezing it. */
+  default: cn("min-w-32 text-muted-foreground", inlineCode),
   /** Names: props, classes, tokens. */
   code: "font-mono text-xs whitespace-nowrap text-foreground",
   /** Secondary names: defaults, token names beside a class. */

@@ -75,13 +75,19 @@ function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
           key={page.route}
           level="group"
           label={page.label}
+          icon={page.icon ? <Icon name={page.icon} /> : undefined}
           labelRender={link(page.route)}
           active={isCurrent(page.route)}
           defaultOpen={open}
         >
           <SidebarNavList>
             {run.children.map(({ page: child }) => (
-              <SidebarNavLink key={child.route} active={isCurrent(child.route)} render={link(child.route)}>
+              <SidebarNavLink
+                key={child.route}
+                icon={child.icon ? <Icon name={child.icon} /> : undefined}
+                active={isCurrent(child.route)}
+                render={link(child.route)}
+              >
                 {child.label}
               </SidebarNavLink>
             ))}
@@ -99,6 +105,7 @@ function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
             <SidebarNavSection
               key={s.label}
               label={s.label}
+              icon={s.icon ? <Icon name={s.icon} /> : undefined}
               labelRender={s.route ? link(s.route) : undefined}
               active={isCurrent(s.route)}
             >

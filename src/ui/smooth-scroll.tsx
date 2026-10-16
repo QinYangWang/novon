@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import Lenis from "lenis"
 import { type MotionValue, useMotionValue, useReducedMotion } from "motion/react"

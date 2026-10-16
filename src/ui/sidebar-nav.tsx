@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible"
 import { mergeProps } from "@base-ui/react/merge-props"
@@ -12,6 +14,10 @@ import { Kbd } from "@/ui/kbd"
  * and groups, and rows that all start on one left edge. The current row is a fill plus a 2px bar
  * in the gutter.
  *
+ * Icons: when a list (or a section's rows) holds a row or group label with an `icon`, the rows
+ * and labels beside it that have none move in by the icon's width, so every text starts on one
+ * edge. That happens on its own; set `--sidebar-nav-inset` on a wrapper to force or cancel it.
+ *
  *   <SidebarNav>
  *     <SidebarNavSearch shortcut="⌘K" onClick={openSearch} />
  *     <SidebarNavContent aria-label="Docs">
@@ -25,6 +31,15 @@ import { Kbd } from "@/ui/kbd"
  *     <SidebarNavFooter>…</SidebarNavFooter>
  *   </SidebarNav>
  */
+
+/*
+ * The icon-aligned inset. A container whose direct rows or group labels carry an icon sets
+ * `--sidebar-nav-inset` to the icon slot plus its gap (16px + 8px); rows and labels without an
+ * icon add it to their start padding. Nested groups inherit it, so their rows line up too.
+ */
+const iconInsetScope =
+  "[&:has(>[data-slot=sidebar-nav-list]>[data-slot=sidebar-nav-item]>*>[data-slot=sidebar-nav-link-icon])]:[--sidebar-nav-inset:1.5rem] [&:has(>[data-slot=sidebar-nav-section]>[data-slot=sidebar-nav-section-label]_[data-slot=sidebar-nav-section-icon])]:[--sidebar-nav-inset:1.5rem]"
+const insetStart = "ps-[calc(0.5rem+var(--sidebar-nav-inset,0px))] pe-2"
 
 function SidebarNav({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="sidebar-nav" className={cn("flex min-h-0 flex-1 flex-col", className)} {...props} />
@@ -76,7 +91,7 @@ function SidebarNavContent({ className, children, ...props }: React.ComponentPro
       className={cn("scrollbar-hover min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4", className)}
       {...props}
     >
-      <div className="flex flex-col gap-4">{children}</div>
+      <div className={cn("flex flex-col gap-4", iconInsetScope)}>{children}</div>
     </nav>
   )
 }
@@ -95,6 +110,8 @@ type SidebarNavSectionProps = Omit<CollapsiblePrimitive.Root.Props, "children"> 
   labelRender?: useRender.ComponentProps<"a">["render"]
   /** The label's page is current: the label row gets the active fill and `aria-current="page"`. */
   active?: boolean
+  /** Leading 16px icon, muted until the label is hovered or current (same slot as `SidebarNavLink`). */
+  icon?: React.ReactNode
   children?: React.ReactNode
 }
 
@@ -108,6 +125,7 @@ function SidebarNavSection({
   href,
   labelRender,
   active = false,
+  icon,
   className,
   children,
   ...props
@@ -115,6 +133,20 @@ function SidebarNavSection({
   const isLink = href !== undefined || labelRender !== undefined
   const labelClass =
     level === "section" ? "h-7 text-ui font-semibold text-foreground" : "h-6.5 text-ui-sm font-medium text-muted-foreground hover:text-foreground"
+  const pad = icon ? "gap-2 px-2" : cn("gap-1.5", insetStart)
+  const iconEl = (hover: string) =>
+    icon && (
+      <span
+        aria-hidden
+        data-slot="sidebar-nav-section-icon"
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-150 [&>svg]:size-4",
+          hover
+        )}
+      >
+        {icon}
+      </span>
+    )
   const countEl = count !== undefined && <span className="text-ui-xs font-normal text-muted-foreground/80 tabular-nums">{count}</span>
   const chevron = (
     <ChevronRightIcon
@@ -133,8 +165,9 @@ function SidebarNavSection({
       "aria-current": active ? "page" : undefined,
       "data-slot": "sidebar-nav-section-link",
       className: cn(
-        "group/nav relative flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+        "group/nav relative flex min-w-0 flex-1 items-center rounded-md outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
         "aria-[current=page]:bg-secondary aria-[current=page]:text-foreground",
+        pad,
         labelClass
       ),
       children: (
@@ -143,6 +176,7 @@ function SidebarNavSection({
             aria-hidden
             className="absolute inset-y-1.5 -start-2 w-0.5 rounded-full bg-transparent group-aria-[current=page]/nav:bg-foreground"
           />
+          {iconEl("group-hover/nav:text-foreground group-aria-[current=page]/nav:text-foreground")}
           <span className="truncate">{label}</span>
           {countEl}
         </>
@@ -171,10 +205,12 @@ function SidebarNavSection({
     heading = (
       <CollapsiblePrimitive.Trigger
         className={cn(
-          "group/trigger flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-start outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+          "group/trigger flex w-full cursor-pointer items-center rounded-md text-start outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+          pad,
           labelClass
         )}
       >
+        {iconEl("group-hover/trigger:text-foreground")}
         <span className="truncate">{label}</span>
         {countEl}
         <span className="ms-auto flex">{chevron}</span>
@@ -182,7 +218,8 @@ function SidebarNavSection({
     )
   } else {
     heading = (
-      <div className={cn("flex items-center gap-1.5 px-2", labelClass)}>
+      <div className={cn("flex items-center", pad, labelClass)}>
+        {iconEl("")}
         <span className="truncate">{label}</span>
         {countEl}
       </div>
@@ -198,14 +235,17 @@ function SidebarNavSection({
       {...props}
     >
       {heading}
-      <CollapsiblePrimitive.Panel className="flex flex-col gap-px">{children}</CollapsiblePrimitive.Panel>
+      <CollapsiblePrimitive.Panel className={cn("flex flex-col gap-px", iconInsetScope)}>{children}</CollapsiblePrimitive.Panel>
     </CollapsiblePrimitive.Root>
   )
 }
 
-/** Rows of a section or group; no indent, so every label and row shares one left edge. */
+/**
+ * Rows of a section or group; no indent, so every label and row shares one left edge. When one
+ * row has an icon, the rows without one start at its text (see `--sidebar-nav-inset`).
+ */
 function SidebarNavList({ className, ...props }: React.ComponentProps<"ul">) {
-  return <ul data-slot="sidebar-nav-list" className={cn("flex flex-col gap-px", className)} {...props} />
+  return <ul data-slot="sidebar-nav-list" className={cn("flex flex-col gap-px", iconInsetScope, className)} {...props} />
 }
 
 type SidebarNavLinkProps = useRender.ComponentProps<"a"> & {
@@ -226,7 +266,8 @@ function SidebarNavLink({ active = false, badge, icon, className, children, rend
       {
         "aria-current": active ? "page" : undefined,
         className: cn(
-          "group/nav relative flex h-7 min-w-0 items-center gap-2 rounded-md px-2 text-ui text-muted-foreground outline-none transition-colors duration-150",
+          "group/nav relative flex h-7 min-w-0 items-center gap-2 rounded-md text-ui text-muted-foreground outline-none transition-colors duration-150",
+          icon ? "px-2" : insetStart,
           "hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
           "aria-[current=page]:bg-secondary aria-[current=page]:font-medium aria-[current=page]:text-foreground",
           className

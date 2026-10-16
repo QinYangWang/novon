@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { useDirection } from "@base-ui/react/direction-provider"
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover"

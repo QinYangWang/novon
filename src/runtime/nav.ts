@@ -10,6 +10,8 @@ export interface NavSection {
   /** Empty for the pages that sit directly under the layer. */
   label: string
   route?: string
+  /** The folder index page's frontmatter icon. */
+  icon?: string
   items: NavItem[]
 }
 
@@ -59,7 +61,7 @@ export function docsNav(pages: PageMeta[], layer: string): NavSection[] {
       const depth = page.route.slice(prefix.length).split('/').filter(Boolean).length - 2
       items.push({ page, depth: Math.max(0, depth) })
     }
-    out.push({ label: entry.index?.label ?? humanize(key), route: entry.index?.route, items })
+    out.push({ label: entry.index?.label ?? humanize(key), route: entry.index?.route, icon: entry.index?.icon, items })
   }
   return out
 }
