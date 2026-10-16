@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import { useRender } from "@base-ui/react/use-render"
 import { cva } from "class-variance-authority"
@@ -7,9 +5,11 @@ import { cva } from "class-variance-authority"
 import { ChevronRightIcon, MoreHorizontalIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/ui/menu"
+import { useLocale } from "@/ui/locale-provider"
 
-function Breadcrumb({ "aria-label": ariaLabel = "Breadcrumb", ...props }: React.ComponentProps<"nav">) {
-  return <nav data-slot="breadcrumb" aria-label={ariaLabel} {...props} />
+function Breadcrumb({ "aria-label": ariaLabel, ...props }: React.ComponentProps<"nav">) {
+  const { labels } = useLocale()
+  return <nav data-slot="breadcrumb" aria-label={ariaLabel ?? labels.breadcrumb} {...props} />
 }
 
 type BreadcrumbSize = "sm" | "default" | "lg"
@@ -125,9 +125,11 @@ type BreadcrumbHiddenItem = {
 function BreadcrumbEllipsis({
   className,
   items,
-  label = "Show hidden breadcrumbs",
+  label: labelProp,
   ...props
 }: Omit<React.ComponentProps<"span">, "children"> & { items?: BreadcrumbHiddenItem[]; label?: string }) {
+  const { labels } = useLocale()
+  const label = labelProp ?? labels.showHiddenBreadcrumbs
   const size = React.useContext(BreadcrumbSizeContext)
   const iconBox = cn(
     "inline-flex items-center justify-center",

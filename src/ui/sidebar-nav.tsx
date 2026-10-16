@@ -19,7 +19,7 @@ import { Kbd } from "@/ui/kbd"
  *         <SidebarNavList>
  *           <SidebarNavLink href="/docs" active>Introduction</SidebarNavLink>
  *         </SidebarNavList>
- *         <SidebarNavSection level="group" label="Forms">…</SidebarNavSection>
+ *         <SidebarNavSection level="group" label="Forms" href="/docs/forms">…</SidebarNavSection>
  *       </SidebarNavSection>
  *     </SidebarNavContent>
  *     <SidebarNavFooter>…</SidebarNavFooter>
@@ -89,6 +89,12 @@ type SidebarNavSectionProps = Omit<CollapsiblePrimitive.Root.Props, "children"> 
   level?: "section" | "group"
   /** A section with no toggle (always open). */
   collapsible?: boolean
+  /** Makes the label a link to the section's own page; the chevron still folds it. */
+  href?: string
+  /** Renders the label link with your router's link, such as `<Link href="…" />`. Implies a link label. */
+  labelRender?: useRender.ComponentProps<"a">["render"]
+  /** The label's page is current: the label row gets the active fill and `aria-current="page"`. */
+  active?: boolean
   children?: React.ReactNode
 }
 
@@ -99,44 +105,99 @@ function SidebarNavSection({
   level = "section",
   collapsible = true,
   defaultOpen = true,
+  href,
+  labelRender,
+  active = false,
   className,
   children,
   ...props
 }: SidebarNavSectionProps) {
+  const isLink = href !== undefined || labelRender !== undefined
   const labelClass =
     level === "section" ? "h-7 text-ui font-semibold text-foreground" : "h-6.5 text-ui-sm font-medium text-muted-foreground hover:text-foreground"
   const countEl = count !== undefined && <span className="text-ui-xs font-normal text-muted-foreground/80 tabular-nums">{count}</span>
+  const chevron = (
+    <ChevronRightIcon
+      aria-hidden
+      className={cn(
+        "shrink-0 text-muted-foreground transition-transform duration-200 group-data-panel-open/trigger:rotate-90 motion-reduce:transition-none rtl:-scale-x-100 rtl:group-data-panel-open/trigger:-rotate-90",
+        level === "section" ? "size-3.5" : "size-3"
+      )}
+    />
+  )
+  const labelLink = useRender({
+    defaultTagName: "a",
+    render: labelRender,
+    props: {
+      href,
+      "aria-current": active ? "page" : undefined,
+      "data-slot": "sidebar-nav-section-link",
+      className: cn(
+        "group/nav relative flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2 outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+        "aria-[current=page]:bg-secondary aria-[current=page]:text-foreground",
+        labelClass
+      ),
+      children: (
+        <>
+          <span
+            aria-hidden
+            className="absolute inset-y-1.5 -start-2 w-0.5 rounded-full bg-transparent group-aria-[current=page]/nav:bg-foreground"
+          />
+          <span className="truncate">{label}</span>
+          {countEl}
+        </>
+      ),
+    },
+  })
+  let heading: React.ReactNode
+  if (isLink) {
+    heading = (
+      <div data-slot="sidebar-nav-section-label" className="flex items-center gap-px">
+        {labelLink}
+        {collapsible && (
+          <CollapsiblePrimitive.Trigger
+            aria-label={typeof label === "string" ? `Toggle ${label}` : "Toggle section"}
+            className={cn(
+              "group/trigger grid w-6 shrink-0 cursor-pointer place-items-center rounded-md outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+              level === "section" ? "h-7" : "h-6.5"
+            )}
+          >
+            {chevron}
+          </CollapsiblePrimitive.Trigger>
+        )}
+      </div>
+    )
+  } else if (collapsible) {
+    heading = (
+      <CollapsiblePrimitive.Trigger
+        className={cn(
+          "group/trigger flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-start outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
+          labelClass
+        )}
+      >
+        <span className="truncate">{label}</span>
+        {countEl}
+        <span className="ms-auto flex">{chevron}</span>
+      </CollapsiblePrimitive.Trigger>
+    )
+  } else {
+    heading = (
+      <div className={cn("flex items-center gap-1.5 px-2", labelClass)}>
+        <span className="truncate">{label}</span>
+        {countEl}
+      </div>
+    )
+  }
   return (
     <CollapsiblePrimitive.Root
       data-slot="sidebar-nav-section"
       data-level={level}
+      data-active={active ? "" : undefined}
       defaultOpen={collapsible ? defaultOpen : true}
       className={cn("flex flex-col gap-px", level === "group" && "mt-2", className)}
       {...props}
     >
-      {collapsible ? (
-        <CollapsiblePrimitive.Trigger
-          className={cn(
-            "group/trigger flex w-full cursor-pointer items-center gap-1.5 rounded-md px-2 text-start outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
-            labelClass
-          )}
-        >
-          <span className="truncate">{label}</span>
-          {countEl}
-          <ChevronRightIcon
-            aria-hidden
-            className={cn(
-              "ms-auto shrink-0 text-muted-foreground transition-transform duration-200 group-data-panel-open/trigger:rotate-90 motion-reduce:transition-none rtl:-scale-x-100 rtl:group-data-panel-open/trigger:-rotate-90",
-              level === "section" ? "size-3.5" : "size-3"
-            )}
-          />
-        </CollapsiblePrimitive.Trigger>
-      ) : (
-        <div className={cn("flex items-center gap-1.5 px-2", labelClass)}>
-          <span className="truncate">{label}</span>
-          {countEl}
-        </div>
-      )}
+      {heading}
       <CollapsiblePrimitive.Panel className="flex flex-col gap-px">{children}</CollapsiblePrimitive.Panel>
     </CollapsiblePrimitive.Root>
   )
@@ -152,10 +213,12 @@ type SidebarNavLinkProps = useRender.ComponentProps<"a"> & {
   active?: boolean
   /** Trailing content, such as a "New" badge. */
   badge?: React.ReactNode
+  /** Leading 16px icon, muted until the row is current. */
+  icon?: React.ReactNode
 }
 
 /** One row in a list item. Pass `render={<Link href="…" />}` for a router link. */
-function SidebarNavLink({ active = false, badge, className, children, render, ...props }: SidebarNavLinkProps) {
+function SidebarNavLink({ active = false, badge, icon, className, children, render, ...props }: SidebarNavLinkProps) {
   const link = useRender({
     defaultTagName: "a",
     render,
@@ -174,6 +237,15 @@ function SidebarNavLink({ active = false, badge, className, children, render, ..
               aria-hidden
               className="absolute inset-y-1.5 -start-2 w-0.5 rounded-full bg-transparent group-aria-[current=page]/nav:bg-foreground"
             />
+            {icon && (
+              <span
+                aria-hidden
+                data-slot="sidebar-nav-link-icon"
+                className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors duration-150 group-hover/nav:text-foreground group-aria-[current=page]/nav:text-foreground [&>svg]:size-4"
+              >
+                {icon}
+              </span>
+            )}
             <span className="min-w-0 flex-1 truncate">{children}</span>
             {badge}
           </>

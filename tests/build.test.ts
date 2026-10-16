@@ -31,6 +31,7 @@ describe('docs template', async () => {
   // A custom component and a layered blog prove both extension points.
   await mkdir(join(dir, 'components'))
   await writeFile(join(dir, 'components/Hello.tsx'), `import { Badge } from 'novon'\nexport default () => <Badge>hello-component</Badge>\n`)
+  await writeFile(join(dir, 'content/guide/table.mdx'), '---\ntitle: Table\n---\n\n| Key | Mid | Since |\n| :-- | :-: | --: |\n| `a` | b | 1.2 |\n')
   await mkdir(join(dir, 'content/blog'), { recursive: true })
   await writeFile(join(dir, 'content/blog/first.mdx'), `---\ntitle: First post\ndate: 2026-02-01\ntags: [news]\n---\n\n<Hello />\n`)
   const cfg = await readFile(join(dir, 'novon.config.ts'), 'utf8')
@@ -61,6 +62,18 @@ describe('docs template', async () => {
     expect(await read(dir, 'rss.xml')).toContain('First post')
     expect(await read(dir, 'llms.txt')).toContain('/guide/writing.md')
     expect(await read(dir, 'guide/writing.md')).toStartWith('# Writing')
+  })
+  test('tables render as SimpleTable with their alignment', async () => {
+    const html = await read(dir, 'guide/table/index.html')
+    expect(html).toContain('data-slot="simple-table"')
+    expect(html).toMatch(/<th[^>]*data-align="center"/)
+    expect(html).toMatch(/<td[^>]*data-align="right"[^>]*class="[^"]*text-end/)
+  })
+  test('the sidebar links each section label to its index page', async () => {
+    const html = await read(dir, 'guide/writing/index.html')
+    expect(html).toContain('data-slot="sidebar-nav"')
+    expect(html).toContain('<a href="/guide" data-slot="sidebar-nav-section-link"')
+    expect(html).toContain('href="/guide/writing" data-slot="sidebar-nav-link" data-active="" aria-current="page"')
   })
   test('sidebar sections follow folders', () => {
     // the blog layer is not part of the docs sidebar

@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils"
  *     <SimpleTableHeader><SimpleTableRow><SimpleTableHead>Prop</SimpleTableHead>…</SimpleTableRow></SimpleTableHeader>
  *     <SimpleTableBody><SimpleTableRow><SimpleTableCell variant="code">size</SimpleTableCell>…</SimpleTableRow></SimpleTableBody>
  *   </SimpleTable>
+ *
+ * Cells honour the `align` attribute Markdown tables emit, and bare `<code>` in body text gets the
+ * inline-code chip, so `components={{ table: SimpleTable, td: SimpleTableCell, … }}` renders MDX as is.
  */
 
 type SimpleTableProps = React.ComponentProps<"table"> & {
@@ -38,13 +41,35 @@ function SimpleTableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return <tr data-slot="simple-table-row" className={cn("border-b border-border align-top", className)} {...props} />
 }
 
-function SimpleTableHead({ className, ...props }: React.ComponentProps<"th">) {
-  return <th data-slot="simple-table-head" className={cn("px-4 py-2.5 text-start font-medium", className)} {...props} />
+type SimpleTableAlign = "left" | "center" | "right" | "justify" | "char"
+
+/** `align` from Markdown (`:--`, `:-:`, `--:`), mapped to logical sides so it flips under RTL. */
+const alignClass = (align: string | undefined) =>
+  align === "center" ? "text-center" : align === "right" ? "text-end" : align === "justify" ? "text-justify" : "text-start"
+
+/*
+ * Bare `<code>` (what Markdown writes) gets the library's inline-code chip. `:where()` keeps it at
+ * element weight, and `:not([class])` leaves code you style yourself alone.
+ */
+const inlineCode =
+  "[:where(&)_code:not([class])]:rounded-md [:where(&)_code:not([class])]:bg-muted [:where(&)_code:not([class])]:px-1.5 [:where(&)_code:not([class])]:py-0.5 [:where(&)_code:not([class])]:font-mono [:where(&)_code:not([class])]:text-ui-sm [:where(&)_code:not([class])]:text-foreground [:where(&)_code:not([class])]:box-decoration-clone [:where(&)_code:not([class])]:wrap-anywhere"
+
+type SimpleTableHeadProps = Omit<React.ComponentProps<"th">, "align"> & { align?: SimpleTableAlign }
+
+function SimpleTableHead({ className, align, ...props }: SimpleTableHeadProps) {
+  return (
+    <th
+      data-slot="simple-table-head"
+      data-align={align}
+      className={cn("px-4 py-2.5 font-medium", alignClass(align), inlineCode, className)}
+      {...props}
+    />
+  )
 }
 
 const cellVariants = {
   /** Body text. */
-  default: "text-muted-foreground",
+  default: cn("text-muted-foreground", inlineCode),
   /** Names: props, classes, tokens. */
   code: "font-mono text-xs whitespace-nowrap text-foreground",
   /** Secondary names: defaults, token names beside a class. */
@@ -52,16 +77,25 @@ const cellVariants = {
   /** Types and values that can be long. */
   type: "max-w-64 font-mono text-xs break-words text-primary",
   /** Values that line up: sizes, counts. */
-  numeric: "whitespace-nowrap text-muted-foreground tabular-nums",
+  numeric: cn("whitespace-nowrap text-muted-foreground tabular-nums", inlineCode),
 } as const
 
-function SimpleTableCell({
-  className,
-  variant = "default",
-  ...props
-}: React.ComponentProps<"td"> & { variant?: keyof typeof cellVariants }) {
-  return <td data-slot="simple-table-cell" data-variant={variant} className={cn("px-4 py-2.5", cellVariants[variant], className)} {...props} />
+type SimpleTableCellProps = Omit<React.ComponentProps<"td">, "align"> & {
+  variant?: keyof typeof cellVariants
+  align?: SimpleTableAlign
+}
+
+function SimpleTableCell({ className, variant = "default", align, ...props }: SimpleTableCellProps) {
+  return (
+    <td
+      data-slot="simple-table-cell"
+      data-variant={variant}
+      data-align={align}
+      className={cn("px-4 py-2.5", align && alignClass(align), cellVariants[variant], className)}
+      {...props}
+    />
+  )
 }
 
 export { SimpleTable, SimpleTableHeader, SimpleTableBody, SimpleTableRow, SimpleTableHead, SimpleTableCell }
-export type { SimpleTableProps }
+export type { SimpleTableProps, SimpleTableHeadProps, SimpleTableCellProps, SimpleTableAlign }

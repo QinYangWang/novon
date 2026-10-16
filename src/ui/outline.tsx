@@ -227,8 +227,7 @@ function BackToTop({ visible, onClick, className }: { visible: boolean; onClick:
       aria-hidden={!visible}
       onClick={onClick}
       className={cn(
-        "flex w-fit items-center gap-1 rounded-sm text-ui-sm text-muted-foreground transition-[color,opacity] duration-200 outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
-        !visible && "opacity-0",
+        "flex w-fit items-center gap-1 rounded-sm text-ui-sm text-muted-foreground transition-colors duration-150 outline-none hover:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
         className
       )}
     >
@@ -287,7 +286,15 @@ function Outline({
         <OutlineList items={items} active={active} onSelect={setActive} hintSide="left" listRef={listRef} renderLink={renderLink} />
       </ScrollArea>
       {backToTop && (
-        <div className="shrink-0 border-t border-border pt-3">
+        // the divider belongs to the link: both fade in together, and the row keeps its space
+        <div
+          data-slot="outline-footer"
+          data-visible={scrolled ? "" : undefined}
+          className={cn(
+            "shrink-0 border-t border-border pt-3 transition-opacity duration-200 motion-reduce:transition-none",
+            !scrolled && "opacity-0"
+          )}
+        >
           <BackToTop visible={scrolled} onClick={scrollToTop} />
         </div>
       )}

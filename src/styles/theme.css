@@ -72,17 +72,6 @@
     --color-popover: var(--popover);
     --color-card: var(--card);
     --color-background: var(--background);
-    --color-accent-950: var(--accent-950);
-    --color-accent-900: var(--accent-900);
-    --color-accent-800: var(--accent-800);
-    --color-accent-700: var(--accent-700);
-    --color-accent-600: var(--accent-600);
-    --color-accent-500: var(--accent-500);
-    --color-accent-400: var(--accent-400);
-    --color-accent-300: var(--accent-300);
-    --color-accent-200: var(--accent-200);
-    --color-accent-100: var(--accent-100);
-    --color-accent-50: var(--accent-50);
     --radius-lg: min(var(--radius), var(--radius-max));
     --radius-4xl: min(calc(var(--radius) * 2.5), var(--radius-max));
     --radius-2xs: min(calc(var(--radius) * 0.25), var(--radius-max));
@@ -134,17 +123,6 @@
 
 :root {
     --radius: 0.5rem;
-    --accent-50: oklch(97% 0.014 254.604);
-    --accent-100: oklch(93.2% 0.032 255.585);
-    --accent-200: oklch(88.2% 0.059 254.128);
-    --accent-300: oklch(80.9% 0.105 251.813);
-    --accent-400: oklch(66% 0.184 254.753);
-    --accent-500: oklch(62.3% 0.214 259.815);
-    --accent-600: oklch(54.6% 0.245 262.881);
-    --accent-700: oklch(48.8% 0.243 264.376);
-    --accent-800: oklch(42.4% 0.199 265.638);
-    --accent-900: oklch(37.9% 0.146 265.522);
-    --accent-950: oklch(28.2% 0.091 267.935);
     --background: #fff;
     --card: #fff;
     --popover: #fff;
@@ -319,6 +297,11 @@
     }
   code, kbd, pre, samp {
     font-feature-settings: normal;
+    }
+  *, ::before, ::after {
+    --frame-r: 0px;
+    --frame-p: 0px;
+    --frame-b: 0px;
     }
 }
 
@@ -527,21 +510,6 @@
     --shadow-lg: 0 0 0 1px color-mix(in oklab, #ffffff12, #3a3a3a 25%), 0 2px 3px -2px #00000026, 0 3px 8px -2px #0006, 0 4px 12px -4px #00000080;
     }
 }
-  @property --frame-r {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
-}
-  @property --frame-p {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
-}
-  @property --frame-b {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
-}
 
 @utility frame-* {
     --frame-r: --value(--radius-*, [length]);
@@ -599,19 +567,4 @@
     --frame-r: var(--frame-inner-1, var(--radius-lg));
     border-radius: var(--frame-inner-1, var(--radius-lg));
     --frame-inner-2: max(calc(var(--frame-r) - var(--frame-p) - var(--frame-b)), min(2px, var(--frame-r)));
-}
-  @property --frame-r {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
-}
-  @property --frame-p {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
-}
-  @property --frame-b {
-    syntax: "<length>";
-    inherits: false;
-    initial-value: 0px;
 }

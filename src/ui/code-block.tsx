@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 
@@ -6,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { getFileKind } from "@/ui/file-tree"
 import { ScrollArea } from "@/ui/scroll-area"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/ui/tabs"
+import { useLocale } from "@/ui/locale-provider"
 
 /*
  * Static code surfaces for markup that was highlighted at build time. Nothing is
@@ -43,19 +46,21 @@ function useCopy(timeout = 1600) {
 function CodeCopyButton({
   value,
   className,
-  label = "Copy code",
+  label: labelProp,
 }: {
   value: string | (() => string)
   className?: string
   label?: string
 }) {
+  const { labels } = useLocale()
+  const label = labelProp ?? labels.copyCode
   const { copied, copy } = useCopy()
   const reduce = useReducedMotion() ?? false
   return (
     <button
       type="button"
       data-slot="code-copy-button"
-      aria-label={copied ? "Copied" : label}
+      aria-label={copied ? labels.copied : label}
       onClick={(e) => {
         e.stopPropagation()
         copy(typeof value === "function" ? value() : value)
@@ -79,7 +84,7 @@ function CodeCopyButton({
         </motion.span>
       </AnimatePresence>
       <span className="sr-only" aria-live="polite">
-        {copied ? "Copied" : ""}
+        {copied ? labels.copied : ""}
       </span>
     </button>
   )

@@ -144,6 +144,7 @@ function MenuShortcut({ className, ...props }: React.ComponentProps<"span">) {
       data-slot="menu-shortcut"
       // Key glyphs keep their order in right-to-left text.
       dir="ltr"
+      // design-check-ignore tracking -- shortcut glyphs are spaced wide (rule 11 allows it)
       className={cn("ms-auto ps-4 font-sans text-ui-xs tracking-widest text-muted-foreground/72", className)}
       {...props}
     />

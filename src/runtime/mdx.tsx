@@ -11,6 +11,15 @@ import { CodeBlock, CodeGroup as CodeGroupRoot } from '@/ui/code-block'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/ui/card'
 import { FileTree, FileTreeFile, FileTreeFolder } from '@/ui/file-tree'
 import { IconChip } from '@/ui/icon-chip'
+import {
+  SimpleTable,
+  SimpleTableBody,
+  SimpleTableCell,
+  SimpleTableHead,
+  SimpleTableHeader,
+  SimpleTableRow,
+  type SimpleTableAlign,
+} from '@/ui/simple-table'
 import { Tabs as TabsRoot, TabsList, TabsPanel, TabsTab } from '@/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/tooltip'
 import { ArrowUpRightIcon } from '@/components/icons'
@@ -245,6 +254,34 @@ export function YouTube({ id, title = 'Video' }: { id: string; title?: string })
   )
 }
 
+/* ---------- Tables ---------- */
+
+const aligns = new Set<string>(['left', 'center', 'right', 'justify', 'char'])
+
+/** GFM alignment arrives as an `align` attribute or as `text-align` in `style`. */
+function cellAlign(align: unknown, style: React.CSSProperties | undefined) {
+  const value = typeof align === 'string' ? align : style?.textAlign
+  const side = value === 'start' ? 'left' : value === 'end' ? 'right' : value
+  if (typeof side !== 'string' || !aligns.has(side)) return { align: undefined, style }
+  if (!style?.textAlign) return { align: side as SimpleTableAlign, style }
+  const { textAlign: _, ...rest } = style
+  return { align: side as SimpleTableAlign, style: Object.keys(rest).length ? rest : undefined }
+}
+
+type CellProps<T extends 'th' | 'td'> = Omit<React.ComponentProps<T>, 'align'> & { align?: unknown }
+
+function Table(props: React.ComponentProps<'table'>) {
+  return <SimpleTable containerClassName="not-typeset my-6 first:mt-0" {...props} />
+}
+
+function TableHead({ align, style, ...props }: CellProps<'th'>) {
+  return <SimpleTableHead {...props} {...cellAlign(align, style)} />
+}
+
+function TableCell({ align, style, ...props }: CellProps<'td'>) {
+  return <SimpleTableCell {...props} {...cellAlign(align, style)} />
+}
+
 function Anchor({ href = '', ...props }: React.ComponentProps<'a'>) {
   const { site } = useSite()
   if (isInternal(href)) return <Link href={href} {...props} />
@@ -258,6 +295,12 @@ function Anchor({ href = '', ...props }: React.ComponentProps<'a'>) {
 export const mdxComponents = {
   a: Anchor,
   pre: Pre,
+  table: Table,
+  thead: SimpleTableHeader,
+  tbody: SimpleTableBody,
+  tr: SimpleTableRow,
+  th: TableHead,
+  td: TableCell,
   Callout,
   Note,
   Tip,

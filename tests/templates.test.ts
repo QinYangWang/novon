@@ -30,6 +30,16 @@ describe('blog template', async () => {
     // The full outline is in the prerendered HTML.
     for (const id of ['files-outlast-apps', 'the-setup', 'what-i-gave-up', 'what-i-got']) expect(html).toContain(`data-outline-id="${id}"`)
   })
+  test('posts without a cover image get distinct cover art', async () => {
+    const looks = new Set<string>()
+    for (const slug of ['hello-world', 'no-notifications', 'plain-text', 'summer-reading']) {
+      const html = await read(`posts/${slug}/index.html`)
+      const m = html.match(/data-slot="cover-art" data-variant="(\d)" data-mirror="(\w+)" data-ramp="(\d)"/)
+      expect(m).not.toBeNull()
+      looks.add(m!.slice(1).join(' '))
+    }
+    expect(looks.size).toBe(4)
+  })
   test('a cover image wins over cover art', async () => {
     const html = await read('posts/small-websites/index.html')
     expect(html).toContain('/demo/blog/covers/small-web.svg')
@@ -45,7 +55,7 @@ describe('docs template', async () => {
     for (const f of ['getting-started', 'guide/writing', 'guide/configuration', 'guide/deploying', 'reference/cli', 'reference/output'])
       expect(existsSync(join(dist, f, 'index.html'))).toBe(true)
     const html = await readFile(join(dist, 'guide/writing/index.html'), 'utf8')
-    expect(html).toContain('data-slot="sidebar"')
+    expect(html).toContain('data-slot="sidebar-nav"')
     expect(html).toContain('href="/demo/docs/guide/configuration"')
     expect(html).toContain('Next')
   })

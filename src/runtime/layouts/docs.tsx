@@ -2,17 +2,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
 import { Drawer, DrawerContent, DrawerTitle } from '@/ui/drawer'
-import {
-  Sidebar as SidebarPanel,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarItem,
-  SidebarMenu,
-  SidebarProvider,
-  SidebarSub,
-  SidebarSubItem,
-} from '@/ui/animated-sidebar'
+import { SidebarNav, SidebarNavContent, SidebarNavLink, SidebarNavList, SidebarNavSection } from '@/ui/sidebar-nav'
 import { PageHeader, PageHeaderContent, PageHeaderDescription, PageHeaderEyebrow, PageHeaderTitle } from '@/ui/page-header'
 import { ArrowLeftIcon, ArrowRightIcon, EditIcon, MenuIcon } from '@/components/icons'
 import { formatDate } from '../../shared.ts'
@@ -30,9 +20,11 @@ function useSections(): NavSection[] {
   return React.useMemo(() => docsNav(site.pages, layer), [site.pages, layer])
 }
 
+type Row = { item: NavItem; children: NavItem[] }
+
 /** A top-level row and the deeper rows that follow it. */
-function groupRows(items: NavItem[]): { item: NavItem; children: NavItem[] }[] {
-  const rows: { item: NavItem; children: NavItem[] }[] = []
+function groupRows(items: NavItem[]): Row[] {
+  const rows: Row[] = []
   for (const it of items) {
     const last = rows.at(-1)
     if (it.depth > 0 && last) last.children.push(it)
@@ -41,41 +33,81 @@ function groupRows(items: NavItem[]): { item: NavItem; children: NavItem[] }[] {
   return rows
 }
 
+/** Runs of plain rows become one list; a row with children becomes a group headed by its own page. */
+function runs(rows: Row[]): (Row[] | Row)[] {
+  const out: (Row[] | Row)[] = []
+  for (const row of rows) {
+    const last = out.at(-1)
+    if (row.children.length) out.push(row)
+    else if (Array.isArray(last)) last.push(row)
+    else out.push([row])
+  }
+  return out
+}
+
 function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const sections = useSections()
   const { current } = useSite()
-  const link = (page: PageMeta) => <Link href={page.route} onClick={onNavigate} />
+  const link = (route: string) => <Link href={route} onClick={onNavigate} />
+  const isCurrent = (route?: string) => route !== undefined && current.route === route
+  const rows = (items: NavItem[]) =>
+    runs(groupRows(items)).map((run) => {
+      if (Array.isArray(run)) {
+        return (
+          <SidebarNavList key={run[0]!.item.page.route}>
+            {run.map(({ item: { page } }) => (
+              <SidebarNavLink
+                key={page.route}
+                icon={page.icon ? <Icon name={page.icon} /> : undefined}
+                active={isCurrent(page.route)}
+                render={link(page.route)}
+              >
+                {page.label}
+              </SidebarNavLink>
+            ))}
+          </SidebarNavList>
+        )
+      }
+      const { page } = run.item
+      const open = isCurrent(page.route) || run.children.some((c) => isCurrent(c.page.route))
+      return (
+        <SidebarNavSection
+          key={page.route}
+          level="group"
+          label={page.label}
+          labelRender={link(page.route)}
+          active={isCurrent(page.route)}
+          defaultOpen={open}
+        >
+          <SidebarNavList>
+            {run.children.map(({ page: child }) => (
+              <SidebarNavLink key={child.route} active={isCurrent(child.route)} render={link(child.route)}>
+                {child.label}
+              </SidebarNavLink>
+            ))}
+          </SidebarNavList>
+        </SidebarNavSection>
+      )
+    })
   return (
-    <SidebarContent className="py-3">
-      {sections.map((s, i) => (
-        <SidebarGroup key={s.label || i}>
-          {s.label && <SidebarGroupLabel>{s.label}</SidebarGroupLabel>}
-          <SidebarMenu>
-            {groupRows(s.items).map(({ item, children }) => {
-              const { page } = item
-              const label = page.route === s.route ? 'Overview' : page.label
-              const active = current.route === page.route
-              const icon = page.icon ? <Icon name={page.icon} /> : undefined
-              if (!children.length) {
-                return <SidebarItem key={page.route} icon={icon} label={label} isActive={active} render={link(page)} />
-              }
-              const open = active || children.some((c) => c.page.route === current.route)
-              return (
-                <SidebarItem key={page.route} icon={icon} label={label} isActive={active} defaultOpen={open} render={link(page)}>
-                  <SidebarSub>
-                    {children.map(({ page: child }) => (
-                      <SidebarSubItem key={child.route} isActive={current.route === child.route} render={link(child)}>
-                        <span className="truncate">{child.label}</span>
-                      </SidebarSubItem>
-                    ))}
-                  </SidebarSub>
-                </SidebarItem>
-              )
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
-      ))}
-    </SidebarContent>
+    <SidebarNav>
+      <SidebarNavContent aria-label="Documentation" className="pt-4">
+        {sections.map((s, i) => {
+          if (!s.label) return <React.Fragment key={i}>{rows(s.items)}</React.Fragment>
+          const items = s.route ? s.items.filter((it) => it.page.route !== s.route) : s.items
+          return (
+            <SidebarNavSection
+              key={s.label}
+              label={s.label}
+              labelRender={s.route ? link(s.route) : undefined}
+              active={isCurrent(s.route)}
+            >
+              {rows(items)}
+            </SidebarNavSection>
+          )
+        })}
+      </SidebarNavContent>
+    </SidebarNav>
   )
 }
 
@@ -243,12 +275,12 @@ export function DocsLayout() {
   const Header = useOverride('Header', DefaultHeader)
   React.useEffect(() => setNavOpen(false), [current.route])
   return (
-    <SidebarProvider shortcut={null} className="min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background">
       <Header onOpenNav={() => setNavOpen(true)} />
       <div className="flex min-w-0 flex-1">
-        <SidebarPanel variant="sidebar" collapsible="none" aria-label="Documentation" className="sticky top-14 h-[calc(100dvh-3.5rem)] self-start max-lg:hidden">
+        <aside aria-label="Documentation" className="sticky top-14 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col self-start border-e border-border max-lg:hidden">
           <Sidebar />
-        </SidebarPanel>
+        </aside>
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex-1">
             <DocsPage />
@@ -259,17 +291,15 @@ export function DocsLayout() {
       <Drawer side="left" open={navOpen} onOpenChange={setNavOpen}>
         <DrawerContent className="w-72">
           <DrawerTitle className="sr-only">Navigation</DrawerTitle>
-          <SidebarProvider shortcut={null} className="min-h-0 flex-1 pt-10 [--sidebar-width:100%]">
-            <SidebarPanel variant="sidebar" collapsible="none" aria-label="Documentation" panelClassName="border-e-0 bg-transparent">
-              <Sidebar onNavigate={() => setNavOpen(false)} />
-              <div className="flex items-center gap-1 border-t border-border px-3 py-2">
-                <ThemeButton />
-                <SocialLinks />
-              </div>
-            </SidebarPanel>
-          </SidebarProvider>
+          <div className="flex min-h-0 flex-1 flex-col pt-8">
+            <Sidebar onNavigate={() => setNavOpen(false)} />
+            <div className="flex shrink-0 items-center gap-1 border-t border-border px-3 py-2">
+              <ThemeButton />
+              <SocialLinks />
+            </div>
+          </div>
         </DrawerContent>
       </Drawer>
-    </SidebarProvider>
+    </div>
   )
 }
