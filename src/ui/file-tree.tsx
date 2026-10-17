@@ -314,10 +314,10 @@ function FileTree({
   return (
     <div
       role="tree"
-      aria-label={label}
       data-slot="file-tree"
       className={cn("flex min-w-0 flex-col text-ui", className)}
       {...props}
+      aria-label={props["aria-label"] ?? label}
     >
       <AnimatePresence initial={false}>
         {rows.map((row) => {

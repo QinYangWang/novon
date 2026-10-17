@@ -215,7 +215,6 @@ function AlertClose({ className, onClick, children, ...props }: React.ComponentP
     <button
       type="button"
       data-slot="alert-close"
-      aria-label={labels.dismiss}
       onClick={(e) => {
         onClick?.(e)
         if (!e.defaultPrevented) dismiss()
@@ -226,6 +225,7 @@ function AlertClose({ className, onClick, children, ...props }: React.ComponentP
         className
       )}
       {...props}
+      aria-label={props["aria-label"] ?? labels.dismiss}
     >
       {children ?? <XIcon />}
     </button>

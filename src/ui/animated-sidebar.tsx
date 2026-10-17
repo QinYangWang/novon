@@ -409,7 +409,6 @@ function SidebarItem({
         "aria-expanded": isDisclosure ? open && !collapsed : undefined,
         "aria-controls": isDisclosure ? subId : undefined,
         "aria-disabled": disabled || undefined,
-        "aria-label": collapsed && typeof label === "string" ? label : undefined,
         ...{ "data-active": showPill || undefined },
         onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
           if (disabled) return e.preventDefault()
@@ -434,6 +433,8 @@ function SidebarItem({
       { onClick } as React.ComponentProps<"button">,
       props as React.ComponentProps<"button">,
       {
+        // after props, so an explicit undefined keeps the rail label
+        "aria-label": props["aria-label"] ?? (collapsed && typeof label === "string" ? label : undefined),
         children: (
           <>
             {showPill && <ActivePill reduce={sidebar.reduce} pillId={sidebar.pillId} />}
@@ -602,7 +603,6 @@ function SidebarTrigger({ className, onClick, children, ...props }: React.Compon
       type="button"
       data-slot="sidebar-trigger"
       data-state={open ? "expanded" : "collapsed"}
-      aria-label={props["aria-label"] ?? (open ? "Collapse sidebar" : "Expand sidebar")}
       aria-expanded={open}
       onClick={(e) => {
         onClick?.(e)
@@ -613,6 +613,7 @@ function SidebarTrigger({ className, onClick, children, ...props }: React.Compon
         className
       )}
       {...props}
+      aria-label={props["aria-label"] ?? (open ? "Collapse sidebar" : "Expand sidebar")}
     >
       {children ?? <SidebarIcon />}
     </button>

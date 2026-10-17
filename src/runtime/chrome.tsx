@@ -41,8 +41,7 @@ export function Brand({ className }: { className?: string }) {
 
 export function ThemeButton() {
   // The toggle names itself in the site's language; `theme.labels.theme` replaces that name.
-  const label = useSite().site.theme.labels?.theme
-  return <ThemeToggle modes="tri" variant="ghost" {...(label ? { 'aria-label': label } : {})} />
+  return <ThemeToggle modes="tri" variant="ghost" aria-label={useSite().site.theme.labels?.theme} />
 }
 
 export function SocialLinks() {

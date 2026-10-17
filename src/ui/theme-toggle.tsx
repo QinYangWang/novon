@@ -304,7 +304,6 @@ function ThemeToggle({
       type="button"
       data-slot="theme-toggle"
       data-mode={tri ? (mode ?? undefined) : undefined}
-      aria-label={label}
       onClick={(event) => {
         // Keyboard activation reports detail 0 and no pointer position: grow from the button.
         if (event.detail === 0) {
@@ -322,6 +321,7 @@ function ThemeToggle({
         className
       )}
       {...props}
+      aria-label={props["aria-label"] ?? label}
     >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span

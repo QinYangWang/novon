@@ -280,10 +280,10 @@ function Outline({
   return (
     <nav
       data-slot="outline"
-      aria-label={typeof title === "string" ? title : labels.onThisPage}
       style={{ maxHeight, ...style }}
       className={cn("flex min-h-0 flex-col gap-3 text-ui", className)}
       {...props}
+      aria-label={props["aria-label"] ?? (typeof title === "string" ? title : labels.onThisPage)}
     >
       {title !== null && <p className="shrink-0 font-medium text-foreground">{title}</p>}
       <ScrollArea fade viewportRef={viewportRef} className="-ms-1 flex min-h-0 flex-1 flex-col" viewportClassName="min-h-0 flex-1 ps-1 pe-3">
@@ -336,7 +336,7 @@ function OutlinePopover({
   const current = items.find((i) => i.id === active)
 
   return (
-    <nav data-slot="outline-popover" aria-label={typeof title === "string" ? title : labels.onThisPage} className={className} {...props}>
+    <nav data-slot="outline-popover" className={className} {...props} aria-label={props["aria-label"] ?? (typeof title === "string" ? title : labels.onThisPage)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger render={<Button variant="secondary" className="w-full" />}>
           <span className="flex min-w-0 flex-1 items-center gap-2 text-start">

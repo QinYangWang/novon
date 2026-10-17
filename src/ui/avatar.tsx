@@ -124,10 +124,10 @@ function AvatarStatus({
       data-slot="avatar-status"
       data-status={status}
       role={label ? "img" : undefined}
-      aria-label={label}
       aria-hidden={label ? undefined : true}
       className={cn(avatarStatusVariants({ status }), className)}
       {...props}
+      aria-label={props["aria-label"] ?? label}
     />
   )
 }

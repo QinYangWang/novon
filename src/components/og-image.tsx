@@ -254,6 +254,9 @@ function OgImage({
   // Text boxes don't shrink inside flex columns, so the body gets the height that is left.
   const body = OG_IMAGE_HEIGHT - PAD_Y * 2 - HEADER - (footer ? FOOTER : 0)
   const descLines = size >= 64 ? 2 : 1
+  // room below the last line for descenders (CJK fonts draw about 1.36em tall)
+  const titleSlack = Math.ceil(size * 0.15)
+  const descSlack = Math.ceil(30 * 0.15)
 
   return (
     <div
@@ -300,8 +303,12 @@ function OgImage({
           style={{
             display: "block",
             width: INNER,
-            // a little slack below the last line keeps descenders whole
-            maxHeight: Math.ceil(size * (1.25 * titleLines + 0.12)),
+            // The glyphs reach past a 1.25 line box, so the box gets room below the last line
+            // for descenders and a matching negative margin keeps the layout unchanged.
+            boxSizing: "border-box",
+            maxHeight: Math.ceil(size * 1.25 * titleLines) + titleSlack,
+            paddingBottom: titleSlack,
+            marginBottom: -titleSlack,
             overflow: "hidden",
             fontSize: size,
             fontWeight: 700,
@@ -317,7 +324,10 @@ function OgImage({
             style={{
               display: "block",
               width: INNER,
-              maxHeight: Math.ceil(30 * (1.45 * descLines + 0.12)),
+              boxSizing: "border-box",
+              maxHeight: Math.ceil(30 * 1.45 * descLines) + descSlack,
+              paddingBottom: descSlack,
+              marginBottom: -descSlack,
               overflow: "hidden",
               fontSize: 30,
               lineHeight: 1.45,

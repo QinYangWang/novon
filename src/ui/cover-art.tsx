@@ -109,13 +109,13 @@ function CoverArt({ variant, seed, mirror, ramp, className, ...props }: CoverArt
   return (
     <div
       role="img"
-      aria-labelledby={named ? undefined : labelId}
       data-slot="cover-art"
       data-variant={v}
       data-mirror={m}
       data-ramp={r}
       className={cn("@container relative isolate overflow-hidden", DIRECTIONS[m], BACKDROPS[r], className)}
       {...props}
+      aria-labelledby={props["aria-labelledby"] ?? (named ? undefined : labelId)}
     >
       {!named && (
         <span id={labelId} hidden>
