@@ -1,6 +1,7 @@
-import type * as React from "react"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { LocaleText } from "@/ui/locale-provider"
 
 /*
  * Generated cover artwork in CSS, so posts and cards need no image files. Every colour is a theme
@@ -102,10 +103,13 @@ function CoverArt({ variant, seed, mirror, ramp, className, ...props }: CoverArt
   const bit = (i: number) => (pattern >>> i) & 1
   // digits are text: they never flip, the seed changes the numbers instead
   const flip = v === 3 ? "" : FLIPS[m]
+  // The built-in name comes from the locale through a hidden element, so the art itself needs no client code.
+  const labelId = React.useId()
+  const named = props["aria-label"] !== undefined || props["aria-labelledby"] !== undefined || props["aria-hidden"] !== undefined
   return (
     <div
       role="img"
-      aria-label="Abstract cover illustration"
+      aria-labelledby={named ? undefined : labelId}
       data-slot="cover-art"
       data-variant={v}
       data-mirror={m}
@@ -113,6 +117,11 @@ function CoverArt({ variant, seed, mirror, ramp, className, ...props }: CoverArt
       className={cn("@container relative isolate overflow-hidden", DIRECTIONS[m], BACKDROPS[r], className)}
       {...props}
     >
+      {!named && (
+        <span id={labelId} hidden>
+          <LocaleText label="coverArt" />
+        </span>
+      )}
       {v === 0 && (
         // Nested rounded squares, drawn concentric: 32 = 16 + 16, 16 = 10 + 6.
         <div className={cn("absolute inset-0 grid place-items-center", flip)}>

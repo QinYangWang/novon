@@ -6,11 +6,12 @@ import { ArrowUpIcon, ChevronDownIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { Button } from "@/ui/button"
 import { OverflowHint, OverflowHintContent, OverflowHintTrigger } from "@/ui/overflow-hint"
+import { useLocale } from "@/ui/locale-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover"
 import { ScrollArea } from "@/ui/scroll-area"
 
 /*
- * The page outline: "On this page" links to the page's headings, with a track that steps in for
+ * The page outline: links to the page's headings, with a track that steps in for
  * nested headings and lights up beside the section being read.
  *
  *   <Outline items={[{ id: "usage", title: "Usage", depth: 2 }, …]} />      sticky rail beside the article
@@ -219,6 +220,7 @@ function scrollToTop(e: React.MouseEvent) {
 }
 
 function BackToTop({ visible, onClick, className }: { visible: boolean; onClick: (e: React.MouseEvent) => void; className?: string }) {
+  const { labels } = useLocale()
   return (
     <a
       href="#top"
@@ -231,7 +233,7 @@ function BackToTop({ visible, onClick, className }: { visible: boolean; onClick:
         className
       )}
     >
-      Back to top
+      {labels.backToTop}
       <ArrowUpIcon className="size-3" />
     </a>
   )
@@ -239,11 +241,11 @@ function BackToTop({ visible, onClick, className }: { visible: boolean; onClick:
 
 type OutlineProps = Omit<React.ComponentProps<"nav">, "title" | "children"> & {
   items: readonly OutlineItem[]
-  /** Heading above the list; `null` leaves it out (the nav keeps "On this page" as its name). */
+  /** Heading above the list. Defaults to the locale's "On this page"; `null` leaves it out (the nav keeps that as its name). */
   title?: React.ReactNode
   /** A heading is current once its top passes this many px from the top of the viewport. */
   activeLine?: number
-  /** Show "Back to top" under the list once the page has scrolled 320px. */
+  /** Show the locale's "Back to top" link under the list once the page has scrolled 320px. */
   backToTop?: boolean
   /** Cap for the whole outline; the list scrolls inside it. Defaults to the viewport minus a sticky offset. */
   maxHeight?: string
@@ -257,7 +259,7 @@ type OutlineProps = Omit<React.ComponentProps<"nav">, "title" | "children"> & {
  */
 function Outline({
   items,
-  title = "On this page",
+  title: titleProp,
   activeLine = DEFAULT_LINE,
   backToTop = true,
   maxHeight = "calc(100svh - 6.5rem)",
@@ -266,6 +268,8 @@ function Outline({
   style,
   ...props
 }: OutlineProps) {
+  const { labels } = useLocale()
+  const title = titleProp === undefined ? labels.onThisPage : titleProp
   const ids = React.useMemo(() => items.map((i) => i.id), [items])
   const [active, setActive] = useActiveHeadingState(ids, activeLine)
   const viewportRef = React.useRef<HTMLDivElement>(null)
@@ -276,7 +280,7 @@ function Outline({
   return (
     <nav
       data-slot="outline"
-      aria-label={typeof title === "string" ? title : "On this page"}
+      aria-label={typeof title === "string" ? title : labels.onThisPage}
       style={{ maxHeight, ...style }}
       className={cn("flex min-h-0 flex-col gap-3 text-ui", className)}
       {...props}
@@ -311,13 +315,15 @@ type OutlinePopoverProps = Omit<OutlineProps, "maxHeight" | "style">
  */
 function OutlinePopover({
   items,
-  title = "On this page",
+  title: titleProp,
   activeLine = DEFAULT_LINE,
   backToTop = true,
   renderLink,
   className,
   ...props
 }: OutlinePopoverProps) {
+  const { labels } = useLocale()
+  const title = titleProp === undefined ? labels.onThisPage : titleProp
   const ids = React.useMemo(() => items.map((i) => i.id), [items])
   const [active, setActive] = useActiveHeadingState(ids, activeLine)
   const [open, setOpen] = React.useState(false)
@@ -330,11 +336,11 @@ function OutlinePopover({
   const current = items.find((i) => i.id === active)
 
   return (
-    <nav data-slot="outline-popover" aria-label={typeof title === "string" ? title : "On this page"} className={className} {...props}>
+    <nav data-slot="outline-popover" aria-label={typeof title === "string" ? title : labels.onThisPage} className={className} {...props}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger render={<Button variant="secondary" className="w-full" />}>
           <span className="flex min-w-0 flex-1 items-center gap-2 text-start">
-            <span className="shrink-0 text-foreground">{title ?? "On this page"}</span>
+            <span className="shrink-0 text-foreground">{title ?? labels.onThisPage}</span>
             {scrolled && current && (
               <>
                 <span aria-hidden className="shrink-0 text-muted-foreground">

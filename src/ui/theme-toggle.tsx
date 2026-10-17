@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 
 import { MonitorIcon, MoonIcon, SunIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
+import { useLocale } from "@/ui/locale-provider"
 
 type Theme = "light" | "dark"
 /** A stored choice. "system" means no stored value: the page follows the OS setting. */
@@ -253,7 +254,6 @@ function useTheme({ storageKey = "theme", duration = 560, onThemeChange }: UseTh
 }
 
 const NEXT_MODE: Record<ThemeMode, ThemeMode> = { light: "dark", dark: "system", system: "light" }
-const MODE_LABEL: Record<ThemeMode, string> = { light: "Light", dark: "Dark", system: "System" }
 
 type ThemeToggleProps = Omit<React.ComponentProps<"button">, "children" | "onClick"> &
   UseThemeToggleOptions & {
@@ -282,6 +282,8 @@ function ThemeToggle({
 }: ThemeToggleProps) {
   const { theme: mode, resolvedTheme: theme, setTheme } = useTheme({ storageKey, duration, onThemeChange })
   const reduceMotion = useReducedMotion()
+  const { labels } = useLocale()
+  const modeLabel: Record<ThemeMode, string> = { light: labels.themeLight, dark: labels.themeDark, system: labels.themeSystem }
   const tri = modes === "tri"
   const dark = theme === "dark"
   const shown = tri ? mode : theme
@@ -290,12 +292,12 @@ function ThemeToggle({
   const toggle = (options: SetThemeOptions) => setTheme(next, options)
   const label =
     shown === null
-      ? "Toggle theme"
+      ? labels.toggleTheme
       : tri && mode
-        ? `Theme: ${MODE_LABEL[mode]}. Switch to ${MODE_LABEL[next].toLowerCase()}`
+        ? labels.themeCycle(modeLabel[mode], modeLabel[next])
         : dark
-          ? "Switch to light theme"
-          : "Switch to dark theme"
+          ? labels.switchToLightTheme
+          : labels.switchToDarkTheme
 
   return (
     <button

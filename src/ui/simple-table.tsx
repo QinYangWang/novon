@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils"
 
 /*
  * A plain HTML table on a raised surface, for reference content: prop tables, token lists,
- * comparisons. It scrolls sideways when the columns don't fit (inline code never breaks and body
- * text keeps a minimum width). For data people sort, select or
- * page through, use Table.
+ * comparisons. It scrolls sideways when the columns don't fit (inline code never breaks, and on
+ * small screens body text keeps a minimum width). For data people sort, select or page through,
+ * use Table.
  *
  *   <SimpleTable>
  *     <SimpleTableHeader><SimpleTableRow><SimpleTableHead>Prop</SimpleTableHead>…</SimpleTableRow></SimpleTableHeader>
@@ -17,14 +17,31 @@ import { cn } from "@/lib/utils"
  * inline-code chip, so `components={{ table: SimpleTable, td: SimpleTableCell, … }}` renders MDX as is.
  */
 
+/*
+ * The floor for body-text cells, set on the surface as --simple-table-cell-min so cells need no
+ * client code to read it. `auto` floors them only below 40rem of viewport: short tables fit a
+ * reading column on desktop, and a phone scrolls a table sideways instead of squeezing its prose.
+ */
+const cellMinWidths = {
+  auto: "[--simple-table-cell-min:0px] max-sm:[--simple-table-cell-min:8rem]",
+  always: "[--simple-table-cell-min:8rem]",
+  none: "[--simple-table-cell-min:0px]",
+} as const
+
 type SimpleTableProps = React.ComponentProps<"table"> & {
   /** Class for the scrolling surface around the table. */
   containerClassName?: string
+  /** Minimum width of body-text cells: `auto` 8rem on small screens only, `always` 8rem, `none` no floor. */
+  cellMinWidth?: keyof typeof cellMinWidths
 }
 
-function SimpleTable({ className, containerClassName, ...props }: SimpleTableProps) {
+function SimpleTable({ className, containerClassName, cellMinWidth = "auto", ...props }: SimpleTableProps) {
   return (
-    <div data-slot="simple-table-container" className={cn("overflow-x-auto rounded-xl bg-card shadow-raised", containerClassName)}>
+    <div
+      data-slot="simple-table-container"
+      data-cell-min-width={cellMinWidth}
+      className={cn("overflow-x-auto rounded-xl bg-card shadow-raised", cellMinWidths[cellMinWidth], containerClassName)}
+    >
       <table data-slot="simple-table" className={cn("w-full border-collapse text-start text-sm", className)} {...props} />
     </div>
   )
@@ -74,8 +91,8 @@ function SimpleTableHead({ className, align, ...props }: SimpleTableHeadProps) {
 }
 
 const cellVariants = {
-  /** Body text. Wraps between words but keeps an 8rem floor, so a narrow table scrolls instead of squeezing it. */
-  default: cn("min-w-32 text-muted-foreground", inlineCode),
+  /** Body text. Wraps between words; the table's `cellMinWidth` sets its floor, and empty cells have none. */
+  default: cn("min-w-(--simple-table-cell-min,0px) text-muted-foreground empty:min-w-0", inlineCode),
   /** Names: props, classes, tokens. */
   code: "font-mono text-xs whitespace-nowrap text-foreground",
   /** Secondary names: defaults, token names beside a class. */

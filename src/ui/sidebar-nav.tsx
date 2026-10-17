@@ -8,6 +8,7 @@ import { useRender } from "@base-ui/react/use-render"
 import { ChevronRightIcon, SearchIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { Kbd } from "@/ui/kbd"
+import { useLocale } from "@/ui/locale-provider"
 
 /*
  * Compact text navigation for docs and settings sidebars: a search field, collapsible sections
@@ -45,13 +46,14 @@ function SidebarNav({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="sidebar-nav" className={cn("flex min-h-0 flex-1 flex-col", className)} {...props} />
 }
 
-/** A field-shaped button that opens your search (a command palette). */
+/** A field-shaped button that opens your search (a command palette). Its text defaults to the locale's "Search". */
 function SidebarNavSearch({
   shortcut,
-  children = "Search",
+  children,
   className,
   ...props
 }: React.ComponentProps<"button"> & { shortcut?: React.ReactNode }) {
+  const { labels } = useLocale()
   return (
     <div data-slot="sidebar-nav-search" className="shrink-0 px-3 pt-3 pb-2">
       <button
@@ -64,7 +66,7 @@ function SidebarNavSearch({
         {...props}
       >
         <SearchIcon className="size-3.5 shrink-0" />
-        <span className="flex-1 text-start">{children}</span>
+        <span className="flex-1 text-start">{children ?? labels.searchPlaceholder}</span>
         {shortcut && <Kbd size="sm">{shortcut}</Kbd>}
       </button>
     </div>
@@ -112,6 +114,8 @@ type SidebarNavSectionProps = Omit<CollapsiblePrimitive.Root.Props, "children"> 
   active?: boolean
   /** Leading 16px icon, muted until the label is hovered or current (same slot as `SidebarNavLink`). */
   icon?: React.ReactNode
+  /** Name of the fold toggle on a link label. Defaults to the locale's "Toggle {label}" ("Toggle section" for a non-text label). */
+  toggleLabel?: string
   children?: React.ReactNode
 }
 
@@ -126,10 +130,12 @@ function SidebarNavSection({
   labelRender,
   active = false,
   icon,
+  toggleLabel,
   className,
   children,
   ...props
 }: SidebarNavSectionProps) {
+  const { labels } = useLocale()
   const isLink = href !== undefined || labelRender !== undefined
   const labelClass =
     level === "section" ? "h-7 text-ui font-semibold text-foreground" : "h-6.5 text-ui-sm font-medium text-muted-foreground hover:text-foreground"
@@ -190,7 +196,7 @@ function SidebarNavSection({
         {labelLink}
         {collapsible && (
           <CollapsiblePrimitive.Trigger
-            aria-label={typeof label === "string" ? `Toggle ${label}` : "Toggle section"}
+            aria-label={toggleLabel ?? (typeof label === "string" ? labels.toggleNamed(label) : labels.toggleSection)}
             className={cn(
               "group/trigger grid w-6 shrink-0 cursor-pointer place-items-center rounded-md outline-none transition-colors duration-150 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring/50",
               level === "section" ? "h-7" : "h-6.5"

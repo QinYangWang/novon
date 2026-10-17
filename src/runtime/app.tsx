@@ -82,13 +82,19 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
     [site, loaders, overrides, components, current, show],
   )
 
+  // The library localizes its own strings from `lang`; only a site's `theme.labels` overrides go in.
+  const localeLabels = React.useMemo(() => {
+    const o = site.theme.labels ?? {}
+    return { onThisPage: o.onThisPage, backToTop: o.backToTop }
+  }, [site.theme.labels])
+
   const layout = current.page?.layout ?? layoutOf(site, current.route).layout
   const Layout = layout === 'blog' ? BlogLayout : DocsLayout
 
   return (
     <SiteContext.Provider value={value}>
       <MDXProvider components={{ ...mdxComponents, ...components }}>
-        <LocaleProvider locale={site.lang}>
+        <LocaleProvider locale={site.lang} labels={localeLabels}>
           <TooltipProvider>
             {contentOnly ? <PageContent /> : <Layout />}
           </TooltipProvider>

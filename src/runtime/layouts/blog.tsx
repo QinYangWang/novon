@@ -141,7 +141,7 @@ function Post({ page }: { page: PageMeta }) {
           <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-10">
             {toc && (
               <div className="sticky top-14 z-30 -my-4 bg-background py-2 lg:hidden">
-                <OutlinePopover headings={page.headings} activeLine={136} title={t.onThisPage} className="max-w-sm" />
+                <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
               </div>
             )}
               <article className="typeset typeset-reading">
@@ -150,7 +150,7 @@ function Post({ page }: { page: PageMeta }) {
           </div>
           {toc && (
             <aside className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
-              <Outline headings={page.headings} activeLine={136} title={t.onThisPage} maxHeight="calc(100svh - 8rem)" />
+              <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
             </aside>
           )}
         </div>

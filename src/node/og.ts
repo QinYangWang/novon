@@ -1,5 +1,5 @@
 /**
- * Social cards: a 1200×630 PNG per page, rendered at build time with satori
+ * Social cards: the library's OgImage as a 1200×630 PNG per page, rendered with satori
  * (JSX → SVG) and resvg (SVG → PNG), cached by content hash in `.novon/og/`.
  *
  * Fonts: `og.font` points at local TTF/OTF/WOFF files. Without it, novon fetches
@@ -12,12 +12,12 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import { createElement } from 'react'
 import { novonRoot } from './vite.ts'
-import { OgCard, type OgCardProps } from './og-card.tsx'
+import { OgImage as OgCard, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, type OgImageProps } from '@/components/og-image'
 import { withBase } from '../shared.ts'
 import type { OgOptions, PageMeta, ResolvedConfig } from '../types.ts'
 
-export const OG_WIDTH = 1200
-export const OG_HEIGHT = 630
+export const OG_WIDTH = OG_IMAGE_WIDTH
+export const OG_HEIGHT = OG_IMAGE_HEIGHT
 
 export interface OgImage {
   /** Path under the base, or an absolute URL. */
@@ -25,15 +25,6 @@ export interface OgImage {
   width?: number
   height?: number
   generated: boolean
-}
-
-export interface OgTokens {
-  background: string
-  foreground: string
-  mutedForeground: string
-  border: string
-  primary: string
-  primarySubtle: string
 }
 
 type ResolvedOg = Required<Pick<OgOptions, 'mode' | 'family'>> & OgOptions & { enabled: boolean }
@@ -71,60 +62,6 @@ export function imageUrl(config: ResolvedConfig, image: OgImage): string {
   if (/^https?:\/\//.test(image.src)) return image.src
   const path = withBase(config.base, image.src)
   return config.url ? new URL(path, config.url).href : path
-}
-
-// ---------- theme tokens ----------
-
-function block(css: string, selector: RegExp): Record<string, string> {
-  const m = selector.exec(css)
-  if (!m) return {}
-  const end = css.indexOf('}', m.index)
-  const out: Record<string, string> = {}
-  for (const d of css.slice(m.index, end).matchAll(/--([\w-]+):\s*([^;]+);/g)) out[d[1]] = d[2].trim()
-  return out
-}
-
-/** oklch(L C H [/ a]) → rgb(), since the renderer only knows sRGB. */
-function toSrgb(value: string): string {
-  const m = /^oklch\(\s*([\d.]+)(%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+)(%?))?\s*\)$/.exec(value)
-  if (!m) return value
-  const L = Number(m[1]) / (m[2] ? 100 : 1)
-  const C = Number(m[3])
-  const h = (Number(m[4]) * Math.PI) / 180
-  const a = C * Math.cos(h)
-  const b = C * Math.sin(h)
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-  const mm = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
-  const lin = [4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s]
-  const [r, g, bl] = lin.map((x) => Math.round(255 * Math.min(1, Math.max(0, x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055))))
-  const alpha = m[5] ? Number(m[5]) / (m[6] ? 100 : 1) : 1
-  return alpha < 1 ? `rgba(${r}, ${g}, ${bl}, ${alpha})` : `rgb(${r}, ${g}, ${bl})`
-}
-
-/** Reads the installed theme files so the card uses the same tokens as the site. */
-export async function readTokens(accent: string, mode: 'light' | 'dark'): Promise<OgTokens> {
-  const theme = await readFile(join(novonRoot, 'src/styles/theme.css'), 'utf8')
-  const accents = await readFile(join(novonRoot, 'src/app/theme-accents.css'), 'utf8')
-  const base = block(theme, /^:root\s*\{/m)
-  const dark = mode === 'dark' ? block(theme, /^\.dark\s*\{/m) : {}
-  const a = `html\\[data-accent="${accent}"\\]`
-  const acc = { ...block(accents, new RegExp(`^${a},`, 'm')), ...(mode === 'dark' ? block(accents, new RegExp(`^${a}\\.dark,`, 'm')) : {}) }
-  const vars: Record<string, string> = { ...base, ...dark, ...acc }
-  const get = (name: string) => {
-    let v = vars[name]
-    for (let i = 0; v?.startsWith('var(') && i < 4; i++) v = vars[v.slice(6, -1)]
-    if (!v) throw new Error(`theme token --${name} not found`)
-    return toSrgb(v)
-  }
-  return {
-    background: get('background'),
-    foreground: get('foreground'),
-    mutedForeground: get('muted-foreground'),
-    border: get('border'),
-    primary: get('primary'),
-    primarySubtle: get('primary-subtle'),
-  }
 }
 
 // ---------- fonts ----------
@@ -198,20 +135,25 @@ async function dataUri(config: ResolvedConfig, src: string | undefined): Promise
 
 // ---------- render ----------
 
-export function cardProps(config: ResolvedConfig, page: PageMeta): Omit<OgCardProps, 'tokens' | 'image'> & { imageSrc?: string } {
-  const author = page.author
-  const avatar = author ? config.theme.authors?.[author]?.avatar : undefined
+type CardProps = Omit<OgImageProps, 'logo' | 'avatar'> & { logoSrc?: string; avatarSrc?: string }
+
+export function cardProps(config: ResolvedConfig, page: PageMeta): CardProps {
+  const opts = ogOptions(config)
   const isPost = page.layout === 'blog' && page.kind === 'page' && Boolean(page.date)
+  const author = isPost ? page.author : undefined
   const home = page.route === '/'
   return {
     title: home ? config.title : page.title,
     description: home ? config.description : page.description,
     siteName: config.title,
-    imageSrc: avatar ?? config.theme.logo ?? config.theme.favicon,
-    imageShape: avatar ? 'circle' : 'square',
-    author: isPost ? author : undefined,
+    logoSrc: config.theme.logo ?? config.theme.favicon,
+    avatarSrc: author ? config.theme.authors?.[author]?.avatar : undefined,
+    author,
     date: isPost ? page.date : undefined,
     tags: isPost ? page.tags : [],
+    accent: opts.accent ?? config.theme.accent,
+    mode: opts.mode,
+    fontFamily: 'og',
   }
 }
 
@@ -234,18 +176,22 @@ export interface OgRenderer {
 export async function ogRenderer(config: ResolvedConfig): Promise<OgRenderer> {
   const opts = ogOptions(config)
   const cacheDir = join(config.root, '.novon/og')
-  const tokens = await readTokens(opts.accent ?? config.theme.accent, opts.mode)
   const local = await localFonts(config, opts)
   const images = new Map<string, string | undefined>()
-  // The card's own source is part of the cache key, so editing it re-renders.
-  const cardVersion = hash(await readFile(join(novonRoot, 'src/node/og-card.tsx')), JSON.stringify(tokens))
+  const image = async (src: string | undefined) => {
+    if (!src) return undefined
+    if (!images.has(src)) images.set(src, await dataUri(config, src))
+    return images.get(src)
+  }
+  // The card component's source is part of the cache key, so a library update re-renders.
+  const cardVersion = hash('og-v2', await readFile(join(novonRoot, 'src/components/og-image.tsx')))
 
   const prepare = async (page: PageMeta) => {
-    const { imageSrc, ...props } = cardProps(config, page)
-    if (imageSrc && !images.has(imageSrc)) images.set(imageSrc, await dataUri(config, imageSrc))
-    const image = imageSrc ? images.get(imageSrc) : undefined
-    const all: OgCardProps = { ...props, image, tokens }
-    const text = [all.title, all.description, all.siteName, all.author, all.date, ...(all.tags ?? []).map((t) => `#${t}`), ' ·…0123456789-'].filter(Boolean).join('')
+    const { logoSrc, avatarSrc, ...props } = cardProps(config, page)
+    const all: OgImageProps = { ...props, logo: await image(logoSrc), avatar: await image(avatarSrc) }
+    // Every character the card can draw, including the separators and the clamp's ellipsis.
+    const tags = (all.tags ?? []).filter(Boolean).slice(0, 3).map((t) => `#${t}`)
+    const text = [all.title, all.description, all.siteName, all.author, all.date, ...tags, ' #·…0123456789-'].filter(Boolean).join('')
     return { all, text }
   }
   const fontsFor = async (text: string) => local ?? Promise.all([webFont(cacheDir, opts.family, 400, text), webFont(cacheDir, opts.family, 700, text)])

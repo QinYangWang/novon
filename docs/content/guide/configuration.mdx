@@ -77,7 +77,7 @@ is written as is; `full: true` adds each post's HTML to its item.
 ## Share images
 
 Every page gets a 1200×630 card at `/og/<route>.png` with its title, the site
-name and the author's avatar or the site logo, plus the `og:image` and
+name and logo, and on posts the author, date and first three tags, plus the `og:image` and
 `twitter:*` tags that point at it. Set `url` so the image link is absolute.
 
 ```ts
@@ -92,7 +92,7 @@ og: {
 
 Without `font`, each card downloads a subset of the web font holding only its
 own characters, so CJK titles render without a large font file. Builds without
-network need `font`; if neither works, pages ship without a card. Cards and
+network need `font`, which must cover `#`, `·` and `…`; if neither works, pages ship without a card. Cards and
 font subsets are cached in `.novon/og/`, so unchanged pages are not redrawn.
 A page can use its own image or opt out in [frontmatter](/guide/content#frontmatter).
 

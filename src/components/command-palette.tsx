@@ -6,6 +6,7 @@ import { LayoutGroup, motion, useReducedMotion } from "motion/react"
 
 import { SearchIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
+import { useLocale } from "@/ui/locale-provider"
 
 type CommandPaletteItem = {
   id: string
@@ -106,7 +107,9 @@ type CommandPaletteProps = {
   onSelect?: (item: CommandPaletteItem) => void
   /** Key that toggles the palette with ⌘/Ctrl. Pass false to disable. */
   hotkey?: string | false
+  /** Defaults to the locale's "Search or jump to…". */
   placeholder?: string
+  /** Defaults to the locale's "Nothing matches that.". */
   emptyMessage?: React.ReactNode
   /** Show the keyboard legend under the results. */
   showFooter?: boolean
@@ -120,11 +123,14 @@ function CommandPalette({
   onOpenChange,
   onSelect,
   hotkey = "k",
-  placeholder = "Search or jump to…",
-  emptyMessage = "Nothing matches that.",
+  placeholder: placeholderProp,
+  emptyMessage: emptyMessageProp,
   showFooter = true,
   className,
 }: CommandPaletteProps) {
+  const { labels } = useLocale()
+  const placeholder = placeholderProp ?? labels.commandPlaceholder
+  const emptyMessage = emptyMessageProp ?? labels.commandNoMatches
   const [openState, setOpenState] = React.useState(defaultOpen)
   const open = openProp ?? openState
   const setOpen = React.useCallback(
@@ -250,7 +256,7 @@ function CommandPalette({
             className
           )}
         >
-          <DialogPrimitive.Title className="sr-only">Command palette</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">{labels.commandPalette}</DialogPrimitive.Title>
           <div className="p-2 pb-0">
             <label className="flex h-11 items-center gap-2.5 rounded-2xl bg-background dark:bg-input/32 px-3.5 shadow-well transition-[background-color]">
               <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -265,7 +271,7 @@ function CommandPalette({
                 aria-controls={listId}
                 aria-autocomplete="list"
                 aria-activedescendant={active >= 0 ? optionId(active) : undefined}
-                aria-label="Search commands"
+                aria-label={labels.searchCommands}
                 autoComplete="off"
                 spellCheck={false}
                 className="h-full min-w-0 flex-1 bg-transparent text-ui-lg outline-none placeholder:text-muted-foreground"
@@ -284,7 +290,7 @@ function CommandPalette({
               layoutScroll
               id={listId}
               role="listbox"
-              aria-label="Commands"
+              aria-label={labels.commands}
               className="min-h-0 flex-1 scroll-py-2 overflow-y-auto overscroll-contain p-2"
             >
               {rows.length === 0 ? (
@@ -374,9 +380,9 @@ function CommandPalette({
               aria-hidden
               className="flex items-center gap-4 border-t border-border px-4 py-2.5 text-ui-xs text-muted-foreground"
             >
-              <FooterHint keys={["↑", "↓"]}>Navigate</FooterHint>
-              <FooterHint keys={["↵"]}>Open</FooterHint>
-              <FooterHint keys={["esc"]}>Close</FooterHint>
+              <FooterHint keys={["↑", "↓"]}>{labels.navigate}</FooterHint>
+              <FooterHint keys={["↵"]}>{labels.open}</FooterHint>
+              <FooterHint keys={["esc"]}>{labels.close}</FooterHint>
             </div>
           )}
         </DialogPrimitive.Popup>

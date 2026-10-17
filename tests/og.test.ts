@@ -7,7 +7,8 @@ import { loadConfig } from '../src/node/load-config.ts'
 import { resolveConfig } from '../src/config.ts'
 import { build } from '../src/node/build.ts'
 import { scanContent } from '../src/node/content.ts'
-import { ogFile, ogRenderer, readTokens } from '../src/node/og.ts'
+import { cardProps, ogFile, ogRenderer } from '../src/node/og.ts'
+import { OG_IMAGE_TOKENS } from '@/components/og-image'
 
 /** Width and height from a PNG's IHDR chunk. */
 function pngSize(png: Uint8Array): [number, number] {
@@ -76,11 +77,17 @@ describe('social cards', async () => {
     expect(existsSync(join(dir, 'dist/og'))).toBe(false)
     expect(await readFile(join(dir, 'dist/hello/index.html'), 'utf8')).not.toContain('og:image')
   })
-  test('tokens come from the installed theme', async () => {
-    const light = await readTokens('blue', 'light')
-    const dark = await readTokens('blue', 'dark')
-    expect(light.primary).toBe(dark.primary)
-    expect(light.background).not.toBe(dark.background)
-    expect(dark.background).toMatch(/^rgb\(/)
+  test('the card uses the theme accent and the og font', async () => {
+    const pages = await scanContent(config)
+    const props = cardProps(config, pages.find((p) => p.route === '/hello')!)
+    expect(props).toMatchObject({ title: '你好世界', accent: 'blue', mode: 'light', fontFamily: 'og', tags: ['笔记'] })
+    const svg = await (await ogRenderer(config)).svg(pages.find((p) => p.route === '/hello')!)
+    expect(svg).toContain(OG_IMAGE_TOKENS.blue.light.primary)
+  })
+  test('long titles render (clamped)', async () => {
+    const pages = await scanContent(config)
+    const long = { ...pages.find((p) => p.route === '/hello')!, title: '你好世界'.repeat(40) }
+    const [short, clamped] = [await (await ogRenderer(config)).svg(pages.find((p) => p.route === '/hello')!), await (await ogRenderer(config)).svg(long)]
+    expect(clamped.length).toBeGreaterThan(short.length)
   })
 })

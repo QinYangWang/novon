@@ -93,6 +93,28 @@ type LocaleLabels = {
   effortMediumDescription: string
   effortHigh: string
   effortHighDescription: string
+  /* Page navigation */
+  onThisPage: string
+  backToTop: string
+  toggleSection: string
+  toggleNamed: (label: string) => string
+  /* Command palette */
+  commandPalette: string
+  searchCommands: string
+  commandPlaceholder: string
+  commandNoMatches: string
+  navigate: string
+  open: string
+  /* Theme */
+  toggleTheme: string
+  switchToLightTheme: string
+  switchToDarkTheme: string
+  themeLight: string
+  themeDark: string
+  themeSystem: string
+  themeCycle: (current: string, next: string) => string
+  /* Art */
+  coverArt: string
 }
 
 const en: LocaleLabels = {
@@ -174,6 +196,24 @@ const en: LocaleLabels = {
   effortMediumDescription: "Balanced",
   effortHigh: "High",
   effortHighDescription: "Thinks longer on hard problems",
+  onThisPage: "On this page",
+  backToTop: "Back to top",
+  toggleSection: "Toggle section",
+  toggleNamed: (label) => `Toggle ${label}`,
+  commandPalette: "Command palette",
+  searchCommands: "Search commands",
+  commandPlaceholder: "Search or jump to…",
+  commandNoMatches: "Nothing matches that.",
+  navigate: "Navigate",
+  open: "Open",
+  toggleTheme: "Toggle theme",
+  switchToLightTheme: "Switch to light theme",
+  switchToDarkTheme: "Switch to dark theme",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "System",
+  themeCycle: (current, next) => `Theme: ${current}. Switch to ${next.toLowerCase()}`,
+  coverArt: "Abstract cover illustration",
 }
 
 const zhCN: LocaleLabels = {
@@ -255,6 +295,24 @@ const zhCN: LocaleLabels = {
   effortMediumDescription: "兼顾速度和深度",
   effortHigh: "高",
   effortHighDescription: "难题上想得更久",
+  onThisPage: "本页目录",
+  backToTop: "回到顶部",
+  toggleSection: "展开或收起分组",
+  toggleNamed: (label) => `展开或收起“${label}”`,
+  commandPalette: "命令面板",
+  searchCommands: "搜索命令",
+  commandPlaceholder: "搜索或跳转到…",
+  commandNoMatches: "没有匹配的结果。",
+  navigate: "选择",
+  open: "打开",
+  toggleTheme: "切换主题",
+  switchToLightTheme: "切换到浅色主题",
+  switchToDarkTheme: "切换到深色主题",
+  themeLight: "浅色",
+  themeDark: "深色",
+  themeSystem: "跟随系统",
+  themeCycle: (current, next) => `主题：${current}，切换到${next}`,
+  coverArt: "抽象封面插图",
 }
 
 /** Built-in label sets, keyed by BCP 47 tag. */
@@ -299,4 +357,12 @@ function useLocale() {
   return React.useContext(LocaleContext)
 }
 
-export { LocaleProvider, useLocale, localeLabels, type LocaleLabels, type LocaleProviderProps }
+/** Keys whose label is a plain string. */
+type LocaleTextKey = { [K in keyof LocaleLabels]: LocaleLabels[K] extends string ? K : never }[keyof LocaleLabels]
+
+/** One built-in label as text, so a component without client code can still show the current locale's string. */
+function LocaleText({ label }: { label: LocaleTextKey }) {
+  return useLocale().labels[label]
+}
+
+export { LocaleProvider, LocaleText, useLocale, localeLabels, type LocaleLabels, type LocaleProviderProps, type LocaleTextKey }
