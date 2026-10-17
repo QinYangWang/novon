@@ -25,12 +25,14 @@ export function postsOf(pages: PageMeta[], layer: string): PageMeta[] {
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title))
 }
 
-export function tagSlug(tag: string): string {
-  return new GithubSlugger().slug(tag)
+export function tagSlug(tag: string, lowercase = true): string {
+  return new GithubSlugger().slug(tag, !lowercase)
 }
 
-export function tagRoute(layer: string, tag: string): string {
-  return `${layer === '/' ? '' : layer}/tags/${tagSlug(tag)}`
+/** `/blog` + `Docker` → `/blog/tags/docker`; `{ path: '/tag', lowercase: false }` gives `/blog/tag/Docker`. */
+export function tagRoute(layer: string, tag: string, options: { path?: string; lowercase?: boolean } = {}): string {
+  const segment = (options.path ?? '/tags').replace(/^\/+|\/+$/g, '')
+  return `${layer === '/' ? '' : layer}/${segment}/${tagSlug(tag, options.lowercase ?? true)}`
 }
 
 /** `/guide` + base `/docs/` → `/docs/guide`. */

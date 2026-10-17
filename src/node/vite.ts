@@ -33,6 +33,8 @@ export function siteData(config: ResolvedConfig, pages: PageMeta[]): SiteData {
     pages: pages.map(({ text: _text, ...p }) => p),
     search: plugins.includes('search'),
     rss: plugins.includes('rss'),
+    rssPath: config.rss.path,
+    tags: config.tags,
   }
 }
 

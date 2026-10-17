@@ -10,7 +10,8 @@ import { Footer, NotFound, PageContent, Search, SocialLinks, ThemeButton } from 
 import { Link } from '../link.tsx'
 import { Outline, OutlinePopover } from '../outline.tsx'
 import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
-import { useOverride, useSite } from '../site.tsx'
+import { useLabels, useOverride, useSite } from '../site.tsx'
+import { fill } from '../../labels.ts'
 
 function Container({ className, children }: { className?: string; children: React.ReactNode }) {
   return <div className={cn('mx-auto w-full max-w-5xl px-5 sm:px-8', className)}>{children}</div>
@@ -44,11 +45,12 @@ function BlogBrand() {
 
 function DefaultHeader() {
   const { site, current } = useSite()
+  const t = useLabels()
   return (
     <header className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur">
       <Container className="flex h-full items-center gap-3">
         <BlogBrand />
-        <nav aria-label="Main" className="ms-auto flex items-center gap-1">
+        <nav aria-label={t.mainNav} className="ms-auto flex items-center gap-1">
           {site.nav.map((l) => {
             const active = l.href === '/' ? current.route === '/' : current.route === l.href || current.route.startsWith(`${l.href}/`)
             return (
@@ -69,10 +71,11 @@ function DefaultHeader() {
 }
 
 function BackLink({ layer }: { layer: string }) {
+  const t = useLabels()
   return (
     <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={layer} />} className="-ms-3 text-muted-foreground">
       <ArrowLeftIcon data-icon="inline-start" />
-      All posts
+      {t.allPosts}
     </Button>
   )
 }
@@ -97,9 +100,10 @@ function DefaultPostHeader({ page }: { page: PageMeta }) {
 
 function AuthorCard({ name }: { name: string }) {
   const author = useAuthor(name)
+  const t = useLabels()
   if (!author?.bio) return null
   return (
-    <section aria-label="About the author" className="flex max-w-reading flex-col gap-4 rounded-2xl bg-card p-6 shadow-raised sm:flex-row sm:items-center sm:gap-5">
+    <section aria-label={t.aboutAuthor} className="flex max-w-reading flex-col gap-4 rounded-2xl bg-card p-6 shadow-raised sm:flex-row sm:items-center sm:gap-5">
       <AuthorAvatar name={name} size="xl" />
       <div className="flex flex-col gap-1">
         <p className="font-semibold">{name}</p>
@@ -107,7 +111,7 @@ function AuthorCard({ name }: { name: string }) {
       </div>
       {author.url && (
         <Button variant="secondary" size="sm" className="shrink-0 sm:ms-auto" nativeButton={false} render={<a href={author.url} target="_blank" rel="noreferrer" />}>
-          Follow
+          {t.follow}
         </Button>
       )}
     </section>
@@ -126,9 +130,10 @@ function Post({ page }: { page: PageMeta }) {
   const PostHeader = useOverride('PostHeader', DefaultPostHeader)
   const more = related(postsOf(site.pages, page.layer), page)
   const toc = site.theme.toc && (page.headings?.length ?? 0) > 1
+  const t = useLabels()
   return (
     <>
-      <ScrollProgress className="top-14" />
+      <ScrollProgress className="top-14" label={t.readingProgress} />
       <Container className="flex flex-col gap-10 pt-10 pb-24 sm:pt-14">
         <PostHeader page={page} />
         <PostCover post={page} className="aspect-video rounded-2xl outline -outline-offset-1 outline-image-outline sm:aspect-[21/9]" />
@@ -136,7 +141,7 @@ function Post({ page }: { page: PageMeta }) {
           <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-10">
             {toc && (
               <div className="sticky top-14 z-30 -my-4 bg-background py-2 lg:hidden">
-                <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
+                <OutlinePopover headings={page.headings} activeLine={136} title={t.onThisPage} className="max-w-sm" />
               </div>
             )}
               <article className="typeset typeset-reading">
@@ -145,14 +150,14 @@ function Post({ page }: { page: PageMeta }) {
           </div>
           {toc && (
             <aside className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
-              <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
+              <Outline headings={page.headings} activeLine={136} title={t.onThisPage} maxHeight="calc(100svh - 8rem)" />
             </aside>
           )}
         </div>
         {page.author && <AuthorCard name={page.author} />}
         {more.length > 0 && (
           <section aria-labelledby="more-title" className="flex flex-col gap-6 pt-6">
-            <Eyebrow id="more-title">Keep reading</Eyebrow>
+            <Eyebrow id="more-title">{t.keepReading}</Eyebrow>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {more.map((p) => (
                 <PostCard key={p.route} post={p} />
@@ -170,6 +175,7 @@ function PostsIndex({ page }: { page: PageMeta }) {
   const posts = postsOf(site.pages, page.layer)
   const [latest] = posts
   const description = page.description ?? (page.layer === '/' ? site.description : undefined)
+  const t = useLabels()
   return (
     <Container className="flex flex-col gap-20 py-16 sm:py-24">
       <header className="flex max-w-2xl flex-col items-start gap-6">
@@ -179,24 +185,24 @@ function PostsIndex({ page }: { page: PageMeta }) {
       </header>
       {latest && (
         <section aria-labelledby="latest-title" className="flex flex-col gap-6">
-          <Eyebrow id="latest-title">Latest</Eyebrow>
+          <Eyebrow id="latest-title">{t.latest}</Eyebrow>
           <PostCard post={latest} featured />
         </section>
       )}
       {posts.length > 1 && (
         <section aria-labelledby="all-title" className="flex flex-col gap-6">
           <div className="flex items-baseline justify-between gap-3">
-            <Eyebrow id="all-title">All writing</Eyebrow>
-            <span className="text-ui-sm text-muted-foreground tabular-nums">{posts.length} posts</span>
+            <Eyebrow id="all-title">{t.allWriting}</Eyebrow>
+            <span className="text-ui-sm text-muted-foreground tabular-nums">{fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })}</span>
           </div>
           <PostList layer={page.layer} skip={1} />
         </section>
       )}
       <section aria-labelledby="topics-title" className="flex flex-col gap-4">
-        <Eyebrow id="topics-title">Topics</Eyebrow>
+        <Eyebrow id="topics-title">{t.topics}</Eyebrow>
         <TagList layer={page.layer} />
       </section>
-      {!posts.length && <p className="text-muted-foreground">No posts yet.</p>}
+      {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
     </Container>
   )
 }
@@ -204,12 +210,13 @@ function PostsIndex({ page }: { page: PageMeta }) {
 function TagIndex({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const count = postsOf(site.pages, page.layer).filter((p) => p.tags.includes(page.tag!)).length
+  const t = useLabels()
   return (
     <Container className="flex flex-col gap-10 py-10 sm:py-14">
       <header className="flex flex-col items-start gap-4">
         <BackLink layer={page.layer} />
         <h1 className="text-4xl leading-tight font-semibold tracking-tight">{page.tag}</h1>
-        <p className="text-ui-sm text-muted-foreground tabular-nums">{count === 1 ? '1 post' : `${count} posts`}</p>
+        <p className="text-ui-sm text-muted-foreground tabular-nums">{fill(count === 1 ? t.postCountOne : t.postCount, { n: count })}</p>
       </header>
       <PostList layer={page.layer} tag={page.tag} />
     </Container>

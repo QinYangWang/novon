@@ -47,7 +47,7 @@ export function renderDocument({ config, page, title, body, head = '', scripts, 
     description && `<meta name="twitter:description" content="${esc(description)}">`,
     img && `<meta name="twitter:image" content="${esc(img)}">`,
     favicon && `<link rel="icon" href="${favicon}">`,
-    (config.plugins ?? []).includes('rss') && (config.layout === 'blog' || config.layers.some((l) => l.layout === 'blog')) && `<link rel="alternate" type="application/rss+xml" title="${esc(config.title)}" href="${withBase(config.base, '/rss.xml')}">`,
+    (config.plugins ?? []).includes('rss') && (config.layout === 'blog' || config.layers.some((l) => l.layout === 'blog')) && `<link rel="alternate" type="application/rss+xml" title="${esc(config.title)}" href="${withBase(config.base, config.rss.path)}">`,
     `<script>${themeScript}</script>`,
   ].filter(Boolean)
   return `<!doctype html>

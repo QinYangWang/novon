@@ -42,7 +42,8 @@ export { Icon, iconNames, resolveIcon, type IconProps } from './icons.tsx'
 
 /* Site state and navigation. */
 export { Link, isInternal, type LinkProps } from './link.tsx'
-export { useSite, usePage, useBase, useOverride } from './site.tsx'
+export { useSite, usePage, useBase, useOverride, useLabels } from './site.tsx'
+export { labelsFor, fill, type Labels } from '../labels.ts'
 export { Brand, Search, ThemeButton, SocialLinks, PageActions, Footer, NotFound, PageContent } from './chrome.tsx'
 export { DocsLayout, DocsPage } from './layouts/docs.tsx'
 export { BlogLayout } from './layouts/blog.tsx'

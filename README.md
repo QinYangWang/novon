@@ -34,6 +34,8 @@ my-docs/
 - **Output.** Every page is prerendered HTML that hydrates into a single-page
   app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt`, a Markdown copy
   of each page and a share image per page come with it.
+- **Languages.** Built-in strings and dates follow `lang` (English and
+  Chinese ship built in); replace any of them with `theme.labels`.
 - **Extending.** Register React components for MDX, swap the header, footer,
   sidebar or 404 for your own, add stylesheets, or write a plugin.
 

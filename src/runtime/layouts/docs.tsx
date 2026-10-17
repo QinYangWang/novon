@@ -12,7 +12,8 @@ import { Icon } from '../icons.tsx'
 import { Link } from '../link.tsx'
 import { docsNav, flatten, type NavItem, type NavSection } from '../nav.ts'
 import { Outline, OutlinePopover } from '../outline.tsx'
-import { layoutOf, useOverride, useSite } from '../site.tsx'
+import { layoutOf, useLabels, useOverride, useSite } from '../site.tsx'
+import { fill } from '../../labels.ts'
 
 function useSections(): NavSection[] {
   const { site, current } = useSite()
@@ -48,6 +49,7 @@ function runs(rows: Row[]): (Row[] | Row)[] {
 function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const sections = useSections()
   const { current } = useSite()
+  const t = useLabels()
   const link = (route: string) => <Link href={route} onClick={onNavigate} />
   const isCurrent = (route?: string) => route !== undefined && current.route === route
   const rows = (items: NavItem[]) =>
@@ -97,7 +99,7 @@ function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
     })
   return (
     <SidebarNav>
-      <SidebarNavContent aria-label="Documentation" className="pt-4">
+      <SidebarNavContent aria-label={t.documentation} className="pt-4">
         {sections.map((s, i) => {
           if (!s.label) return <React.Fragment key={i}>{rows(s.items)}</React.Fragment>
           const items = s.route ? s.items.filter((it) => it.page.route !== s.route) : s.items
@@ -125,9 +127,10 @@ function Sidebar(props: { onNavigate?: () => void }) {
 
 function TopNav() {
   const { site, current } = useSite()
+  const t = useLabels()
   if (!site.nav.length) return null
   return (
-    <nav aria-label="Main" className="hidden items-center md:flex">
+    <nav aria-label={t.mainNav} className="hidden items-center md:flex">
       {site.nav.map((l) => {
         const active = current.route === l.href || current.route.startsWith(`${l.href}/`)
         return (
@@ -141,10 +144,11 @@ function TopNav() {
 }
 
 function DefaultHeader({ onOpenNav }: { onOpenNav: () => void }) {
+  const t = useLabels()
   return (
     <header className="sticky top-0 z-40 h-14 shrink-0 border-b border-border bg-background/80 backdrop-blur">
       <div className="flex h-full items-center gap-3 px-3 sm:px-4">
-        <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open navigation" onClick={onOpenNav}>
+        <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label={t.openNavigation} onClick={onOpenNav}>
           <MenuIcon />
         </Button>
         <Brand className="lg:ps-2" />
@@ -163,6 +167,7 @@ function DefaultHeader({ onOpenNav }: { onOpenNav: () => void }) {
 
 function PagerCard({ page, dir, section }: { page: PageMeta; dir: 'prev' | 'next'; section?: string }) {
   const next = dir === 'next'
+  const t = useLabels()
   return (
     <Link
       href={page.route}
@@ -173,7 +178,7 @@ function PagerCard({ page, dir, section }: { page: PageMeta; dir: 'prev' | 'next
     >
       <span className="flex items-center gap-1.5 text-ui-xs text-muted-foreground">
         {!next && <ArrowLeftIcon className="size-3.5" />}
-        {next ? 'Next' : 'Previous'}
+        {next ? t.next : t.previous}
         {section && ` · ${section}`}
         {next && <ArrowRightIcon className="size-3.5" />}
       </span>
@@ -193,9 +198,10 @@ function Pager({ page }: { page: PageMeta }) {
   if (i < 0) return null
   const prev = order[i - 1]
   const next = order[i + 1]
+  const t = useLabels()
   if (!prev && !next) return null
   return (
-    <nav aria-label="Pagination" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <nav aria-label={t.pagination} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {prev && <PagerCard page={prev} dir="prev" section={sectionOf(sections, prev.route)?.label} />}
       {next && <PagerCard page={next} dir="next" section={sectionOf(sections, next.route)?.label} />}
     </nav>
@@ -205,6 +211,7 @@ function Pager({ page }: { page: PageMeta }) {
 function DocsHeader({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const section = sectionOf(useSections(), page.route)
+  const t = useLabels()
   const edit = site.theme.editLink && page.file ? `${site.theme.editLink.replace(/\/?$/, '/')}${page.file}` : undefined
   return (
     <PageHeader className="flex-col items-stretch gap-y-4">
@@ -224,12 +231,12 @@ function DocsHeader({ page }: { page: PageMeta }) {
         {page.description && <PageHeaderDescription className="text-lg leading-relaxed">{page.description}</PageHeaderDescription>}
       </PageHeaderContent>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-sm text-muted-foreground">
-        {page.updated && <span>Updated {formatDate(page.updated, site.lang)}</span>}
-        {page.readingTime && <span>{page.readingTime} min read</span>}
+        {page.updated && <span>{fill(t.updated, { date: formatDate(page.updated, site.lang) })}</span>}
+        {page.readingTime && <span>{fill(t.minRead, { n: page.readingTime })}</span>}
         {edit && (
           <a href={edit} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-foreground max-sm:hidden">
             <EditIcon className="size-3.5" />
-            Edit this page
+            {t.editPage}
           </a>
         )}
         <div className="ms-auto -me-2">
@@ -243,6 +250,7 @@ function DocsHeader({ page }: { page: PageMeta }) {
 export function DocsPage() {
   const { site, current } = useSite()
   const page = current.page
+  const t = useLabels()
   if (!page) {
     return (
       <div className="mx-auto w-full max-w-reading px-5 sm:px-8">
@@ -257,7 +265,7 @@ export function DocsPage() {
         <DocsHeader page={page} />
         {toc && (
           <div className="sticky top-14 z-30 -my-4 bg-background py-2 xl:hidden">
-            <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
+            <OutlinePopover headings={page.headings} activeLine={136} title={t.onThisPage} className="max-w-sm" />
           </div>
         )}
         <article className="typeset typeset-docs">
@@ -269,7 +277,7 @@ export function DocsPage() {
       </main>
       {toc && (
         <aside className="sticky top-24 w-56 shrink-0 self-start max-xl:hidden">
-          <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
+          <Outline headings={page.headings} activeLine={136} title={t.onThisPage} maxHeight="calc(100svh - 8rem)" />
         </aside>
       )}
     </div>
@@ -280,12 +288,13 @@ export function DocsLayout() {
   const [navOpen, setNavOpen] = React.useState(false)
   const { current } = useSite()
   const Header = useOverride('Header', DefaultHeader)
+  const t = useLabels()
   React.useEffect(() => setNavOpen(false), [current.route])
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <Header onOpenNav={() => setNavOpen(true)} />
       <div className="flex min-w-0 flex-1">
-        <aside aria-label="Documentation" className="sticky top-14 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col self-start border-e border-border max-lg:hidden">
+        <aside aria-label={t.documentation} className="sticky top-14 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col self-start border-e border-border max-lg:hidden">
           <Sidebar />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -297,7 +306,7 @@ export function DocsLayout() {
       </div>
       <Drawer side="left" open={navOpen} onOpenChange={setNavOpen}>
         <DrawerContent className="w-72">
-          <DrawerTitle className="sr-only">Navigation</DrawerTitle>
+          <DrawerTitle className="sr-only">{t.navigation}</DrawerTitle>
           <div className="flex min-h-0 flex-1 flex-col pt-8">
             <Sidebar onNavigate={() => setNavOpen(false)} />
             <div className="flex shrink-0 items-center gap-1 border-t border-border px-3 py-2">

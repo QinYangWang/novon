@@ -13,7 +13,8 @@ export default defineConfig({
   description: 'Docs for Acme.',
   url: 'https://acme.dev',        // absolute links in sitemap and feeds
   base: '/',                      // serve from a sub-path, e.g. '/docs/'
-  lang: 'en',
+  lang: 'en',                     // built-in strings and dates; see Language
+  trailingSlash: false,           // write guide.html instead of guide/index.html
   layout: 'docs',                 // 'docs' | 'blog'
   layers: [],                     // see Layouts
   nav: [{ label: 'Guide', href: '/guide' }],
@@ -28,11 +29,14 @@ export default defineConfig({
     editLink: 'https://github.com/acme/site/edit/main/',
     footer: { text: '© Acme', links: [{ label: 'Privacy', href: '/privacy' }] },
     authors: { 'Ada Park': { bio: 'Writes the changelog.', avatar: '/ada.jpg' } },
+    labels: { onThisPage: 'Contents' },
     css: ['./styles/extra.css'],
     override: { Footer: './theme/Footer.tsx' },
   },
   components: { Pricing: './components/Pricing.tsx' },
   plugins: ['search', 'sitemap', 'rss', 'llms'],
+  rss: { path: '/feed', full: true },     // default '/rss.xml', summaries only
+  tags: { path: '/tag', lowercase: false }, // default '/tags', lowercase
   og: { font: './fonts/NotoSansSC-Bold.ttf' }, // see Share images; false turns them off
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
@@ -41,6 +45,34 @@ export default defineConfig({
   },
 })
 ```
+
+## Language
+
+`lang` sets `<html lang>`, date formats and the words the layouts print.
+English and Simplified Chinese ship built in; any `zh` tag uses Chinese, other
+languages use English. Replace single strings with `theme.labels`:
+
+```ts
+lang: 'zh-CN',
+theme: { labels: { onThisPage: '目录', minRead: '约 {n} 分钟' } },
+```
+
+`{n}`, `{date}` and `{novon}` are filled in. The keys are the `Labels` type
+exported from `novon`, for example `onThisPage`, `keepReading`, `latest`,
+`allWriting`, `topics`, `allPosts`, `previous`, `next`, `updated`, `minRead`,
+`postCount`, `noPosts`, `copyPage`, `editPage`, `search` and `notFoundTitle`.
+
+## URLs
+
+Links, canonical URLs, the sitemap and feeds never end in a slash. Pages are
+written as `guide/index.html` by default; `trailingSlash: false` writes
+`guide.html`, for hosts that would otherwise redirect `/guide` to `/guide/`.
+
+Tag pages of a blog layer live under `tags.path` (`/tags/<tag>` by default).
+`lowercase: false` keeps the tag's case, so `Docker` stays `/tag/Docker`.
+
+The `rss` plugin writes `rss.path`. A path with no extension, like `/feed`,
+is written as is; `full: true` adds each post's HTML to its item.
 
 ## Share images
 

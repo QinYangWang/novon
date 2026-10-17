@@ -20,7 +20,7 @@ import {
 import { withBase } from '../shared.ts'
 import { Link } from './link.tsx'
 import { resolveIcon } from './icons.tsx'
-import { useOverride, useSite } from './site.tsx'
+import { useLabels, useOverride, useSite } from './site.tsx'
 
 export function Brand({ className }: { className?: string }) {
   const { site } = useSite()
@@ -40,12 +40,13 @@ export function Brand({ className }: { className?: string }) {
 }
 
 export function ThemeButton() {
-  return <ThemeToggle modes="tri" variant="ghost" aria-label="Theme" />
+  return <ThemeToggle modes="tri" variant="ghost" aria-label={useLabels().theme} />
 }
 
 export function SocialLinks() {
   const { site } = useSite()
   const social = site.theme.social ?? {}
+  const t = useLabels()
   return (
     <>
       {social.github && (
@@ -54,7 +55,7 @@ export function SocialLinks() {
         </Button>
       )}
       {social.email && (
-        <Button variant="ghost" size="icon-sm" aria-label="Email" nativeButton={false} render={<a href={`mailto:${social.email}`} />}>
+        <Button variant="ghost" size="icon-sm" aria-label={t.email} nativeButton={false} render={<a href={`mailto:${social.email}`} />}>
           <MailIcon />
         </Button>
       )}
@@ -69,6 +70,7 @@ export function Search({ className, compact }: { className?: string; compact?: b
   const { site, navigate } = useSite()
   const [open, setOpen] = React.useState(false)
   const [entries, setEntries] = React.useState<SearchEntry[] | null>(null)
+  const t = useLabels()
 
   React.useEffect(() => {
     if (!open || entries) return
@@ -96,24 +98,24 @@ export function Search({ className, compact }: { className?: string; compact?: b
   return (
     <>
       {compact ? (
-        <Button variant="ghost" size="icon-sm" aria-label="Search" onClick={() => setOpen(true)} className={className}>
+        <Button variant="ghost" size="icon-sm" aria-label={t.search} onClick={() => setOpen(true)} className={className}>
           <SearchIcon />
         </Button>
       ) : (
         <Button
           variant="secondary"
           size="sm"
-          aria-label="Search"
+          aria-label={t.search}
           aria-keyshortcuts="Meta+K"
           onClick={() => setOpen(true)}
           className={cn('w-8 px-0 text-muted-foreground sm:w-56 sm:justify-start sm:px-3', className)}
         >
           <SearchIcon />
-          <span className="hidden sm:inline">Search…</span>
+          <span className="hidden sm:inline">{t.searchButton}</span>
           <Kbd className="ms-auto max-sm:hidden">⌘K</Kbd>
         </Button>
       )}
-      <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder="Search the site…" />
+      <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder={t.searchPlaceholder} />
     </>
   )
 }
@@ -122,6 +124,7 @@ export function Search({ className, compact }: { className?: string; compact?: b
 export function PageActions() {
   const { site, current } = useSite()
   const [copied, setCopied] = React.useState(false)
+  const t = useLabels()
   const page = current.page
   if (!page?.file) return null
   const md = withBase(site.base, `${page.route === '/' ? '/index' : page.route}.md`)
@@ -135,19 +138,19 @@ export function PageActions() {
     <div className="flex items-center">
       <Button variant="ghost" size="sm" onClick={copy} className="rounded-r-none">
         {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
-        {copied ? 'Copied' : 'Copy page'}
+        {copied ? t.copied : t.copyPage}
       </Button>
       <Menu>
-        <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More page actions" className="rounded-l-none" />}>
+        <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t.morePageActions} className="rounded-l-none" />}>
           <ChevronDownIcon />
         </MenuTrigger>
         <MenuContent align="end">
           <MenuItem render={<a href={md} target="_blank" rel="noreferrer" />}>
-            <FileIcon /> View as Markdown
+            <FileIcon /> {t.viewMarkdown}
           </MenuItem>
           {site.theme.editLink && (
             <MenuItem render={<a href={`${site.theme.editLink.replace(/\/?$/, '/')}${page.file}`} target="_blank" rel="noreferrer" />}>
-              <EditIcon /> Edit this page
+              <EditIcon /> {t.editPage}
             </MenuItem>
           )}
           <MenuItem
@@ -159,7 +162,7 @@ export function PageActions() {
               />
             }
           >
-            <ExternalLinkIcon /> Ask about this page
+            <ExternalLinkIcon /> {t.askAboutPage}
           </MenuItem>
         </MenuContent>
       </Menu>
@@ -170,6 +173,7 @@ export function PageActions() {
 function DefaultFooter({ className }: { className?: string }) {
   const { site } = useSite()
   const footer = site.theme.footer
+  const [before, after = ''] = useLabels().builtWith.split('{novon}')
   return (
     <footer className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-sm text-muted-foreground', className)}>
       <span>{footer?.text ?? `© ${new Date().getFullYear()} ${site.title}`}</span>
@@ -179,10 +183,11 @@ function DefaultFooter({ className }: { className?: string }) {
         </Link>
       ))}
       <span className="ml-auto">
-        Built with{' '}
+        {before}
         <a href="https://github.com/QinYangWang/novon" className="hover:text-foreground">
           novon
         </a>
+        {after}
       </span>
     </footer>
   )
@@ -194,13 +199,14 @@ export function Footer(props: { className?: string }) {
 }
 
 function DefaultNotFound() {
+  const t = useLabels()
   return (
     <div className="flex flex-col items-start gap-3 py-24">
       <p className="font-mono text-ui-sm text-muted-foreground">404</p>
-      <h1 className="text-2xl font-semibold">This page doesn't exist</h1>
-      <p className="text-muted-foreground">It may have moved, or the link is mistyped.</p>
+      <h1 className="text-2xl font-semibold">{t.notFoundTitle}</h1>
+      <p className="text-muted-foreground">{t.notFoundText}</p>
       <Button variant="secondary" nativeButton={false} render={<Link href="/" />}>
-        Go home
+        {t.goHome}
       </Button>
     </div>
   )

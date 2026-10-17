@@ -55,31 +55,43 @@ const sitemap: NovonPlugin = {
   },
 }
 
+/** Root-relative `href` and `src` in feed HTML, made absolute so feed readers can follow them. */
+export function absoluteUrls(html: string, config: ResolvedConfig): string {
+  if (!config.url) return html
+  return html.replace(/\b(href|src)="(\/(?!\/)[^"]*)"/g, (_m, attr: string, path: string) => {
+    const withSite = path.startsWith(config.base) || config.base === '/' ? path : withBase(config.base, path)
+    return `${attr}="${new URL(withSite, config.url).href}"`
+  })
+}
+
+const cdata = (s: string) => `<![CDATA[${s.replace(/]]>/g, ']]]]><![CDATA[>')}]]>`
+
 const rss: NovonPlugin = {
   name: 'rss',
-  async buildEnd({ emit, pages, config }) {
+  async buildEnd({ emit, pages, config, renderContent }) {
     const layers = new Set(pages.filter((p) => p.layout === 'blog').map((p) => p.layer))
     const posts = [...layers].flatMap((l) => postsOf(pages, l)).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
     if (!posts.length) return
-    const items = posts
-      .slice(0, 50)
-      .map(
-        (p) => `    <item>
+    const full = config.rss.full && renderContent
+    const items: string[] = []
+    for (const p of posts.slice(0, 50)) {
+      const body = full ? `\n      <content:encoded>${cdata(absoluteUrls(await renderContent(p), config))}</content:encoded>` : ''
+      items.push(`    <item>
       <title>${xml(p.title)}</title>
       <link>${xml(absolute(config, p.route))}</link>
-      <guid>${xml(absolute(config, p.route))}</guid>${p.date ? `\n      <pubDate>${new Date(p.date).toUTCString()}</pubDate>` : ''}${p.description ? `\n      <description>${xml(p.description)}</description>` : ''}
-    </item>`,
-      )
-      .join('\n')
+      <guid>${xml(absolute(config, p.route))}</guid>${p.date ? `\n      <pubDate>${new Date(p.date).toUTCString()}</pubDate>` : ''}${p.description ? `\n      <description>${xml(p.description)}</description>` : ''}${p.tags.map((t) => `\n      <category>${xml(t)}</category>`).join('')}${body}
+    </item>`)
+    }
     await emit(
-      'rss.xml',
+      config.rss.path.slice(1),
       `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0"${full ? ' xmlns:content="http://purl.org/rss/1.0/modules/content/"' : ''}>
   <channel>
     <title>${xml(config.title)}</title>
     <link>${xml(absolute(config, '/'))}</link>
     <description>${xml(config.description ?? config.title)}</description>
-${items}
+    <language>${xml(config.lang)}</language>
+${items.join('\n')}
   </channel>
 </rss>
 `,

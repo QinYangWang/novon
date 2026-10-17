@@ -5,7 +5,8 @@ import { CoverArt } from '@/ui/cover-art'
 import { formatDate, postsOf, tagRoute, withBase } from '../shared.ts'
 import type { PageMeta } from '../types.ts'
 import { Link } from './link.tsx'
-import { useSite } from './site.tsx'
+import { useLabels, useSite } from './site.tsx'
+import { fill } from '../labels.ts'
 
 function useLayer(layer?: string): string {
   const { current } = useSite()
@@ -15,11 +16,12 @@ function useLayer(layer?: string): string {
 /** Date and reading time, e.g. "Mar 4, 2026 · 5 min read". */
 export function PostMeta({ post, className }: { post: PageMeta; className?: string }) {
   const { site } = useSite()
+  const t = useLabels()
   return (
     <p className={cn('flex items-center gap-2 text-ui-sm text-muted-foreground tabular-nums', className)}>
       {post.date && <time dateTime={post.date}>{formatDate(post.date, site.lang)}</time>}
       {post.date && post.readingTime && <span aria-hidden>·</span>}
-      {post.readingTime && <span>{post.readingTime} min read</span>}
+      {post.readingTime && <span>{fill(t.minRead, { n: post.readingTime })}</span>}
     </p>
   )
 }
@@ -52,6 +54,7 @@ export function PostCover({ post, className }: { post: PageMeta; className?: str
 
 export function PostItem({ post }: { post: PageMeta }) {
   const { site } = useSite()
+  const t = useLabels()
   return (
     <li className="border-t border-border first:border-t-0">
       <Link
@@ -67,7 +70,7 @@ export function PostItem({ post }: { post: PageMeta }) {
           {(post.tags.length > 0 || post.readingTime) && (
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <PostTags post={post} link={false} />
-              {post.readingTime && <span className="text-ui-xs text-muted-foreground tabular-nums">{post.readingTime} min read</span>}
+              {post.readingTime && <span className="text-ui-xs text-muted-foreground tabular-nums">{fill(t.minRead, { n: post.readingTime })}</span>}
             </div>
           )}
         </div>
@@ -80,11 +83,12 @@ export function PostItem({ post }: { post: PageMeta }) {
 export function PostList({ layer, limit, tag, skip = 0 }: { layer?: string; limit?: number; tag?: string; skip?: number }) {
   const { site } = useSite()
   const owner = useLayer(layer)
+  const t = useLabels()
   let posts = postsOf(site.pages, owner)
   if (tag) posts = posts.filter((p) => p.tags.includes(tag))
   posts = posts.slice(skip)
   if (limit) posts = posts.slice(0, limit)
-  if (!posts.length) return <p className="text-ui text-muted-foreground">No posts yet.</p>
+  if (!posts.length) return <p className="text-ui text-muted-foreground">{t.noPosts}</p>
   return (
     <ul className="not-typeset m-0 flex list-none flex-col p-0">
       {posts.map((p) => (
@@ -121,8 +125,9 @@ export function PostCard({ post, featured, className }: { post: PageMeta; featur
 }
 
 export function TagLink({ tag, layer }: { tag: string; layer: string }) {
+  const { site } = useSite()
   return (
-    <Badge size="sm" variant="chip" render={<Link href={tagRoute(layer, tag)} />}>
+    <Badge size="sm" variant="chip" render={<Link href={tagRoute(layer, tag, site.tags)} />}>
       {tag}
     </Badge>
   )
@@ -138,7 +143,7 @@ export function TagList({ layer }: { layer?: string }) {
   return (
     <div className="not-typeset flex flex-wrap gap-1.5">
       {[...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([tag, n]) => (
-        <Badge key={tag} variant="chip" render={<Link href={tagRoute(owner, tag)} />}>
+        <Badge key={tag} variant="chip" render={<Link href={tagRoute(owner, tag, site.tags)} />}>
           {tag} <span className="text-muted-foreground tabular-nums">{n}</span>
         </Badge>
       ))}

@@ -26,7 +26,7 @@ import { ArrowUpRightIcon } from '@/components/icons'
 import { Icon } from './icons.tsx'
 import { Link, isInternal } from './link.tsx'
 import { PostList, TagList } from './posts.tsx'
-import { useSite } from './site.tsx'
+import { useLabels, useSite } from './site.tsx'
 import { withBase } from '../shared.ts'
 
 /* ---------- Callouts ---------- */
@@ -239,13 +239,14 @@ export function Frame({ caption, children }: { caption?: React.ReactNode; childr
   )
 }
 
-export function YouTube({ id, title = 'Video' }: { id: string; title?: string }) {
+export function YouTube({ id, title }: { id: string; title?: string }) {
+  const t = useLabels()
   return (
     <div className="my-6 aspect-video overflow-hidden rounded-xl shadow-raised">
       <iframe
         className="size-full"
         src={`https://www.youtube-nocookie.com/embed/${id}`}
-        title={title}
+        title={title ?? t.video}
         loading="lazy"
         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

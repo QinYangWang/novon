@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { ComponentType } from 'react'
 import { layerFor, stripBase, withBase } from '../shared.ts'
+import { labelsFor, type Labels } from '../labels.ts'
 import type { OverrideSlot, PageMeta, SiteData } from '../types.ts'
 
 export type PageModule = { default: ComponentType<any>; frontmatter?: Record<string, unknown> }
@@ -34,6 +35,12 @@ export function useSite(): SiteContextValue {
 /** The page being shown. */
 export function usePage(): PageMeta | null {
   return useSite().current.page
+}
+
+/** Built-in strings in the site's language, with `theme.labels` applied. */
+export function useLabels(): Labels {
+  const { site } = useSite()
+  return React.useMemo(() => labelsFor(site.lang, site.theme.labels), [site.lang, site.theme.labels])
 }
 
 export function useBase(): (route: string) => string {

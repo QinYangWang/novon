@@ -21,7 +21,8 @@ export function preview(config: ResolvedConfig, port = 4173) {
       }
       const file = normalize(join(dist, path))
       if (!file.startsWith(dist)) return new Response('Forbidden', { status: 403 })
-      const candidates = [file, join(file, 'index.html'), `${file}.html`]
+      const bare = file.replace(/\/+$/, '')
+      const candidates = [file, join(file, 'index.html'), `${bare}.html`]
       const hit = candidates.find((c) => existsSync(c) && statSync(c).isFile())
       if (hit) return new Response(Bun.file(hit))
       return new Response(Bun.file(join(dist, '404.html')), { status: 404, headers: { 'content-type': 'text/html' } })

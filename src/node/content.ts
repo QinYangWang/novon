@@ -121,7 +121,7 @@ function generatedPages(pages: PageMeta[], config: ResolvedConfig): PageMeta[] {
     }
     const tags = new Set(postsOf(pages, layer).flatMap((p) => p.tags))
     for (const tag of tags) {
-      const page = generated(tagRoute(layer, tag), `#${tag}`, layer, 'tag')
+      const page = generated(tagRoute(layer, tag, config.tags), `#${tag}`, layer, 'tag')
       page.tag = tag
       page.hidden = true
       out.push(page)

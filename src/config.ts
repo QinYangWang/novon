@@ -33,6 +33,8 @@ export function resolveConfig(config: Config, root: string): ResolvedConfig {
     layers: (config.layers ?? []).map((l) => ({ ...l, path: normalizePrefix(l.path) })),
     nav: config.nav ?? [],
     plugins: config.plugins ?? ['search', 'sitemap', 'rss', 'llms'],
+    rss: { path: normalizePrefix(config.rss?.path ?? '/rss.xml'), full: config.rss?.full ?? false },
+    tags: { path: normalizePrefix(config.tags?.path ?? '/tags'), lowercase: config.tags?.lowercase ?? true },
     theme: { ...config.theme, accent: config.theme?.accent ?? 'blue', toc: config.theme?.toc ?? true },
   }
 }

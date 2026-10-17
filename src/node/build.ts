@@ -16,8 +16,9 @@ export interface BuildResult {
   ms: number
 }
 
-function htmlPath(route: string): string {
-  return route === '/' ? 'index.html' : `${route.slice(1)}/index.html`
+export function htmlPath(route: string, trailingSlash?: boolean): string {
+  if (route === '/') return 'index.html'
+  return trailingSlash === false ? `${route.slice(1)}.html` : `${route.slice(1)}/index.html`
 }
 
 /** Collects the CSS and preload links for the client entry from the manifest. */
@@ -79,13 +80,14 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
   const { head, scripts } = assetTags(manifest, config.base)
   const server = (await import(pathToFileURL(join(serverDir, 'entry-server.mjs')).href)) as {
     render: (url: string) => Promise<{ html: string; title: string; page: PageMeta | null }>
+    renderContent: (url: string) => Promise<string>
   }
 
   const pages = await scanContent(config)
   const cards = await generateOgImages(config, pages, outDir)
   for (const page of pages) {
     const { html, title } = await server.render(withBase(config.base, page.route))
-    const file = join(outDir, htmlPath(page.route))
+    const file = join(outDir, htmlPath(page.route, config.trailingSlash))
     await mkdir(dirname(file), { recursive: true })
     await writeFile(file, renderDocument({ config, page, title, body: html, head, scripts, image: imageOf(page) }))
   }
@@ -101,7 +103,8 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
     await mkdir(dirname(file), { recursive: true })
     await writeFile(file, data)
   }
-  for (const plugin of activePlugins(config)) await plugin.buildEnd?.({ outDir, config, pages, emit })
+  const renderContent = (page: PageMeta) => server.renderContent(withBase(config.base, page.route))
+  for (const plugin of activePlugins(config)) await plugin.buildEnd?.({ outDir, config, pages, emit, renderContent })
   await writeFile(join(outDir, '.nojekyll'), '')
   await rm(join(outDir, '.vite'), { recursive: true, force: true })
 

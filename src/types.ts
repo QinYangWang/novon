@@ -1,4 +1,7 @@
 /** Everything a site can say in `novon.config.ts`. */
+import type { Labels } from './labels.ts'
+
+export type { Labels }
 
 export type LayoutKind = 'docs' | 'blog'
 
@@ -37,6 +40,8 @@ export interface ThemeOptions {
   authors?: Record<string, Author>
   /** Extra stylesheets, relative to the site root. */
   css?: string[]
+  /** Replace single built-in strings; the rest follow `lang`. */
+  labels?: Partial<Labels>
   /** Replace a built-in part with your own component file. */
   override?: Partial<Record<OverrideSlot, string>>
 }
@@ -63,6 +68,8 @@ export interface BuildContext {
   pages: PageMeta[]
   /** Writes a file relative to the output directory. */
   emit: (path: string, data: string | Uint8Array) => Promise<void>
+  /** A page's rendered body HTML, without the layout. */
+  renderContent?: (page: PageMeta) => Promise<string>
 }
 
 export interface MdxOptions {
@@ -111,6 +118,26 @@ export interface Config {
   mdx?: MdxOptions
   /** Social cards. On by default; `false` turns them off. */
   og?: boolean | OgOptions
+  /** `false` writes `guide.html` instead of `guide/index.html`. Links never end in a slash. */
+  trailingSlash?: boolean
+  /** The feed the `rss` plugin writes. */
+  rss?: RssOptions
+  /** Tag pages of blog layers. */
+  tags?: TagOptions
+}
+
+export interface RssOptions {
+  /** Default `/rss.xml`. */
+  path?: string
+  /** Put each post's full HTML in the feed. Default false. */
+  full?: boolean
+}
+
+export interface TagOptions {
+  /** Segment under the blog layer. Default `/tags`. */
+  path?: string
+  /** Lowercase tag URLs. Default true. */
+  lowercase?: boolean
 }
 
 export interface ResolvedConfig extends Config {
@@ -120,6 +147,8 @@ export interface ResolvedConfig extends Config {
   layers: Layer[]
   nav: NavLink[]
   theme: ThemeOptions & { accent: Accent; toc: boolean }
+  rss: Required<RssOptions>
+  tags: Required<TagOptions>
   root: string
 }
 
@@ -201,4 +230,7 @@ export interface SiteData {
   pages: PageMeta[]
   search: boolean
   rss: boolean
+  /** Feed URL path, without base. */
+  rssPath: string
+  tags: Required<TagOptions>
 }

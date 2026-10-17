@@ -1,12 +1,15 @@
 import * as React from 'react'
 import { MDXProvider } from '@mdx-js/react'
 import { TooltipProvider } from '@/ui/tooltip'
+import { LocaleProvider } from '@/ui/locale-provider'
+import { labelsFor } from '../labels.ts'
 import { stripBase, withBase } from '../shared.ts'
 import type { SiteData } from '../types.ts'
 import { mdxComponents } from './mdx.tsx'
 import { SiteContext, layoutOf, loadRoute, type Loaded, type Loaders, type SiteContextValue } from './site.tsx'
 import { DocsLayout } from './layouts/docs.tsx'
 import { BlogLayout } from './layouts/blog.tsx'
+import { PageContent } from './chrome.tsx'
 
 export interface AppProps {
   site: SiteData
@@ -14,6 +17,8 @@ export interface AppProps {
   overrides: SiteContextValue['overrides']
   components: SiteContextValue['components']
   initial: Loaded
+  /** Render the page body without the layout (feeds). */
+  contentOnly?: boolean
 }
 
 function scrollAfterNavigation(hash: string) {
@@ -25,11 +30,11 @@ function scrollAfterNavigation(hash: string) {
 }
 
 export function pageTitle(site: SiteData, loaded: Loaded): string {
-  if (!loaded.page) return `Not found · ${site.title}`
+  if (!loaded.page) return `${labelsFor(site.lang, site.theme.labels).notFound} · ${site.title}`
   return loaded.page.route === '/' ? site.title : `${loaded.page.title} · ${site.title}`
 }
 
-export function App({ site, loaders, overrides, components, initial }: AppProps) {
+export function App({ site, loaders, overrides, components, initial, contentOnly }: AppProps) {
   const [current, setCurrent] = React.useState(initial)
   const pending = React.useRef(0)
 
@@ -83,9 +88,11 @@ export function App({ site, loaders, overrides, components, initial }: AppProps)
   return (
     <SiteContext.Provider value={value}>
       <MDXProvider components={{ ...mdxComponents, ...components }}>
-        <TooltipProvider>
-          <Layout />
-        </TooltipProvider>
+        <LocaleProvider locale={site.lang}>
+          <TooltipProvider>
+            {contentOnly ? <PageContent /> : <Layout />}
+          </TooltipProvider>
+        </LocaleProvider>
       </MDXProvider>
     </SiteContext.Provider>
   )
