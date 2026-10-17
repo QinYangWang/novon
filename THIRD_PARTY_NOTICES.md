@@ -205,3 +205,10 @@ The `vscode` template depends on `@monaco-editor/react` (https://github.com/sure
 MIT; Copyright (c) 2018 Suren Atoyan), which loads `monaco-editor` (https://github.com/microsoft/monaco-editor,
 MIT; Copyright (c) 2016 - present Microsoft Corporation) from the jsDelivr CDN at runtime. No code from
 either is vendored in this repository.
+
+## Noto Sans SC (test fixture)
+
+`tests/fixtures/noto-sans-sc-subset.ttf` is a small subset of Noto Sans SC,
+Copyright 2014-2021 Adobe (http://www.adobe.com/), licensed under the SIL Open
+Font License 1.1 (https://openfontlicense.org). It is used by the tests only and
+is not part of the published package.

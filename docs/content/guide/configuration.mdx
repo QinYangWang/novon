@@ -33,6 +33,7 @@ export default defineConfig({
   },
   components: { Pricing: './components/Pricing.tsx' },
   plugins: ['search', 'sitemap', 'rss', 'llms'],
+  og: { font: './fonts/NotoSansSC-Bold.ttf' }, // see Share images; false turns them off
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
     remarkPlugins: [],
@@ -40,6 +41,28 @@ export default defineConfig({
   },
 })
 ```
+
+## Share images
+
+Every page gets a 1200×630 card at `/og/<route>.png` with its title, the site
+name and the author's avatar or the site logo, plus the `og:image` and
+`twitter:*` tags that point at it. Set `url` so the image link is absolute.
+
+```ts
+og: {
+  enabled: true,               // or og: false
+  font: './fonts/Sans.ttf',    // local TTF, OTF or WOFF; or ['./Regular.ttf', './Bold.ttf']
+  family: 'Noto Sans SC',      // web font when font is unset; follows lang by default
+  mode: 'light',               // 'light' | 'dark'
+  accent: 'blue',              // defaults to theme.accent
+}
+```
+
+Without `font`, each card downloads a subset of the web font holding only its
+own characters, so CJK titles render without a large font file. Builds without
+network need `font`; if neither works, pages ship without a card. Cards and
+font subsets are cached in `.novon/og/`, so unchanged pages are not redrawn.
+A page can use its own image or opt out in [frontmatter](/guide/content#frontmatter).
 
 ## Plugins
 

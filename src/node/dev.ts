@@ -1,6 +1,7 @@
 import { createServer, mergeConfig, type ViteDevServer } from 'vite'
 import { scanContent } from './content.ts'
 import { renderDocument } from './html.ts'
+import { ogFile, ogRenderer, pageImage } from './og.ts'
 import { pageMarkdown, searchIndex } from './plugins.ts'
 import { entryClient, viteConfig } from './vite.ts'
 import { stripBase } from '../shared.ts'
@@ -33,6 +34,12 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                     res.setHeader('content-type', 'text/markdown; charset=utf-8')
                     return res.end(await pageMarkdown(config, page))
                   }
+                  if (route.startsWith('/og/') && route.endsWith('.png')) {
+                    const page = (await scanContent(config)).find((p) => `/${ogFile(p.route)}` === route && pageImage(config, p)?.generated)
+                    if (!page) return next()
+                    res.setHeader('content-type', 'image/png')
+                    return res.end(await (await ogRenderer(config)).render(page))
+                  }
                   if (/\.[a-z0-9]+$/i.test(route)) return next()
                   const pages = await scanContent(config)
                   const page = pages.find((p) => p.route === route) ?? null
@@ -40,7 +47,7 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                   const scripts = `<script type="module" src="${config.base}@fs${entryClient}"></script>`
                   const html = await s.transformIndexHtml(
                     req.url,
-                    renderDocument({ config, page, title, body: '', scripts }),
+                    renderDocument({ config, page, title, body: '', scripts, image: pageImage(config, page) }),
                   )
                   res.statusCode = page ? 200 : 404
                   res.setHeader('content-type', 'text/html; charset=utf-8')

@@ -72,6 +72,24 @@ export interface MdxOptions {
   highlight?: { light?: string; dark?: string } | false
 }
 
+/** Social cards: a 1200×630 PNG per page at `/og/<route>.png`. */
+export interface OgOptions {
+  /** Default true. */
+  enabled?: boolean
+  /**
+   * Local TTF, OTF or WOFF files relative to the site root, for offline builds:
+   * one file, `[regular, bold]`, or `{ path, weight }` entries. Without it a
+   * subset of a web font is downloaded per card and cached.
+   */
+  font?: string | (string | { path: string; weight?: 400 | 700 })[]
+  /** Web font family when `font` is unset. Default follows `lang` (Noto Sans SC, JP, KR or TC). */
+  family?: string
+  /** Default `light`. */
+  mode?: 'light' | 'dark'
+  /** Default `theme.accent`. */
+  accent?: Accent
+}
+
 export interface Config {
   title: string
   description?: string
@@ -91,6 +109,8 @@ export interface Config {
   components?: Record<string, string>
   plugins?: (BuiltinPlugin | NovonPlugin)[]
   mdx?: MdxOptions
+  /** Social cards. On by default; `false` turns them off. */
+  og?: boolean | OgOptions
 }
 
 export interface ResolvedConfig extends Config {
@@ -118,6 +138,10 @@ export interface Frontmatter {
   /** An image under `public/`; `false` for no cover. Without it a post gets generated cover art. */
   cover?: string | false
   draft?: boolean
+  /** Share image: a path under `public/` or a URL. Replaces the generated card. */
+  image?: string | false
+  /** `false`: no generated card and no share image for this page. */
+  og?: boolean
   /** Leave the page out of navigation, search and feeds. */
   hidden?: boolean
   [key: string]: unknown
@@ -145,6 +169,10 @@ export interface PageMeta {
   tags: string[]
   author?: string
   cover?: string | false
+  /** Frontmatter `image`. */
+  image?: string
+  /** `false` when the page opts out of share images. */
+  og?: false
   /** Estimated minutes to read the body. */
   readingTime?: number
   hidden: boolean

@@ -32,8 +32,8 @@ my-docs/
   and terms work in every page without an import. Code is highlighted at build
   time in both themes.
 - **Output.** Every page is prerendered HTML that hydrates into a single-page
-  app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt` and a Markdown copy
-  of each page come with it.
+  app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt`, a Markdown copy
+  of each page and a share image per page come with it.
 - **Extending.** Register React components for MDX, swap the header, footer,
   sidebar or 404 for your own, add stylesheets, or write a plugin.
 

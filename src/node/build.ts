@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { build as viteBuild, mergeConfig, type Manifest } from 'vite'
 import { scanContent } from './content.ts'
 import { renderDocument } from './html.ts'
+import { generateOgImages, pageImage } from './og.ts'
 import { activePlugins } from './plugins.ts'
 import { entryClient, entryServer, viteConfig } from './vite.ts'
 import type { PageMeta, ResolvedConfig } from '../types.ts'
@@ -81,11 +82,16 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
   }
 
   const pages = await scanContent(config)
+  const cards = await generateOgImages(config, pages, outDir)
   for (const page of pages) {
     const { html, title } = await server.render(withBase(config.base, page.route))
     const file = join(outDir, htmlPath(page.route))
     await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, renderDocument({ config, page, title, body: html, head, scripts }))
+    await writeFile(file, renderDocument({ config, page, title, body: html, head, scripts, image: imageOf(page) }))
+  }
+  function imageOf(page: PageMeta) {
+    const image = pageImage(config, page)
+    return image && (!image.generated || cards.has(page.route)) ? image : null
   }
   const missing = await server.render(withBase(config.base, '/__novon_not_found__'))
   await writeFile(join(outDir, '404.html'), renderDocument({ config, page: null, title: missing.title, body: missing.html, head, scripts }))

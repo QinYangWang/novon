@@ -23,6 +23,8 @@ icon: Edit                # sidebar and search icon
 date: 2026-10-16          # makes a page a post in a blog layout
 tags: [release]           # blog tags
 cover: /cover.png         # blog cover from public/; false for none
+image: /share.png         # share image (public/ path or URL) instead of the generated card
+og: false                 # no share image for this page
 hidden: true              # left out of navigation, search and feeds
 draft: true               # left out of production builds
 ---
@@ -45,3 +47,4 @@ The first `# Heading` is used when there is no `title`. Write the body from
 | `sitemap.xml`, `robots.txt` | `sitemap` |
 | `rss.xml` | `rss` (blog layouts) |
 | `llms.txt` and `<page>.md` | `llms` |
+| `og/<page>.png` | share images, see [Configuration](/guide/configuration#share-images) |
