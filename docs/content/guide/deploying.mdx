@@ -2,7 +2,7 @@
 title: Deploying
 description: dist/ is a plain static site.
 icon: Cloud
-order: 6
+order: 7
 ---
 
 `novon build` writes `dist/`. Every page is a prerendered `index.html`, so any
@@ -16,6 +16,9 @@ static host works.
 
 On a sub-path (GitHub Pages project sites), set `base: '/repo/'`.
 
+Cloudflare Pages and Netlify read the `_redirects` file the build writes; on
+other hosts the forwarding pages at each old path do the job.
+
 ```yaml title=".github/workflows/pages.yml"
 on: { push: { branches: [main] } }
 permissions: { pages: write, id-token: write }
@@ -25,6 +28,7 @@ jobs:
     environment: github-pages
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # commit dates for "last updated"
       - uses: oven-sh/setup-bun@v2
       - run: bunx novon build
       - uses: actions/upload-pages-artifact@v3

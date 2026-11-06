@@ -19,6 +19,28 @@ order: 2
 
 `Info` and `Caution` exist too. `<Callout type="tip">` is the long form.
 
+Plain Markdown works as well: a `:::` block with an optional title, or a
+GitHub-style alert.
+
+:::tip[No import needed]
+Directives and alerts become the same callouts.
+:::
+
+> [!WARNING]
+> Alerts take `NOTE`, `TIP`, `IMPORTANT`, `WARNING` and `CAUTION`.
+
+```md
+:::tip[No import needed]
+Directives and alerts become the same callouts.
+:::
+
+> [!WARNING]
+> Alerts take `NOTE`, `TIP`, `IMPORTANT`, `WARNING` and `CAUTION`.
+```
+
+Directives take `note`, `tip`, `info`, `warning`, `caution` and `danger`.
+`IMPORTANT` maps to `info`, `CAUTION` to `danger`.
+
 ## Cards
 
 ```mdx
@@ -52,6 +74,49 @@ import { defineConfig } from 'novon/config'
 export default defineConfig({ title: 'My site' })
 ```
 
+The fence line marks lines and words; comments in the code mark single lines
+and are removed from the output.
+
+```ts title="greet.ts" {2} /name/ lineNumbers
+export function greet(name: string) {
+  const text = `Hello, ${name}`
+  console.log(text) // [!code --]
+  return text // [!code ++]
+}
+```
+
+````text
+```ts title="greet.ts" {2} /name/ lineNumbers
+export function greet(name: string) {
+  const text = `Hello, ${name}`
+  console.log(text) // [!code --]
+  return text // [!code ++]
+}
+```
+````
+
+On the fence line:
+
+| Write | Effect |
+| --- | --- |
+| `title="file.ts"` | caption and file icon |
+| `{1,3-5}` | highlight lines |
+| `/word/` | highlight a word |
+| `lineNumbers` | number the lines |
+| `wrap` | wrap long lines |
+
+At the end of a line, in a comment:
+
+| Write | Effect |
+| --- | --- |
+| `[!code highlight]` | highlight the line |
+| `[!code ++]`, `[!code --]` | added or removed line |
+| `[!code focus]` | dim the other lines |
+| `[!code word:name]` | highlight a word |
+
+`mdx.lineNumbers: true` numbers every block; `lineNumbers=false` opts one out.
+Any comment style works: `//`, `#`, `<!-- -->`.
+
 Several fences in a `CodeGroup` become tabs:
 
 <CodeGroup>
@@ -65,6 +130,23 @@ npm i -g novon
 ```
 
 </CodeGroup>
+
+## Install commands
+
+`PackageInstall` writes one command per package manager. The reader's pick is
+remembered across pages.
+
+<PackageInstall packages="novon" dev />
+
+```mdx
+<PackageInstall packages="novon" dev />
+<PackageInstall packages="novon" global />
+<PackageInstall run="build" />
+<PackageInstall exec="novon new site" />
+<PackageInstall create="vite my-app" managers="pnpm bun" />
+```
+
+`managers` picks and orders the tabs; the default is npm, pnpm, yarn and bun.
 
 ## Accordion
 

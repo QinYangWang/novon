@@ -21,14 +21,23 @@ label: Write              # sidebar text, when it should differ from title
 order: 2                  # lower comes first; then alphabetical
 icon: Edit                # sidebar and search icon
 date: 2026-10-16          # makes a page a post in a blog layout
+updated: 2026-11-01       # last updated; default is the file's last commit
 tags: [release]           # blog tags
 cover: /cover.png         # blog cover from public/; false for none
 image: /share.png         # share image (public/ path or URL) instead of the generated card
 og: false                 # no share image for this page
 hidden: true              # left out of navigation, search and feeds
 draft: true               # left out of production builds
+noindex: true             # robots noindex; left out of the sitemap and llms.txt
+redirectFrom: [/old-path] # old URLs that redirect here
+head:                     # extra tags for this page's <head>
+  - tag: meta
+    attrs: { name: keywords, content: mdx, docs }
 ---
 ```
+
+`novon check` and `novon build` validate frontmatter: a wrong type is an error,
+a key that looks like a typo of a known one is a warning. Other keys are yours.
 
 The first `# Heading` is used when there is no `title`. Write the body from
 `##` down: the layout prints the title.
@@ -46,5 +55,18 @@ The first `# Heading` is used when there is no `title`. Write the body from
 | `search.json` | `search` |
 | `sitemap.xml`, `robots.txt` | `sitemap` |
 | `rss.xml` (or `rss.path`) | `rss` (blog layouts) |
-| `llms.txt` and `<page>.md` | `llms` |
+| `llms.txt`, `llms-full.txt` and `<page>.md` | `llms` |
+| `_redirects` and a page per old path | [redirects](/guide/configuration#redirects) |
 | `og/<page>.png` | share images, see [Configuration](/guide/configuration#share-images) |
+
+`<page>.md` is the page as plain Markdown: callouts become quotes, tabs become
+headed sections, steps a numbered list, cards a list of links and code groups
+titled fences. `llms-full.txt` is every indexable page's Markdown in one file.
+
+## Last updated
+
+Docs pages show when they last changed: frontmatter `updated`, else the last
+commit that touched the file, else its modification time. Posts show it when it
+is later than `date`. The same date is the sitemap's `lastmod`.
+`theme.lastUpdated: false` hides it. CI checkouts need the full history
+(`fetch-depth: 0`) for commit dates.

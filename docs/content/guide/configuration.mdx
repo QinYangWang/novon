@@ -32,14 +32,19 @@ export default defineConfig({
     labels: { onThisPage: 'Contents' },
     css: ['./styles/extra.css'],
     override: { Footer: './theme/Footer.tsx' },
+    pageActions: ['copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity'],
+    lastUpdated: true,            // see Content › Last updated
   },
   components: { Pricing: './components/Pricing.tsx' },
   plugins: ['search', 'sitemap', 'rss', 'llms'],
   rss: { path: '/feed', full: true },     // default '/rss.xml', summaries only
   tags: { path: '/tag', lowercase: false }, // default '/tags', lowercase
   og: { font: './fonts/NotoSansSC-Bold.ttf' }, // see Share images; false turns them off
+  redirects: { '/old': '/new' },  // see Redirects
+  head: [{ tag: 'meta', attrs: { name: 'theme-color', content: '#fff' } }],
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
+    lineNumbers: false,           // number every code block
     remarkPlugins: [],
     rehypePlugins: [],
   },
@@ -95,6 +100,52 @@ own characters, so CJK titles render without a large font file. Builds without
 network need `font`, which must cover `#`, `·` and `…`; if neither works, pages ship without a card. Cards and
 font subsets are cached in `.novon/og/`, so unchanged pages are not redrawn.
 A page can use its own image or opt out in [frontmatter](/guide/content#frontmatter).
+
+## Redirects
+
+```ts
+redirects: {
+  '/start': '/getting-started',
+  '/chat': 'https://discord.gg/acme',
+},
+```
+
+A page can list its old paths with frontmatter `redirectFrom`. The build writes
+`_redirects` for hosts that read it (rules already in `public/_redirects` are
+kept) and a small page at each old path that forwards the browser, so hosts
+without redirect rules work too. `novon dev` and `novon preview` follow them.
+
+## Page actions
+
+The menu beside "Copy page" on docs pages. List the actions in order; `false`
+hides the menu.
+
+```ts
+theme: {
+  pageActions: [
+    'copy',          // copy the page as Markdown
+    'markdown',      // open <page>.md
+    'edit',          // needs theme.editLink
+    'chatgpt', 'claude', 'perplexity',
+    { label: 'Ask Acme AI', href: 'https://ai.acme.dev/?q={prompt}' },
+  ],
+},
+```
+
+In `href`, `{prompt}` is "Read … and answer questions about it" with the
+page's Markdown URL, `{markdown}` that URL and `{url}` the page itself. Blog
+posts show the menu only when `pageActions` is set.
+
+## Search engines
+
+Each page carries structured data: the site, the page as a technical article
+(docs) or a blog post (dated pages in a blog layout), and its breadcrumbs.
+`head` adds tags to every page; frontmatter `head` and `noindex` work per page.
+
+## Checking
+
+`novon build` validates the config, frontmatter, links and redirects, and
+prints what it finds. See [Checking](/guide/checking).
 
 ## Plugins
 

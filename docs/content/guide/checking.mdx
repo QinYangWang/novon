@@ -1,0 +1,36 @@
+---
+title: Checking
+description: Find broken links and wrong config before your readers do.
+icon: CheckCircle
+order: 6
+---
+
+```bash
+novon check            # in the site folder
+novon check --json     # machine-readable
+novon check --strict   # warnings fail too
+novon check --external # also request every external link
+```
+
+`novon check` reports, with file and line:
+
+| Check | Severity |
+| --- | --- |
+| Config and frontmatter values of the wrong type | error |
+| Keys that look like a typo of a known key | warning |
+| MDX that does not parse | error |
+| Links to pages that do not exist, and missing `#anchors` | error |
+| Images and files missing from `public/` | error |
+| Links to an old path that redirects | warning |
+| Two files with the same route | error |
+| Redirects that replace a page or point nowhere | error |
+| External links that fail (`--external`) | warning |
+
+It exits with 1 when there are errors, or any issue with `--strict`.
+
+`novon build` runs the same checks, without external links, and prints the
+results as warnings. `novon build --strict` stops instead.
+
+```yaml title=".github/workflows/check.yml"
+- run: bunx novon check --strict
+```

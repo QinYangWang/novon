@@ -10,6 +10,7 @@ novon new my-blog --template blog  # blog
 cd my-docs
 novon dev                          # http://localhost:4321
 novon build                        # dist/
+novon check                        # config, frontmatter, links, redirects
 ```
 
 A site is a config file and a folder of MDX. No `package.json`, no build
@@ -29,11 +30,14 @@ my-docs/
 - **Layouts.** `docs` (sidebar, search, page outline, prev/next) and `blog`
   (dated posts, tags, RSS). Mount both in one site with `layers`.
 - **Writing.** Callouts, cards, steps, tabs, code groups, accordions, file trees
-  and terms work in every page without an import. Code is highlighted at build
-  time in both themes.
+  and terms work in every page without an import, as do `:::note` blocks,
+  GitHub alerts and install tabs for npm, pnpm, yarn and bun. Code is
+  highlighted at build time in both themes, with line highlights, diffs, focus
+  and line numbers.
 - **Output.** Every page is prerendered HTML that hydrates into a single-page
-  app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt`, a Markdown copy
-  of each page and a share image per page come with it.
+  app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt`, `llms-full.txt`,
+  a plain Markdown copy of each page, a share image per page, structured data,
+  redirects and "Open in" links for chat apps come with it.
 - **Languages.** Built-in strings and dates follow `lang` (English and
   Chinese ship built in); replace any of them with `theme.labels`.
 - **Extending.** Register React components for MDX, swap the header, footer,
