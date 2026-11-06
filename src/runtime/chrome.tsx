@@ -13,6 +13,8 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CopyIcon,
+  CornerDownRightIcon,
+  DownloadIcon,
   EditIcon,
   ExternalLinkIcon,
   FileIcon,
@@ -26,6 +28,7 @@ import { Link } from './link.tsx'
 import { resolveIcon } from './icons.tsx'
 import { useLabels, useOverride, useSite } from './site.tsx'
 import { fill } from '../labels.ts'
+import { loadSearchIndex, search, type SearchEntry } from './search.ts'
 import type { PageAction } from '../types.ts'
 
 export function Brand({ className }: { className?: string }) {
@@ -70,36 +73,43 @@ export function SocialLinks() {
   )
 }
 
-type SearchEntry = { route: string; title: string; description?: string; section?: string; headings?: string[]; text?: string; icon?: string }
-
-/** The search button and the command palette it opens (⌘K). */
+/** The search button and the command palette it opens (⌘K): pages and their heading sections, full text. */
 export function Search({ className, compact }: { className?: string; compact?: boolean }) {
   const { site, navigate } = useSite()
   const [open, setOpen] = React.useState(false)
   const [entries, setEntries] = React.useState<SearchEntry[] | null>(null)
+  const [query, setQuery] = React.useState('')
   const t = useLabels()
 
   React.useEffect(() => {
-    if (!open || entries) return
-    fetch(withBase(site.base, '/search.json'))
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setEntries)
-      .catch(() => setEntries([]))
+    if (!open) return setQuery('')
+    if (!entries) void loadSearchIndex(site.base).then(setEntries)
   }, [open, entries, site.base])
 
   const items = React.useMemo<CommandPaletteItem[]>(() => {
-    const source: SearchEntry[] =
-      entries ?? site.pages.filter((p) => p.kind === 'page' && !p.hidden).map((p) => ({ route: p.route, title: p.title, description: p.description }))
-    return source.map((e) => ({
+    const q = query.trim()
+    if (q && entries) {
+      // Ranked here; the query as a keyword keeps every result in the palette's own filter.
+      return search(entries, q, 30).map((r) => ({
+        id: r.href,
+        label: r.entry.heading ?? r.entry.title,
+        description: r.entry.heading ? r.entry.title : r.entry.description,
+        group: r.entry.section,
+        icon: r.entry.heading ? CornerDownRightIcon : resolveIcon(r.entry.icon),
+        keywords: [q],
+        onSelect: () => navigate(r.href),
+      }))
+    }
+    const pages = entries ? entries.filter((e) => !e.heading) : site.pages.filter((p) => p.kind === 'page' && !p.hidden).map((p) => ({ route: p.route, title: p.title, description: p.description, icon: p.icon, section: undefined as string | undefined }))
+    return pages.map((e) => ({
       id: e.route,
       label: e.title,
       description: e.description,
       group: e.section,
       icon: resolveIcon(e.icon),
-      keywords: [...(e.headings ?? []), ...(e.text ? [e.text] : [])],
       onSelect: () => navigate(e.route),
     }))
-  }, [entries, site.pages, navigate])
+  }, [entries, query, site.pages, navigate])
 
   if (!site.search) return null
   return (
@@ -122,12 +132,15 @@ export function Search({ className, compact }: { className?: string; compact?: b
           <Kbd className="ms-auto max-sm:hidden">⌘K</Kbd>
         </Button>
       )}
-      <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder={t.searchPlaceholder} />
+      {/* The palette's input reports each keystroke here (React events bubble out of its portal). */}
+      <span className="contents" onChange={(e) => setQuery((e.target as HTMLInputElement).value ?? '')}>
+        <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder={t.searchPlaceholder} />
+      </span>
     </>
   )
 }
 
-const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity']
+const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity']
 
 /** Chat apps that take a prompt in the URL. */
 const CHATS: Record<'chatgpt' | 'claude' | 'perplexity', { name: string; href: string; icon: BrandIconData }> = {
@@ -170,6 +183,12 @@ export function PageActions() {
       items.push(
         <MenuItem key={i} render={external(md)}>
           <FileIcon /> {t.viewMarkdown}
+        </MenuItem>,
+      )
+    } else if (action === 'pdf') {
+      items.push(
+        <MenuItem key={i} onClick={() => window.print()}>
+          <DownloadIcon /> {t.downloadPdf}
         </MenuItem>,
       )
     } else if (action === 'edit') {
@@ -218,7 +237,7 @@ function DefaultFooter({ className }: { className?: string }) {
   const footer = site.theme.footer
   const [before, after = ''] = useLabels().builtWith.split('{novon}')
   return (
-    <footer className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-sm text-muted-foreground', className)}>
+    <footer data-novon-chrome="" className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-sm text-muted-foreground', className)}>
       <span>{footer?.text ?? `© ${new Date().getFullYear()} ${site.title}`}</span>
       {footer?.links?.map((l) => (
         <Link key={l.href} href={l.href} className="hover:text-foreground">

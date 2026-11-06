@@ -341,3 +341,18 @@ https://github.com/shikijs/shiki/blob/main/LICENSE.
 Copyright 2014-2021 Adobe (http://www.adobe.com/), licensed under the SIL Open
 Font License 1.1 (https://openfontlicense.org). It is used by the tests only and
 is not part of the published package.
+
+## Math and diagrams (bundled into built sites)
+
+- KaTeX (https://github.com/KaTeX/KaTeX), MIT License, Copyright (c) 2013-2020 Khan Academy and
+  other contributors. Renders `$…$` math at build time; its stylesheet and fonts ship with sites
+  that use math. Loaded through remark-math and rehype-katex (https://github.com/remarkjs/remark-math),
+  MIT License, Copyright (c) 2017 Junyoung Choi and Titus Wormer.
+- Mermaid (https://github.com/mermaid-js/mermaid), MIT License, Copyright (c) 2014-2022 Knut Sveidqvist.
+  Draws ` ```mermaid ` diagrams in the browser, loaded only on pages that have one.
+
+## Feature references (behaviour only, no code copied)
+
+Agent skills publishing, the discovery manifest, the static JSON API, WebMCP tools, `_meta` files,
+banners and bundle budgets follow the behaviour documented by Nimbus (https://github.com/cloudflare/nimbus,
+Apache-2.0) and Blume (https://github.com/haydenbleasel/blume, MIT).

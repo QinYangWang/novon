@@ -4,7 +4,6 @@
  * optionally external links. The build runs the same checks (without external
  * links) and prints what they find.
  */
-import { readFile } from 'node:fs/promises'
 import { existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import matter from 'gray-matter'
@@ -15,10 +14,13 @@ import remarkMdx from 'remark-mdx'
 import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkDirective from 'remark-directive'
+import remarkMath from 'remark-math'
 import { toString } from 'mdast-util-to-string'
 import { visit } from 'unist-util-visit'
 import type { Root } from 'mdast'
 import { scanPages } from './content.ts'
+import { loadMetas, listedNames } from './meta.ts'
+import { pageSource } from './source.ts'
 import { collectRedirects, isExternal } from './redirects.ts'
 import { markdownPath } from './plugins.ts'
 import { en } from '../labels.ts'
@@ -29,7 +31,7 @@ export type Severity = 'error' | 'warning'
 
 export interface Issue {
   severity: Severity
-  /** What was checked: `config`, `frontmatter`, `syntax`, `link`, `anchor`, `asset`, `route`, `redirect`, `external`. */
+  /** What was checked: `config`, `frontmatter`, `meta`, `content` (partials, variables), `syntax`, `link`, `anchor`, `asset`, `route`, `redirect`, `external`. */
   rule: string
   message: string
   /** Relative to the site root. */
@@ -106,9 +108,10 @@ export const configSchema: Schema = S.object({
     override: S.record(S.string, ['Header', 'Footer', 'Sidebar', 'NotFound', 'PostHeader']),
     pageActions: S.union(
       S.false,
-      S.array(S.union(S.enum('copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity'), S.object({ label: S.required(S.string), href: S.required(S.string) }))),
+      S.array(S.union(S.enum('copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity'), S.object({ label: S.required(S.string), href: S.required(S.string) }))),
     ),
     lastUpdated: S.boolean,
+    imageZoom: S.boolean,
   }),
   components: S.record(S.string),
   plugins: S.array(S.union(S.enum('search', 'sitemap', 'rss', 'llms'), S.object({ name: S.required(S.string), buildEnd: { type: 'function' } }, true))),
@@ -117,6 +120,8 @@ export const configSchema: Schema = S.object({
     rehypePlugins: S.array(S.any),
     highlight: S.union(S.false, S.object({ light: S.string, dark: S.string })),
     lineNumbers: S.boolean,
+    math: S.union(S.boolean, S.object({ singleDollar: S.boolean })),
+    mermaid: S.boolean,
   }),
   og: S.union(
     S.boolean,
@@ -127,6 +132,30 @@ export const configSchema: Schema = S.object({
   tags: S.object({ path: S.string, lowercase: S.boolean }),
   redirects: S.record(S.string),
   head: S.array(headTag),
+  variables: S.record(S.union(S.string, S.number, S.boolean)),
+  banner: S.union(S.false, S.string, S.object({ text: S.required(S.string), href: S.string, dismissible: S.boolean, id: S.string })),
+  analytics: S.object({
+    plausible: S.object({ domain: S.required(S.string), src: S.string }),
+    umami: S.object({ websiteId: S.required(S.string), src: S.string }),
+    ga4: S.union(S.string, S.object({ id: S.required(S.string) })),
+    cloudflare: S.union(S.string, S.object({ token: S.required(S.string) })),
+    custom: S.union(S.string, S.array(headTag)),
+  }),
+  agents: S.union(S.false, S.object({ skills: S.union(S.string, S.false), skill: S.boolean, discovery: S.boolean, api: S.boolean, webmcp: S.boolean })),
+  budget: S.object({ js: S.union(S.number, S.string), css: S.union(S.number, S.string) }),
+})
+
+const metaItem = S.object({ title: S.string, badge: S.string, icon: S.string, hidden: S.boolean })
+
+/** A folder's `_meta.ts`. */
+export const metaSchema: Schema = S.object({
+  title: S.string,
+  order: S.number,
+  icon: S.string,
+  badge: S.string,
+  collapsed: S.boolean,
+  pages: S.array(S.union(S.string, S.object({ group: S.required(S.string), pages: S.required(S.array(S.string)) }), S.object({ title: S.required(S.string), href: S.required(S.string) }))),
+  items: S.record(metaItem),
 })
 
 export const frontmatterSchema: Schema = S.object(
@@ -148,6 +177,7 @@ export const frontmatterSchema: Schema = S.object(
     noindex: S.boolean,
     redirectFrom: S.union(S.route, S.array(S.route)),
     head: S.array(headTag),
+    badge: S.string,
   },
   true,
 )
@@ -325,10 +355,11 @@ const LINK_ATTRS = new Set(['href'])
 const ASSET_ATTRS = new Set(['src', 'poster'])
 
 /** Links, assets and heading ids of one page. */
-export function parsePage(file: string, source: string): Parsed {
+export function parsePage(file: string, source: string, math = true): Parsed {
   const processor = unified().use(remarkParse)
   if (!file.endsWith('.md')) processor.use(remarkMdx)
   processor.use(remarkFrontmatter).use(remarkGfm).use(remarkDirective)
+  if (math) processor.use(remarkMath)
   let tree: Root
   try {
     tree = processor.parse(source) as Root
@@ -365,7 +396,7 @@ const SKIP_SCHEMES = /^(mailto|tel|javascript|data|blob|sms|ftp):/i
 
 /** Files the build writes besides pages. */
 function generatedFiles(config: ResolvedConfig): Set<string> {
-  const files = ['/search.json', '/sitemap.xml', '/robots.txt', '/llms.txt', '/llms-full.txt', '/_redirects', '/404', '/404.html', config.rss.path]
+  const files = ['/search.json', '/sitemap.xml', '/robots.txt', '/llms.txt', '/llms-full.txt', '/_redirects', '/_headers', '/404', '/404.html', config.rss.path, '/openapi.json', '/skill.md']
   return new Set(files)
 }
 
@@ -415,7 +446,9 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
   const parsed = new Map<string, Parsed>()
   for (const page of pages) {
     if (!page.file) continue
-    const source = await readFile(join(config.root, page.file), 'utf8')
+    const expanded = await pageSource(config, page.file)
+    const source = expanded.code
+    for (const p of expanded.problems) issues.push({ severity: 'error', rule: 'content', file: page.file, line: p.line, message: p.message })
     let data: Record<string, unknown> = {}
     try {
       data = matter(source).data
@@ -423,9 +456,25 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
       issues.push({ severity: 'error', rule: 'frontmatter', file: page.file, line: 1, message: `Frontmatter is not valid YAML: ${(error as Error).message.split('\n')[0]}` })
     }
     issues.push(...checkFrontmatter(page.file, source, data))
-    const result = parsePage(page.file, source)
+    const result = parsePage(page.file, source, config.mdx?.math !== false)
     issues.push(...result.issues)
     parsed.set(page.route, result)
+  }
+
+  // Folder meta files.
+  try {
+    for (const m of await loadMetas(config)) {
+      const out: Problem[] = []
+      validate(m.meta, metaSchema, '', out)
+      for (const p of out) issues.push({ severity: p.severity, rule: 'meta', file: m.file, message: p.message })
+      const prefix = m.dir ? `/${m.dir}/` : '/'
+      const names = new Set(pages.filter((p) => p.route.startsWith(prefix) && p.route !== prefix.replace(/\/$/, '')).map((p) => p.route.slice(prefix.length).split('/')[0]))
+      for (const name of [...listedNames(m.meta.pages), ...Object.keys(m.meta.items ?? {})]) {
+        if (name !== '...' && !names.has(name)) issues.push({ severity: 'warning', rule: 'meta', file: m.file, message: `No page or folder "${name}" in ${m.dir || 'content'}` })
+      }
+    }
+  } catch (error) {
+    issues.push({ severity: 'error', rule: 'meta', message: (error as Error).message })
   }
 
   // Redirects.
@@ -484,7 +533,7 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
         issues.push({ severity: 'warning', rule: 'link', ...at, message: `${url} redirects to ${redirects[target]}; link there directly` })
         continue
       }
-      if (generated.has(path) || path.startsWith('/og/')) continue
+      if (generated.has(path) || path.startsWith('/og/') || path.startsWith('/api/') || path.startsWith('/.well-known/')) continue
       if (path.endsWith('.md') && [...byRoute.values()].some((p) => p.file && markdownPath(p.route) === path)) continue
       if (publicFile(config, path)) continue
       if (base && (target === base || target.startsWith(`${base}/`))) {

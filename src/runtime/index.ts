@@ -4,7 +4,7 @@
  *
  *   import { Callout, Button } from 'novon'
  */
-export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink, Author, PageAction, HeadTag } from '../types.ts'
+export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink, Author, PageAction, HeadTag, Meta, FolderMeta } from '../types.ts'
 
 /* Writing components (also available in MDX without an import). */
 export {
@@ -37,6 +37,8 @@ export {
   type PackageInstallProps,
   type MdxComponents,
 } from './mdx.tsx'
+export { TypeTable, Field, Diff, Prompt, ImageZoom, Mermaid, Banner, toUnifiedDiff, type TypeTableEntry, type FieldProps, type DiffProps, type PromptProps, type ImageZoomProps } from './extras.tsx'
+export { search, tokenize, loadSearchIndex, type SearchEntry, type SearchResult } from './search.ts'
 export { PostList, PostItem, PostCard, PostCover, PostMeta, PostTags, TagList, TagLink } from './posts.tsx'
 export { AuthorAvatar, useAuthor } from './author.tsx'
 export { Outline, OutlinePopover, outlineItems, useActiveHeading, type OutlineItem, type OutlineProps, type OutlinePopoverProps } from './outline.tsx'

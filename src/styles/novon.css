@@ -23,3 +23,63 @@
     scroll-margin-top: 4.5rem;
   }
 }
+
+/* A banner the reader closed stays hidden from the first paint. */
+[data-banner-closed] [data-novon-banner] {
+  display: none;
+}
+
+/* Display math scrolls sideways instead of overflowing the column. */
+@layer components {
+  .typeset .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 0.25rem;
+  }
+  .typeset .katex {
+    font-size: 1.1em;
+  }
+}
+
+/* Printing (and "Download PDF"): the page's content only, every block whole. */
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+  html {
+    scroll-padding-top: 0;
+  }
+  body {
+    background: var(--background);
+  }
+  [data-novon-chrome],
+  [data-novon-banner],
+  [data-slot="code-copy-button"],
+  [data-slot="command-copy-button"],
+  [data-slot="drawer"] {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+  }
+  .typeset :where(h2, h3, h4) {
+    break-after: avoid;
+  }
+  .typeset :where(pre, table, figure, img, [data-slot="code-block"], [data-slot="alert"], [data-novon]) {
+    break-inside: avoid;
+  }
+  [data-slot="scroll-area"] *,
+  [data-slot="code-block-content"] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  [data-slot="code-block-content"] pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .typeset a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--muted-foreground);
+  }
+}

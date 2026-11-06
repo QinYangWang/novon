@@ -12,9 +12,10 @@ import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkDirective from 'remark-directive'
 import remarkStringify from 'remark-stringify'
+import remarkMath from 'remark-math'
 import { toString } from 'mdast-util-to-string'
 import type { Code, Heading, List, ListItem, Paragraph, PhrasingContent, Root, RootContent } from 'mdast'
-import { remarkCallouts, remarkPackageInstall } from './remark.ts'
+import { remarkCallouts, remarkComponentSource, remarkPackageInstall } from './remark.ts'
 import { postsOf } from '../shared.ts'
 import type { PageMeta } from '../types.ts'
 
@@ -219,6 +220,35 @@ class Converter {
         const tip = str(el, 'tip')
         return [...this.children(el.children, false), ...(tip ? [text(` (${tip})`) as Node] : [])]
       }
+      case 'TypeTable':
+        return [this.typeTable(el)]
+      case 'Field':
+        return []
+      case 'Diff': {
+        const diff = str(el, 'diff')
+        const before = str(el, 'before')
+        const after = str(el, 'after')
+        const file = str(el, 'file')
+        const value = diff ?? [...(before ?? '').split('\n').map((l) => `-${l}`), ...(after ?? '').split('\n').map((l) => `+${l}`)].join('\n')
+        return [{ type: 'code', lang: 'diff', meta: file ? `title="${file}"` : null, value: value.replace(/\n$/, '') } as Node]
+      }
+      case 'Prompt': {
+        const title = str(el, 'title')
+        const value = str(el, 'text') ?? toString({ type: 'root', children: el.children } as Root)
+        return [{ type: 'code', lang: 'text', meta: `title="${title ?? 'Prompt'}"`, value } as Node]
+      }
+      case 'Mermaid': {
+        const chart = str(el, 'chart')
+        return chart ? [{ type: 'code', lang: 'mermaid', value: chart } as Node] : []
+      }
+      case 'ImageZoom': {
+        const src = str(el, 'zoomSrc') ?? str(el, 'src')
+        if (!src) return []
+        const image = { type: 'image', url: src, alt: str(el, 'alt') ?? '' } as PhrasingContent
+        return block ? [paragraph([image]) as Node] : [image as Node]
+      }
+      case 'Kbd':
+        return [{ type: 'inlineCode', value: toString(el as never) } as Node]
       case 'TagList':
       case 'Icon':
       case 'PackageInstall':
@@ -248,6 +278,35 @@ class Converter {
         return [{ type: 'emphasis', children: this.children(el.children, false) } as Node]
     }
     return kids()
+  }
+
+  /** A TypeTable as a GFM table: from `type={{…}}` (evaluated) and `<Field>` children. */
+  private typeTable(el: Jsx): Node {
+    const rows: { name: string; type?: string; default?: string; required?: boolean; description: PhrasingContent[] }[] = []
+    const raw = el.attributes.find((a) => a.name === 'type')?.value
+    if (raw && typeof raw === 'object') {
+      try {
+        const value = new Function(`return (${raw.value})`)() as Record<string, { type?: string; default?: unknown; required?: boolean; description?: unknown }>
+        for (const [name, e] of Object.entries(value ?? {})) {
+          rows.push({ name, type: e.type, default: e.default === undefined ? undefined : String(e.default), required: e.required, description: typeof e.description === 'string' ? [text(e.description)] : [] })
+        }
+      } catch {}
+    }
+    for (const c of elements(el.children)) {
+      const f = c as unknown as Jsx
+      if (!isJsx(c) || f.name !== 'Field') continue
+      const kids = this.children(f.children, false).flatMap((k) => (k.type === 'paragraph' ? (k.children as Node[]) : [k])) as PhrasingContent[]
+      rows.push({ name: str(f, 'name') ?? '', type: str(f, 'type'), default: str(f, 'default'), required: attr(f, 'required') === true || attr(f, 'required') === 'true', description: kids })
+    }
+    const hasDefault = rows.some((r) => r.default)
+    const cell = (children: PhrasingContent[]) => ({ type: 'tableCell', children })
+    const code = (v?: string) => (v ? [{ type: 'inlineCode', value: v } as PhrasingContent] : [])
+    const head = ['Property', 'Type', ...(hasDefault ? ['Default'] : []), 'Description'].map((h) => cell([text(h)]))
+    const body = rows.map((r) => ({
+      type: 'tableRow',
+      children: [cell([...code(r.name), ...(r.required ? [text(' (required)')] : [])]), cell(code(r.type)), ...(hasDefault ? [cell(code(r.default))] : []), cell(r.description)],
+    }))
+    return { type: 'table', align: [], children: [{ type: 'tableRow', children: head }, ...body] } as unknown as Node
   }
 
   private cardItem(card: Jsx): ListItem {
@@ -307,11 +366,12 @@ function remarkPlainMarkdown(ctx: MarkdownContext) {
 export function mdxToMarkdown(source: string, ctx: MarkdownContext = {}): string {
   const parser = unified().use(remarkParse)
   if (ctx.mdx !== false) parser.use(remarkMdx)
-  parser.use(remarkFrontmatter).use(remarkGfm).use(remarkDirective).use(remarkCallouts).use(remarkPackageInstall).use(remarkPlainMarkdown, ctx)
+  parser.use(remarkFrontmatter).use(remarkGfm).use(remarkMath).use(remarkDirective).use(remarkCallouts).use(remarkPackageInstall).use(remarkComponentSource).use(remarkPlainMarkdown, ctx)
   const tree = parser.runSync(parser.parse(source), source) as Root
   // A separate writer: the directive syntax is gone by now and would only escape every colon.
   const writer = unified()
     .use(remarkStringify, { bullet: '-', fences: true, rule: '-', listItemIndent: 'one', emphasis: '_', resourceLink: true })
     .use(remarkGfm)
+    .use(remarkMath)
   return writer.stringify(tree).trim()
 }

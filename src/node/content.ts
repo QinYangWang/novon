@@ -3,7 +3,9 @@ import { join, relative, sep } from 'node:path'
 import matter from 'gray-matter'
 import GithubSlugger from 'github-slugger'
 import { humanize, layerFor, normalizeRoute, postsOf, tagRoute } from '../shared.ts'
-import type { Frontmatter, HeadTag, Heading, PageMeta, ResolvedConfig } from '../types.ts'
+import type { FolderMeta, Frontmatter, HeadTag, Heading, PageMeta, ResolvedConfig } from '../types.ts'
+import { transformSource } from './source.ts'
+import { applyMetas, loadMetas } from './meta.ts'
 
 const PAGE_EXT = /\.(mdx|md)$/
 
@@ -129,7 +131,7 @@ function headTags(v: unknown): HeadTag[] | undefined {
 
 export async function readPage(root: string, abs: string, config: ResolvedConfig): Promise<PageMeta | null> {
   const file = relative(root, abs).split(sep).join('/')
-  const source = await readFile(abs, 'utf8')
+  const source = (await transformSource(config, file, await readFile(abs, 'utf8'))).code
   const { data, content } = matter(source)
   const fm = data as Frontmatter
   if (fm.draft && process.env.NODE_ENV === 'production') return null
@@ -140,7 +142,7 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
   const title = fm.title ?? content.match(/^#\s+(.+)$/m)?.[1] ?? fallbackTitle
   const updated = await lastUpdated(root, file, abs, fm)
   const redirectFrom = asList(fm.redirectFrom).map(normalizeRoute)
-  return {
+  let page: PageMeta = {
     route,
     file,
     title,
@@ -160,12 +162,18 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
     ...(fm.noindex === true ? { noindex: true } : {}),
     ...(redirectFrom.length ? { redirectFrom } : {}),
     ...(headTags(fm.head) ? { head: headTags(fm.head) } : {}),
+    ...(typeof fm.badge === 'string' && fm.badge ? { badge: fm.badge } : {}),
     layer: layer.path,
     layout: layer.layout,
     kind: 'page',
     text,
     headings: headingsOf(content),
   }
+  const { activePlugins } = await import('./plugins.ts')
+  for (const plugin of activePlugins(config)) {
+    if (plugin.pageData) page = (await plugin.pageData(page, { config, file, frontmatter: fm })) ?? page
+  }
+  return page
 }
 
 /** Adds the pages a blog layer generates: its post list (when no index file exists) and tag pages. */
@@ -199,21 +207,27 @@ export interface Duplicate {
   files: string[]
 }
 
-/** Every page, plus routes more than one file maps to (the first file wins). */
-export async function scanPages(config: ResolvedConfig): Promise<{ pages: PageMeta[]; duplicates: Duplicate[] }> {
+/** Every page, plus routes more than one file maps to (the first file wins), and folder settings from `_meta` files. */
+export async function scanPages(config: ResolvedConfig): Promise<{ pages: PageMeta[]; duplicates: Duplicate[]; folders: Record<string, FolderMeta> }> {
   const files = (await walk(join(config.root, 'content'))).sort()
   const read = (await Promise.all(files.map((f) => readPage(config.root, f, config)))).filter((p): p is PageMeta => p !== null)
   const byRoute = new Map<string, PageMeta[]>()
   for (const p of read) byRoute.set(p.route, [...(byRoute.get(p.route) ?? []), p])
   const pages = [...byRoute.values()].map((list) => list[0])
   const duplicates = [...byRoute.values()].filter((l) => l.length > 1).map((l) => ({ route: l[0].route, files: l.map((p) => p.file) }))
+  const folders = applyMetas(pages, await loadMetas(config))
   const all = [...pages, ...generatedPages(pages, config)]
-  return { pages: all.sort((a, b) => a.route.localeCompare(b.route)), duplicates }
+  return { pages: all.sort((a, b) => a.route.localeCompare(b.route)), duplicates, folders }
+}
+
+/** Every page and the folder settings; throws when two files map to one route. */
+export async function scanSite(config: ResolvedConfig): Promise<{ pages: PageMeta[]; folders: Record<string, FolderMeta> }> {
+  const { pages, duplicates, folders } = await scanPages(config)
+  const dup = duplicates[0]
+  if (dup) throw new Error(`${dup.files[1]} and ${dup.files[0]} both map to ${dup.route}`)
+  return { pages, folders }
 }
 
 export async function scanContent(config: ResolvedConfig): Promise<PageMeta[]> {
-  const { pages, duplicates } = await scanPages(config)
-  const dup = duplicates[0]
-  if (dup) throw new Error(`${dup.files[1]} and ${dup.files[0]} both map to ${dup.route}`)
-  return pages
+  return (await scanSite(config)).pages
 }

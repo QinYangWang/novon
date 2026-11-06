@@ -160,3 +160,52 @@ export function remarkPackageInstall() {
     })
   }
 }
+
+/** ` ```mermaid ` fences → `<Mermaid chart="…" />`, drawn in the browser. */
+export function remarkMermaid() {
+  return (tree: Root) => {
+    visit(tree, 'code', (node: Code, index, parent) => {
+      if (!parent || index === undefined || node.lang !== 'mermaid') return
+      ;(parent.children as RootContent[])[index] = jsx('Mermaid', { chart: node.value }, [], node.position)
+      return SKIP
+    })
+  }
+}
+
+/** Strips the indentation every non-empty line shares. */
+function dedent(text: string): string {
+  const lines = text.replace(/^\n+|\s+$/g, '').split('\n')
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => l.match(/^[ \t]*/)![0].length))
+  return lines.map((l) => l.slice(Number.isFinite(indent) ? indent : 0)).join('\n')
+}
+
+function setAttribute(el: JsxElement, name: string, value: string) {
+  el.attributes = [...el.attributes.filter((a) => a.name !== name), { type: 'mdxJsxAttribute', name, value }]
+}
+
+/**
+ * `<Prompt>` gets its children's source as `text`, the words that are copied;
+ * `<Diff>` takes the diff from a fence inside it.
+ */
+export function remarkComponentSource() {
+  return (tree: Root, file: { value?: unknown }) => {
+    const source = typeof file?.value === 'string' ? file.value : ''
+    visit(tree, (node) => {
+      const el = node as unknown as JsxElement
+      if (el.type !== 'mdxJsxFlowElement' && el.type !== 'mdxJsxTextElement') return
+      if (el.name === 'Prompt' && !el.attributes.some((a) => a.name === 'text') && el.children.length && source) {
+        const start = el.children[0].position?.start.offset
+        const end = el.children.at(-1)!.position?.end.offset
+        if (start !== undefined && end !== undefined) setAttribute(el, 'text', dedent(source.slice(start, end)))
+      }
+      if (el.name === 'Diff' && !el.attributes.some((a) => a.name === 'diff' || a.name === 'before' || a.name === 'after')) {
+        const code = el.children.find((c): c is Code => c.type === 'code')
+        if (code) {
+          setAttribute(el, 'diff', code.value)
+          if (code.lang && code.lang !== 'diff' && !el.attributes.some((a) => a.name === 'language')) setAttribute(el, 'language', code.lang)
+          el.children = []
+        }
+      }
+    })
+  }
+}

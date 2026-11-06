@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm'
 import rehypeSlug from 'rehype-slug'
 import rehypeShiki from '@shikijs/rehype'
 import remarkDirective from 'remark-directive'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import {
   transformerMetaHighlight,
   transformerMetaWordHighlight,
@@ -14,7 +16,8 @@ import {
 } from '@shikijs/transformers'
 import type { ShikiTransformer } from 'shiki'
 import type { ResolvedConfig } from '../types.ts'
-import { remarkCallouts, remarkPackageInstall } from './remark.ts'
+import { remarkCallouts, remarkComponentSource, remarkMermaid, remarkPackageInstall } from './remark.ts'
+import { activePlugins } from './plugins.ts'
 
 /** Reads `title="…"` and bare flags like `lineNumbers` from a fence's meta string. */
 export function parseMeta(meta: string): Record<string, string | true> {
@@ -60,11 +63,20 @@ export function codeTransformers(lineNumbers = false): ShikiTransformer[] {
 }
 
 /** novon's own Markdown syntax, before any site plugin. */
-export const novonRemarkPlugins = [remarkDirective, remarkCallouts, remarkPackageInstall]
+export const novonRemarkPlugins = [remarkDirective, remarkCallouts, remarkPackageInstall, remarkComponentSource]
+
+/** remark-math options from `mdx.math`, or null when math is off. */
+export function mathOptions(config: Pick<ResolvedConfig, 'mdx'>): { singleDollarTextMath: boolean } | null {
+  const math = config.mdx?.math
+  if (math === false) return null
+  return { singleDollarTextMath: typeof math === 'object' ? math.singleDollar !== false : true }
+}
 
 export function mdxOptions(config: ResolvedConfig) {
   const highlight = config.mdx?.highlight
+  const math = mathOptions(config)
   const rehypePlugins: any[] = [rehypeSlug]
+  if (math) rehypePlugins.push([rehypeKatex, { output: 'htmlAndMathml', throwOnError: false, strict: false }])
   if (highlight !== false) {
     rehypePlugins.push([
       rehypeShiki,
@@ -78,9 +90,19 @@ export function mdxOptions(config: ResolvedConfig) {
       },
     ])
   }
+  const plugins = activePlugins(config)
   return {
     providerImportSource: '@mdx-js/react',
-    remarkPlugins: [remarkFrontmatter, [remarkMdxFrontmatter, { name: 'frontmatter' }], remarkGfm, ...novonRemarkPlugins, ...(config.mdx?.remarkPlugins ?? [])],
-    rehypePlugins: [...rehypePlugins, ...(config.mdx?.rehypePlugins ?? [])],
+    remarkPlugins: [
+      remarkFrontmatter,
+      [remarkMdxFrontmatter, { name: 'frontmatter' }],
+      remarkGfm,
+      ...(math ? [[remarkMath, math]] : []),
+      ...novonRemarkPlugins,
+      ...(config.mdx?.mermaid === false ? [] : [remarkMermaid]),
+      ...plugins.flatMap((p) => p.remarkPlugins ?? []),
+      ...(config.mdx?.remarkPlugins ?? []),
+    ],
+    rehypePlugins: [...rehypePlugins, ...plugins.flatMap((p) => p.rehypePlugins ?? []), ...(config.mdx?.rehypePlugins ?? [])],
   }
 }

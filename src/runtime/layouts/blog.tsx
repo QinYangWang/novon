@@ -7,6 +7,7 @@ import { formatDate, postsOf, withBase } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
 import { AuthorAvatar, useAuthor } from '../author.tsx'
 import { Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
+import { Banner } from '../extras.tsx'
 import { Link } from '../link.tsx'
 import { Outline, OutlinePopover } from '../outline.tsx'
 import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
@@ -47,7 +48,7 @@ function DefaultHeader() {
   const { site, current } = useSite()
   const t = useLabels()
   return (
-    <header className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur">
+    <header data-novon-chrome="" className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur">
       <Container className="flex h-full items-center gap-3">
         <BlogBrand />
         <nav aria-label={t.mainNav} className="ms-auto flex items-center gap-1">
@@ -163,7 +164,7 @@ function Post({ page }: { page: PageMeta }) {
             </article>
           </div>
           {toc && (
-            <aside className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
+            <aside data-novon-chrome="" className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
               <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
             </aside>
           )}
@@ -274,6 +275,7 @@ export function BlogLayout() {
   const Header = useOverride('Header', DefaultHeader)
   return (
     <div className="flex min-h-dvh flex-col bg-background">
+      <Banner />
       <Header />
       <main className="flex-1">
         <BlogBody />

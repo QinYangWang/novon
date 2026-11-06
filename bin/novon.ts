@@ -6,9 +6,11 @@ import pkg from '../package.json' with { type: 'json' }
 const help = `novon ${pkg.version} ฅ^•ﻌ•^ฅ
 
 Usage
-  novon new <dir> [--template docs|blog]   start a site
+  novon new [dir] [--template docs|blog] [--title T] [--yes]
+                                           start a site (in the current folder without dir)
   novon dev [dir] [--port 4321] [--host]   preview with live reload
-  novon build [dir] [--strict]             write the static site to dir/dist
+  novon build [dir] [--strict] [--budget-js 200kB] [--budget-css 60kB]
+                                           write the static site to dir/dist
   novon preview [dir] [--port 4173]        serve dir/dist
   novon check [dir] [--json] [--strict] [--external]
                                            validate config, frontmatter, links and redirects
@@ -18,7 +20,11 @@ A site is a novon.config.ts and a content/ folder of .mdx files.`
 const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
-    template: { type: 'string', short: 't', default: 'docs' },
+    template: { type: 'string', short: 't' },
+    title: { type: 'string' },
+    yes: { type: 'boolean', short: 'y' },
+    'budget-js': { type: 'string' },
+    'budget-css': { type: 'string' },
     port: { type: 'string', short: 'p' },
     host: { type: 'boolean' },
     strict: { type: 'boolean' },
@@ -37,10 +43,15 @@ async function main() {
   if (values.help || !command) return console.log(help)
 
   if (command === 'new') {
-    if (!target) throw new Error('Usage: novon new <dir> [--template docs|blog]')
-    const { scaffold } = await import('../src/node/new.ts')
-    const dir = await scaffold(target, values.template as 'docs' | 'blog')
-    console.log(`Created ${values.template} site in ${dir}\n\n  cd ${target}\n  novon dev\n`)
+    const { scaffold, templates } = await import('../src/node/new.ts')
+    const { humanize } = await import('../src/shared.ts')
+    let template = values.template
+    let title = values.title
+    const ask = !values.yes && process.stdin.isTTY
+    if (ask && !template) template = prompt(`Template (${templates.join(', ')})`, 'docs') ?? 'docs'
+    if (ask && !title) title = prompt('Site title', humanize(resolve(target ?? '.').split('/').at(-1) ?? 'site')) ?? undefined
+    const dir = await scaffold(target ?? '.', (template ?? 'docs') as 'docs' | 'blog', { title: title || undefined })
+    console.log(`Created ${template ?? 'docs'} site in ${dir}\n\n${target ? `  cd ${target}\n` : ''}  novon dev\n`)
     return
   }
 
@@ -58,8 +69,10 @@ async function main() {
   }
   if (command === 'build') {
     const { build } = await import('../src/node/build.ts')
-    const r = await build(config, { strict: values.strict })
-    console.log(`Built ${r.pages} pages into ${r.outDir} ${dim(`in ${r.ms} ms`)}`)
+    const budget = { ...(values['budget-js'] ? { js: values['budget-js'] } : {}), ...(values['budget-css'] ? { css: values['budget-css'] } : {}) }
+    const r = await build(config, { strict: values.strict, budget })
+    const { formatSize } = await import('../src/node/budget.ts')
+    console.log(`Built ${r.pages} pages into ${r.outDir} ${dim(`in ${r.ms} ms · first load ${formatSize(r.assets.js)} JS, ${formatSize(r.assets.css)} CSS gzipped`)}`)
     return
   }
   if (command === 'check') {

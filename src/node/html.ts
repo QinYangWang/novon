@@ -1,6 +1,7 @@
 import type { HeadTag, PageMeta, ResolvedConfig } from '../types.ts'
 import { withBase } from '../shared.ts'
 import { imageUrl, type OgImage } from './og.ts'
+import { bannerData } from './banner.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -20,6 +21,8 @@ export interface DocumentParts {
   image?: OgImage | null
   /** Every page, for breadcrumbs in structured data. */
   pages?: PageMeta[]
+  /** Head elements from plugins' `head` hooks. */
+  extraHead?: HeadTag[]
 }
 
 const VOID = new Set(['meta', 'link'])
@@ -93,7 +96,14 @@ export function structuredData(config: ResolvedConfig, page: PageMeta | null, pa
   return { '@context': 'https://schema.org', '@graph': graph }
 }
 
-export function renderDocument({ config, page, title, body, head = '', scripts, image, pages = [] }: DocumentParts): string {
+/** Hides a banner the reader closed before it paints. */
+export function bannerScript(config: ResolvedConfig): string {
+  const banner = bannerData(config)
+  if (!banner?.dismissible) return ''
+  return `<script>try{if(localStorage.getItem('novon:banner')===${JSON.stringify(banner.id)})document.documentElement.setAttribute('data-banner-closed','')}catch(e){}</script>`
+}
+
+export function renderDocument({ config, page, title, body, head = '', scripts, image, pages = [], extraHead = [] }: DocumentParts): string {
   const description = page?.description ?? config.description ?? ''
   const canonical = config.url && page ? new URL(withBase(config.base, page.route), config.url).href : ''
   const favicon = config.theme.favicon ? withBase(config.base, config.theme.favicon) : ''
@@ -123,8 +133,9 @@ export function renderDocument({ config, page, title, body, head = '', scripts, 
     favicon && `<link rel="icon" href="${favicon}">`,
     (config.plugins ?? []).includes('rss') && (config.layout === 'blog' || config.layers.some((l) => l.layout === 'blog')) && `<link rel="alternate" type="application/rss+xml" title="${esc(config.title)}" href="${withBase(config.base, config.rss.path)}">`,
     `<script>${themeScript}</script>`,
+    bannerScript(config),
     page && `<script type="application/ld+json">${JSON.stringify(structuredData(config, page, pages, img || undefined)).replace(/</g, '\\u003c')}</script>`,
-    ...[...(config.head ?? []), ...(page?.head ?? [])].map(headTag),
+    ...[...extraHead, ...(config.head ?? []), ...(page?.head ?? [])].map(headTag),
   ].filter(Boolean)
   return `<!doctype html>
 <html lang="${esc(config.lang)}" data-accent="${config.theme.accent}"${style}>

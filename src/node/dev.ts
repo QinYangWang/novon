@@ -1,8 +1,8 @@
 import { createServer, mergeConfig, type ViteDevServer } from 'vite'
-import { scanContent } from './content.ts'
+import { scanContent, scanSite } from './content.ts'
 import { renderDocument } from './html.ts'
 import { ogFile, ogRenderer, pageImage } from './og.ts'
-import { builtinPlugins, pageMarkdown, searchIndex } from './plugins.ts'
+import { activePlugins, builtinPlugins, markdownCache, pageMarkdown, searchIndex } from './plugins.ts'
 import { collectRedirects, redirectTarget } from './redirects.ts'
 import { entryClient, viteConfig } from './vite.ts'
 import { stripBase } from '../shared.ts'
@@ -26,7 +26,20 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                 try {
                   if (route === '/search.json') {
                     res.setHeader('content-type', 'application/json')
-                    return res.end(JSON.stringify(searchIndex(await scanContent(config))))
+                    return res.end(JSON.stringify(await searchIndex(config, await scanContent(config))))
+                  }
+                  // Files from plugins' `routes`: JSON API, skills, discovery files.
+                  if (/\.(json|gz)$/.test(route) || route === '/skill.md' || route.startsWith('/.well-known/')) {
+                    const { pages, folders } = await scanSite(config)
+                    const markdown = markdownCache(config, pages)
+                    for (const plugin of activePlugins(config)) {
+                      const files = (await plugin.routes?.({ config, pages, folders, markdown })) ?? {}
+                      const data = files[route.slice(1)]
+                      if (data === undefined) continue
+                      const type = route.endsWith('.json') ? 'application/json' : route.endsWith('.md') ? 'text/markdown; charset=utf-8' : route.endsWith('.gz') ? 'application/gzip' : 'application/json'
+                      res.setHeader('content-type', type)
+                      return res.end(data)
+                    }
                   }
                   if (route === '/llms.txt' || route === '/llms-full.txt') {
                     const files = new Map<string, string>()
@@ -61,7 +74,7 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                   const scripts = `<script type="module" src="${config.base}@fs${entryClient}"></script>`
                   const html = await s.transformIndexHtml(
                     req.url,
-                    renderDocument({ config, page, title, body: '', scripts, image: pageImage(config, page), pages }),
+                    renderDocument({ config, page, title, body: '', scripts, image: pageImage(config, page), pages, extraHead: activePlugins(config).flatMap((p) => p.head?.(page, { config, pages }) ?? []) }),
                   )
                   res.statusCode = page ? 200 : 404
                   res.setHeader('content-type', 'text/html; charset=utf-8')

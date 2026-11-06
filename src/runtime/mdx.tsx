@@ -11,6 +11,7 @@ import { CodeBlock, CodeGroup as CodeGroupRoot } from '@/ui/code-block'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/ui/card'
 import { FileTree, FileTreeFile, FileTreeFolder } from '@/ui/file-tree'
 import { IconChip } from '@/ui/icon-chip'
+import { Kbd } from '@/ui/kbd'
 import {
   SimpleTable,
   SimpleTableBody,
@@ -28,6 +29,7 @@ import { Link, isInternal } from './link.tsx'
 import { PostList, TagList } from './posts.tsx'
 import { useLabels, useSite } from './site.tsx'
 import { packageCommands, withBase } from '../shared.ts'
+import { Diff, Field, ImageZoom, Img, Mermaid, Prompt, TypeTable } from './extras.tsx'
 
 /* ---------- Callouts ---------- */
 
@@ -191,9 +193,10 @@ function fenceProps({ 'data-title': title, 'data-language': language, 'data-line
   return { block: { title, language, lineNumbers: numbers !== undefined, wrap: wrap !== undefined }, pre }
 }
 
-/** Highlighted code from a fence, with its title, line numbers and a copy button. */
+/** Highlighted code from a fence, with its title, line numbers and a copy button. Without a title there is no title bar. */
 export function Pre(props: PreProps) {
   const { block, pre } = fenceProps(props)
+  if (!block.title) block.language = undefined
   return (
     <CodeBlock {...block} className="not-typeset my-6">
       <pre {...pre} />
@@ -343,6 +346,7 @@ function Anchor({ href = '', ...props }: React.ComponentProps<'a'>) {
 
 export const mdxComponents = {
   a: Anchor,
+  img: Img,
   pre: Pre,
   table: Table,
   thead: SimpleTableHeader,
@@ -372,12 +376,19 @@ export const mdxComponents = {
   Frame,
   YouTube,
   Badge,
+  Kbd,
   Icon,
   FileTree,
   Folder: FileTreeFolder,
   File: FileTreeFile,
   PostList,
   TagList,
+  TypeTable,
+  Field,
+  Diff,
+  Prompt,
+  ImageZoom,
+  Mermaid,
 }
 
 export type MdxComponents = typeof mdxComponents

@@ -54,6 +54,20 @@ export interface Labels {
   /** `{novon}` becomes the link. */
   builtWith: string
   video: string
+  /** Page action that opens the print dialog, where the page can be saved as PDF. */
+  downloadPdf: string
+  dismissBanner: string
+  zoomImage: string
+  closeImage: string
+  prompt: string
+  copyPrompt: string
+  diagram: string
+  diagramError: string
+  property: string
+  type: string
+  default: string
+  description: string
+  required: string
 }
 
 export const en: Labels = {
@@ -98,6 +112,19 @@ export const en: Labels = {
   goHome: 'Go home',
   builtWith: 'Built with {novon}',
   video: 'Video',
+  downloadPdf: 'Download PDF',
+  dismissBanner: 'Dismiss',
+  zoomImage: 'Zoom image',
+  closeImage: 'Close image',
+  prompt: 'Prompt',
+  copyPrompt: 'Copy prompt',
+  diagram: 'Diagram',
+  diagramError: 'This diagram could not be drawn.',
+  property: 'Property',
+  type: 'Type',
+  default: 'Default',
+  description: 'Description',
+  required: 'Required',
 }
 
 export const zhCN: Labels = {
@@ -142,6 +169,19 @@ export const zhCN: Labels = {
   goHome: '返回首页',
   builtWith: '基于 {novon} 构建',
   video: '视频',
+  downloadPdf: '下载 PDF',
+  dismissBanner: '关闭',
+  zoomImage: '放大图片',
+  closeImage: '关闭图片',
+  prompt: '提示词',
+  copyPrompt: '复制提示词',
+  diagram: '图表',
+  diagramError: '图表无法绘制。',
+  property: '属性',
+  type: '类型',
+  default: '默认值',
+  description: '说明',
+  required: '必填',
 }
 
 export const builtinLabels: Record<string, Labels> = { en, 'zh-CN': zhCN }

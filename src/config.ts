@@ -1,10 +1,20 @@
-import type { Config, ResolvedConfig } from './types.ts'
+import type { Config, Meta, NovonPlugin, ResolvedConfig } from './types.ts'
 
 export type * from './types.ts'
 
 /** Typed helper for `novon.config.ts`. Returns the config unchanged. */
 export function defineConfig(config: Config): Config {
   return config
+}
+
+/** Typed helper for a folder's `_meta.ts`. Returns the meta unchanged. */
+export function defineMeta(meta: Meta): Meta {
+  return meta
+}
+
+/** Typed helper for a plugin. Returns the plugin unchanged. */
+export function definePlugin(plugin: NovonPlugin): NovonPlugin {
+  return plugin
 }
 
 function normalizeBase(base = '/'): string {
@@ -38,6 +48,7 @@ export function resolveConfig(config: Config, root: string): ResolvedConfig {
     redirects: Object.fromEntries(
       Object.entries(config.redirects ?? {}).filter(([, to]) => typeof to === 'string').map(([from, to]) => [normalizePrefix(from), /^[a-z]+:\/\//i.test(to) ? to : normalizePrefix(to)]),
     ),
+    variables: config.variables ?? {},
     theme: { ...config.theme, accent: config.theme?.accent ?? 'blue', toc: config.theme?.toc ?? true },
   }
 }

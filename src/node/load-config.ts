@@ -38,5 +38,8 @@ export async function loadConfig(dir: string): Promise<ResolvedConfig> {
   registerSiteLoader(root)
   const mod = (await import(file)) as { default?: Config }
   if (!mod.default) throw new Error(`${file} must \`export default defineConfig({ ... })\``)
-  return resolveConfig(mod.default, root)
+  let config = resolveConfig(mod.default, root)
+  const { activePlugins } = await import('./plugins.ts')
+  for (const p of activePlugins(config)) config = (await p.config?.(config)) ?? config
+  return config
 }

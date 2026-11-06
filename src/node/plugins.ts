@@ -1,9 +1,11 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import matter from 'gray-matter'
 import { postsOf, withBase } from '../shared.ts'
 import type { BuildContext, NovonPlugin, PageMeta, ResolvedConfig } from '../types.ts'
 import { mdxToMarkdown } from './markdown.ts'
+import { pageSource } from './source.ts'
+import { pageEntries, type SearchEntry } from './search-index.ts'
+import { agents } from './agents.ts'
+import { analytics } from './analytics.ts'
 
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -11,12 +13,12 @@ const listed = (pages: PageMeta[]) => pages.filter((p) => !p.hidden && p.kind !=
 /** Pages for crawlers and agents: listed and not `noindex`. */
 const indexable = (pages: PageMeta[]) => listed(pages).filter((p) => !p.noindex)
 
-function absolute(config: ResolvedConfig, route: string): string {
+export function absolute(config: ResolvedConfig, route: string): string {
   const path = withBase(config.base, route)
   return config.url ? new URL(path, config.url).href : path
 }
 
-function sectionOf(page: PageMeta, pages: PageMeta[]): string | undefined {
+export function sectionOf(page: PageMeta, pages: PageMeta[]): string | undefined {
   const prefix = page.layer === '/' ? '' : page.layer
   const parts = page.route.slice(prefix.length).split('/').filter(Boolean)
   const first = parts[0]
@@ -25,25 +27,20 @@ function sectionOf(page: PageMeta, pages: PageMeta[]): string | undefined {
   return pages.find((p) => p.route === `${prefix}/${first}`)?.label
 }
 
-/** search.json: what the search palette matches against. */
-export function searchIndex(pages: PageMeta[]) {
-  return listed(pages)
-    .filter((p) => p.kind === 'page')
-    .map((p) => ({
-      route: p.route,
-      title: p.title,
-      description: p.description,
-      section: p.layout === 'blog' ? 'Posts' : sectionOf(p, pages),
-      icon: p.icon,
-      headings: p.headings?.map((h) => h.text),
-      text: p.text?.slice(0, 600),
-    }))
+/** search.json: a page entry and an entry per heading section of every listed page, with their full text. */
+export async function searchIndex(config: ResolvedConfig, pages: PageMeta[]): Promise<SearchEntry[]> {
+  const out: SearchEntry[] = []
+  for (const p of listed(pages).filter((p) => p.kind === 'page' && p.file)) {
+    const { code } = await pageSource(config, p.file)
+    out.push(...pageEntries(p, code, p.layout === 'blog' ? 'Posts' : sectionOf(p, pages)))
+  }
+  return out
 }
 
 const search: NovonPlugin = {
   name: 'search',
-  async buildEnd({ emit, pages }) {
-    await emit('search.json', JSON.stringify(searchIndex(pages)))
+  async buildEnd({ emit, pages, config }) {
+    await emit('search.json', JSON.stringify(await searchIndex(config, pages)))
   },
 }
 
@@ -113,6 +110,8 @@ const llms: NovonPlugin = {
     for (const p of docs) {
       lines.push(`- [${p.title}](${absolute(config, markdownPath(p.route))})${p.description ? `: ${p.description}` : ''}`)
     }
+    const extra = agentLinks(config)
+    if (extra.length) lines.push('', '## Optional', '', ...extra)
     await emit('llms.txt', `${lines.join('\n')}\n`)
     await emit('llms-full.txt', llmsFull(config, docs, markdown))
   },
@@ -125,13 +124,26 @@ export function llmsFull(config: ResolvedConfig, pages: PageMeta[], markdown: Ma
   return `${[head, ...parts].join('\n\n---\n\n')}\n`
 }
 
+/** The agent files a build writes, for the end of llms.txt. */
+function agentLinks(config: ResolvedConfig): string[] {
+  const a = config.agents
+  if (a === false) return []
+  const out: string[] = []
+  if (config.url && a?.skill !== false) out.push(`- [Agent skill](${absolute(config, '/skill.md')}): how to read these docs, for coding agents`)
+  if (a?.api !== false) {
+    out.push(`- [Page index](${absolute(config, '/api/pages.json')}): every page as JSON, with its Markdown and JSON URLs`)
+    out.push(`- [OpenAPI description](${absolute(config, '/openapi.json')}): the JSON files this site serves`)
+  }
+  return out
+}
+
 export function markdownPath(route: string): string {
   return `${route === '/' ? '/index' : route}.md`
 }
 
 /** A page as plain Markdown: title, description, then the body with components written out. */
 export async function pageMarkdown(config: ResolvedConfig, page: PageMeta, pages?: PageMeta[]): Promise<string> {
-  const { content } = matter(await readFile(join(config.root, page.file), 'utf8'))
+  const { content } = matter((await pageSource(config, page.file)).code)
   let body = mdxToMarkdown(content, { page, pages, mdx: !page.file.endsWith('.md'), link: (r) => absolute(config, markdownPath(r)) })
   // The title is written above; a body that opens with the same heading would repeat it.
   const h1 = body.match(/^# (.+)\n*/)
@@ -139,11 +151,11 @@ export async function pageMarkdown(config: ResolvedConfig, page: PageMeta, pages
   return `# ${page.title}\n\n${page.description ? `${page.description}\n\n` : ''}${body}\n`
 }
 
-async function emitMarkdown({ emit, pages, config }: BuildContext): Promise<Map<string, string>> {
+async function emitMarkdown({ emit, pages, config, markdown }: BuildContext): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   for (const p of pages) {
     if (!p.file) continue
-    const md = await pageMarkdown(config, p, pages)
+    const md = markdown ? await markdown(p) : await pageMarkdown(config, p, pages)
     out.set(p.route, md)
     await emit(markdownPath(p.route).slice(1), md)
   }
@@ -152,11 +164,23 @@ async function emitMarkdown({ emit, pages, config }: BuildContext): Promise<Map<
 
 export const builtinPlugins: Record<string, NovonPlugin> = { search, sitemap, rss, llms }
 
+/** A page's Markdown, computed once per build. */
+export function markdownCache(config: ResolvedConfig, pages: PageMeta[]): (page: PageMeta) => Promise<string> {
+  const cache = new Map<string, Promise<string>>()
+  return (page) => {
+    let md = cache.get(page.route)
+    if (!md) cache.set(page.route, (md = pageMarkdown(config, page, pages)))
+    return md
+  }
+}
+
+/** The plugins that run: the built-in ones `plugins` names, the site's own, then agent files and analytics, which their own config keys switch. */
 export function activePlugins(config: ResolvedConfig): NovonPlugin[] {
-  return (config.plugins ?? []).map((p) => {
+  const listed = (config.plugins ?? []).map((p) => {
     if (typeof p !== 'string') return p
     const found = builtinPlugins[p]
     if (!found) throw new Error(`Unknown plugin "${p}". Built-in plugins: ${Object.keys(builtinPlugins).join(', ')}`)
     return found
   })
+  return [...listed, ...(config.agents === false ? [] : [agents]), ...(config.analytics ? [analytics] : [])]
 }

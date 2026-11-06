@@ -11,3 +11,6 @@ const app = <App site={site} loaders={loaders} overrides={overrides} components=
 // Built pages arrive prerendered; the dev server sends an empty shell.
 if (root.hasChildNodes()) hydrateRoot(root, app)
 else createRoot(root).render(app)
+
+// Tools for an agent in the reader's browser, where the browser supports it.
+if (site.webmcp && ('modelContext' in navigator || 'modelContext' in document)) void import('./webmcp.ts').then((m) => m.registerTools(site))
