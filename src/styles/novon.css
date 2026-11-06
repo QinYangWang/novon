@@ -14,19 +14,14 @@
     scroll-padding-top: 4.5rem;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-    /* The page scrolls clear of the bottom stack (consent card, read-aloud bar). */
-    padding-bottom: var(--bottom-overlay-offset, 0px);
+    /* pb-bottom-overlay: the page scrolls clear of the bottom stack (consent card, read-aloud bar). */
+    @apply bg-background text-foreground antialiased pb-bottom-overlay;
   }
 }
 
 @layer components {
   .typeset :where(h2, h3, h4)[id] {
     scroll-margin-top: 4.5rem;
-  }
-  /* The block being read aloud scrolls clear of the bottom stack. */
-  [data-speaking] {
-    scroll-margin-bottom: calc(var(--bottom-overlay-offset, 0px) + 1rem);
   }
 }
 

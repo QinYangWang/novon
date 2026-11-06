@@ -1,6 +1,7 @@
 /** Parts both layouts share: brand, search, theme, footer, page actions, 404. */
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/ui/locale-provider'
 import { Button } from '@/ui/button'
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/ui/menu'
 import { ThemeToggle } from '@/ui/theme-toggle'
@@ -186,6 +187,7 @@ export function PageActions() {
   const { site, current } = useSite()
   const [copied, setCopied] = React.useState(false)
   const t = useLabels()
+  const { labels } = useLocale()
   const speech = useSpeechSupported()
   const page = current.page
   const actions = site.theme.pageActions === false ? [] : (site.theme.pageActions ?? DEFAULT_ACTIONS)
@@ -222,7 +224,7 @@ export function PageActions() {
       if (!speech) continue
       items.push(
         <MenuItem key={i} onClick={() => startReading()}>
-          <Volume2Icon /> {t.listen}
+          <Volume2Icon /> {labels.mediaListen}
         </MenuItem>,
       )
     } else if (action === 'edit') {

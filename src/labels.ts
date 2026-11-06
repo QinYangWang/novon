@@ -31,7 +31,6 @@ export interface Labels {
   copied: string
   morePageActions: string
   /** The read-aloud page action and its bar. */
-  listen: string
   viewMarkdown: string
   editPage: string
   askAboutPage: string
@@ -141,7 +140,6 @@ export const en: Labels = {
   copyPage: 'Copy page',
   copied: 'Copied',
   morePageActions: 'More page actions',
-  listen: 'Listen',
   viewMarkdown: 'View as Markdown',
   editPage: 'Edit this page',
   askAboutPage: 'Ask about this page',
@@ -239,7 +237,6 @@ export const zhCN: Labels = {
   copyPage: '复制页面',
   copied: '已复制',
   morePageActions: '更多操作',
-  listen: '朗读',
   viewMarkdown: '查看 Markdown',
   editPage: '编辑此页',
   askAboutPage: '就此页提问',
@@ -337,7 +334,6 @@ export const ja: Labels = {
   copyPage: 'ページをコピー',
   copied: 'コピーしました',
   morePageActions: 'その他の操作',
-  listen: '読み上げ',
   viewMarkdown: 'Markdown で表示',
   editPage: 'このページを編集',
   askAboutPage: 'このページについて質問',

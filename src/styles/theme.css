@@ -490,6 +490,7 @@
     background-color: var(--accent);
     box-shadow: 0 0 0 4px var(--accent), 0 0 0 5px color-mix(in oklab, var(--ring) 20%, transparent);
     transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    scroll-margin-bottom: calc(var(--bottom-overlay-offset, 0px) + 1rem);
     }
 }
 
@@ -792,4 +793,8 @@
     --scroll-fade-y-animation: scroll-fade-top linear both, scroll-fade-bottom linear both;
     --scroll-fade-x-animation: scroll-fade-start linear both, scroll-fade-end linear both;
     }
+}
+
+@utility pb-bottom-overlay {
+    padding-bottom: var(--bottom-overlay-offset, 0px);
 }

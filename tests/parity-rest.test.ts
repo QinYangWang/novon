@@ -441,12 +441,6 @@ describe('part B units', () => {
     expect(article).toBe('<h2>T</h2><p>Body </p><article><p>inner</p></article>')
   })
 
-  test('new labels exist in every built-in language', () => {
-    for (const lang of ['en', 'zh-CN', 'ja']) {
-      const l = labelsFor(lang)
-      for (const k of ['listen'] as const) expect(l[k]).toBeTruthy()
-    }
-  })
 })
 
 describe('part B site: custom and http sources, consent, export', async () => {

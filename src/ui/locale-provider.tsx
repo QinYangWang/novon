@@ -750,6 +750,7 @@ type LocaleLabels = {
   mediaSkipBack: string
   mediaSkipForward: string
   mediaProgress: (current: number, total: number) => string
+  mediaListen: string
 }
 
 const en: LocaleLabels = {
@@ -1469,6 +1470,7 @@ const en: LocaleLabels = {
   mediaSkipBack: "Skip back",
   mediaSkipForward: "Skip forward",
   mediaProgress: (c, t) => `Part ${c} of ${t}`,
+  mediaListen: "Listen",
 }
 
 const zhCN: LocaleLabels = {
@@ -2188,6 +2190,7 @@ const zhCN: LocaleLabels = {
   mediaSkipBack: "后退",
   mediaSkipForward: "前进",
   mediaProgress: (c, t) => `第 ${c} 部分，共 ${t} 部分`,
+  mediaListen: "朗读",
 }
 
 const ja: LocaleLabels = {
@@ -2907,6 +2910,7 @@ const ja: LocaleLabels = {
   mediaSkipBack: "戻る",
   mediaSkipForward: "進む",
   mediaProgress: (c, t) => `${t} 件中 ${c} 件目`,
+  mediaListen: "読み上げ",
 }
 
 /** Built-in label sets, keyed by BCP 47 tag. */
