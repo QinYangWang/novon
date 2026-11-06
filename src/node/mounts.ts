@@ -30,8 +30,9 @@ export const GENERATED_DIR = '.novon/generated'
 const PAGE_EXT = /\.(mdx|md)$/
 
 /** A source's cache folder name. */
-export function sourceName(s: { name?: string; path: string; type: string; repo?: string }): string {
+export function sourceName(s: { name?: string; path: string; type: string; repo?: string; kind?: string }): string {
   if (s.name) return s.name.replace(/[^\w.-]+/g, '-')
+  if (s.type === 'custom' && s.kind) return `${s.kind}${s.path}`.replace(/[^\w.-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
   const from = s.repo ? s.repo.replace(/^.*[/:]([^/:]+\/[^/]+?)(\.git)?$/, '$1') : s.path
   return `${s.type}-${from}`.replace(/[^\w.-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 }

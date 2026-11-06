@@ -4,6 +4,7 @@
  * - `git`: a shallow, sparse clone of another repository (one folder of it).
  * - `files`: Markdown or MDX pages fetched from URLs.
  * - `github-releases`: a changelog page built from a repository's releases.
+ * - `notion`, `http`, `custom`: pages returned by an API (see cms.ts).
  *
  * `novon sync` refreshes every cache. Builds read the cache, so they work
  * offline once synced; a source with no cache yet is fetched on first use.
@@ -16,6 +17,7 @@ import { SOURCES_DIR, sourceName } from './mounts.ts'
 import { asyncapiCachePath, asyncapiList } from './asyncapi.ts'
 import { graphqlCachePath, graphqlList } from './graphql.ts'
 import { fetchSpec, fetchTo, specList } from './openapi.ts'
+import { syncCustom, syncHttp, syncNotion } from './cms.ts'
 
 export interface SyncResult {
   name: string
@@ -126,6 +128,9 @@ export async function syncSource(config: ResolvedConfig, s: SourceOptions): Prom
   if (s.type === 'git') return syncGit(config, s)
   if (s.type === 'files') return syncFiles(config, s)
   if (s.type === 'github-releases') return syncReleases(config, s)
+  if (s.type === 'notion') return syncNotion(config, s, sourceDir(config, s))
+  if (s.type === 'http') return syncHttp(config, s, sourceDir(config, s))
+  if (s.type === 'custom') return syncCustom(config, s, sourceDir(config, s))
   throw new Error(`Unknown source type "${(s as { type: string }).type}"`)
 }
 
@@ -134,9 +139,9 @@ export async function syncAll(config: ResolvedConfig): Promise<SyncResult[]> {
   const out: SyncResult[] = []
   for (const s of config.sources ?? []) {
     try {
-      out.push({ name: sourceName(s), type: s.type, ok: true, message: await syncSource(config, s) })
+      out.push({ name: sourceName(s), type: s.type === 'custom' ? s.kind : s.type, ok: true, message: await syncSource(config, s) })
     } catch (error) {
-      out.push({ name: sourceName(s), type: s.type, ok: false, message: (error as Error).message })
+      out.push({ name: sourceName(s), type: s.type === 'custom' ? s.kind : s.type, ok: false, message: (error as Error).message })
     }
   }
   for (const spec of specList(config).filter((x) => /^https?:\/\//.test(x.spec))) {

@@ -1,4 +1,4 @@
-import type { Config, Layer, Meta, NovonPlugin, ResolvedConfig, ResolvedI18n, ResolvedVersions } from './types.ts'
+import type { Config, CustomSource, Layer, Meta, NovonPlugin, ResolvedConfig, ResolvedI18n, ResolvedVersions } from './types.ts'
 
 export type * from './types.ts'
 
@@ -10,6 +10,11 @@ export function defineConfig(config: Config): Config {
 /** Typed helper for a folder's `_meta.ts`. Returns the meta unchanged. */
 export function defineMeta(meta: Meta): Meta {
   return meta
+}
+
+/** A source of your own: `load` returns pages, cached under `.novon/sources` and refreshed by `novon sync`. */
+export function defineSource(source: Omit<CustomSource, 'type'>): CustomSource {
+  return { ...source, type: 'custom' }
 }
 
 /** Typed helper for a plugin. Returns the plugin unchanged. */

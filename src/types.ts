@@ -46,7 +46,7 @@ export interface ThemeOptions {
   override?: Partial<Record<OverrideSlot, string>>
   /**
    * The page actions menu, in order. `copy` is the button beside it.
-   * Default `['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity']`; `false` hides it.
+   * Default `['copy', 'markdown', 'pdf', 'listen', 'edit', 'chatgpt', 'claude', 'perplexity']`; `false` hides it.
    */
   pageActions?: PageAction[] | false
   /** Show the last-updated date on pages. Default true. */
@@ -60,7 +60,7 @@ export interface ThemeOptions {
  * page's absolute `.md` URL, `{url}` the page URL and `{prompt}` the encoded
  * "read this page" prompt.
  */
-export type PageAction = 'copy' | 'markdown' | 'pdf' | 'edit' | 'chatgpt' | 'claude' | 'perplexity' | { label: string; href: string }
+export type PageAction = 'copy' | 'markdown' | 'pdf' | 'listen' | 'edit' | 'chatgpt' | 'claude' | 'perplexity' | { label: string; href: string }
 
 /** An extra element for `<head>`. */
 export interface HeadTag {
@@ -206,6 +206,8 @@ export interface Config {
   banner?: BannerOptions | string | false
   /** Analytics scripts. Page views of in-site navigation are sent by each script's own history tracking. */
   analytics?: AnalyticsOptions
+  /** Ask before loading analytics: the scripts stay inert until the reader allows them. Only with `analytics`. */
+  consent?: ConsentOptions | boolean
   /** Files for coding agents and AI tools. */
   agents?: AgentOptions | false
   /** Fail the build when the JavaScript or CSS a page loads first is larger, gzipped. Numbers are bytes; strings like `200 kB`. */
@@ -309,7 +311,7 @@ export interface ResolvedVersions {
 }
 
 /** Where outside content comes from. Each source is mounted at `path`. */
-export type SourceOptions = GitSource | RemoteFilesSource | ReleasesSource
+export type SourceOptions = GitSource | RemoteFilesSource | ReleasesSource | NotionSource | HttpSource | CustomSource
 
 interface SourceBase {
   /** Cache folder name. Default: derived from the source. */
@@ -351,6 +353,57 @@ export interface ReleasesSource extends SourceBase {
   prereleases?: boolean
 }
 
+/** A page a source produces. */
+export interface SourcePage {
+  /** Path relative to the source's `path`, without extension; `index` is its root page. */
+  path: string
+  title?: string
+  description?: string
+  /** The page body. */
+  content: string
+  /** `md` (default) is plain Markdown; `mdx` allows components. */
+  format?: 'md' | 'mdx'
+  /** More frontmatter: `date`, `tags`, `order`, … */
+  frontmatter?: Record<string, unknown>
+}
+
+export interface SourceContext {
+  config: ResolvedConfig
+  /** The global fetch, with a `user-agent`. */
+  fetch: typeof fetch
+  env: Record<string, string | undefined>
+}
+
+export interface NotionSource extends SourceBase {
+  type: 'notion'
+  /** Page IDs or URLs; each becomes a page, the first one the source's index. */
+  pages?: string[]
+  /** A database ID or URL; each row becomes a page named after its title (or a `slug` property). */
+  database?: string
+  /** Environment variable holding the integration token. Default `NOTION_TOKEN`. */
+  tokenEnv?: string
+}
+
+export interface HttpSource extends SourceBase {
+  type: 'http'
+  /** A URL returning JSON. */
+  url: string
+  headers?: Record<string, string>
+  /** Environment variable holding a bearer token. */
+  tokenEnv?: string
+  /** Dot path to the array of items in the response, e.g. `data.posts`. Default: the response itself. */
+  items?: string
+  /** Turns an item into a page: field names (dot paths), or a function. Default `{ path: 'slug', title: 'title', content: 'content' }`. */
+  map?: { path: string; content: string; title?: string; description?: string; date?: string } | ((item: any, index: number) => SourcePage | null | undefined)
+}
+
+export interface CustomSource extends SourceBase {
+  type: 'custom'
+  /** What the source is, for messages and the cache name, e.g. `sanity`. */
+  kind: string
+  load: (ctx: SourceContext) => SourcePage[] | Promise<SourcePage[]>
+}
+
 export interface OpenApiOptions {
   /** An OpenAPI 3.0 or 3.1 file (JSON or YAML), relative to the site root, or a URL (cached by `novon sync`). */
   spec: string
@@ -370,7 +423,7 @@ export interface FeedbackOptions {
    * `{mood}`, `{message}` filled in (a new GitHub issue, a form). `post:` + URL sends JSON instead.
    */
   href?: string
-  /** Also send an analytics event with this name (Plausible, Umami, GA4). Default `feedback`. */
+  /** Also send an analytics event with this name to every configured provider that takes events. Default `feedback`. */
   event?: string | false
   /** Show it on docs pages, blog posts, or both. Default `docs`. */
   on?: 'docs' | 'blog' | 'all'
@@ -387,6 +440,15 @@ export interface BannerOptions {
   id?: string
 }
 
+export interface ConsentOptions {
+  /** The banner's text, inline Markdown. Default: a built-in sentence in the site's language. */
+  text?: string
+  /** Link to the privacy or cookie policy, shown in the banner. */
+  policy?: string
+  /** Change it to ask again; each version is stored as `novon:consent:<version>`. Default `1`. */
+  version?: string | number
+}
+
 export interface AnalyticsOptions {
   plausible?: { domain: string; src?: string }
   umami?: { websiteId: string; src?: string }
@@ -394,6 +456,14 @@ export interface AnalyticsOptions {
   ga4?: string | { id: string }
   /** Cloudflare Web Analytics token. */
   cloudflare?: string | { token: string }
+  /** PostHog project key; `host` defaults to `https://us.i.posthog.com`. */
+  posthog?: { key: string; host?: string }
+  /** Fathom site ID, or `{ site, src }` for a custom domain. */
+  fathom?: string | { site: string; src?: string }
+  /** Simple Analytics: `true`, or `{ src, hostname }`. */
+  simpleAnalytics?: true | { src?: string; hostname?: string }
+  /** Matomo (cloud or self-hosted): the tracker's base URL and site ID. */
+  matomo?: { url: string; siteId: string | number }
   /** Any other script: a URL, or head elements. */
   custom?: string | HeadTag[]
 }
@@ -614,4 +684,6 @@ export interface SiteData {
   i18n?: ResolvedI18n
   versions?: ResolvedVersions
   feedback?: FeedbackOptions
+  /** The consent banner, when `consent` and `analytics` are both set. */
+  consent?: { html?: string; policy?: string; version: string }
 }
