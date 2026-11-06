@@ -56,7 +56,7 @@ symmetric only in lowercase, so it is always written `novon`.
 | `bin/novon.ts` | CLI |
 | `src/node/` | Config loading, content scan, Vite setup, dev server, build, plugins |
 | `src/runtime/` | The browser app: routing, layouts, MDX components |
-| `src/ui/`, `src/components/`, `src/styles/theme.css`, `src/app/typeset.css` | Installed from the qinyang/ui registry; update with `bun scripts/sync-ui.ts`, never edit by hand |
+| `src/ui/`, `src/components/`, `src/lib/`, `src/styles/theme.css`, `src/app/theme-accents.css`, `src/app/typeset.css` | Installed from the PaneUI registry; update with `bun scripts/sync-ui.ts`, never edit by hand |
 | `templates/` | Starter sites for `novon new`; `bun run build:templates` builds them into `docs/dist/templates/` |
 | `docs/` | This project's own site |
 | `tests/` | `bun test` |

@@ -8,7 +8,7 @@ import { resolveConfig } from '../src/config.ts'
 import { build } from '../src/node/build.ts'
 import { scanContent } from '../src/node/content.ts'
 import { cardProps, ogFile, ogRenderer } from '../src/node/og.ts'
-import { OG_IMAGE_TOKENS } from '@/components/og-image'
+import { OG_IMAGE_TOKENS } from '@/ui/og-image'
 
 /** Width and height from a PNG's IHDR chunk. */
 function pngSize(png: Uint8Array): [number, number] {

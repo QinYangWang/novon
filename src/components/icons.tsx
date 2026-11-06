@@ -1,17 +1,44 @@
-import type { SVGProps } from "react";
+import type { CSSProperties, SVGProps } from "react";
 
-type IconProps = Omit<SVGProps<SVGSVGElement>, "children"> & { size?: number };
+type IconProps = Omit<SVGProps<SVGSVGElement>, "children"> & {
+  size?: number;
+  /**
+   * Stroke tier. `bold` draws line strokes 1.2x thicker so the glyph matches semibold or bold text
+   * beside it. Unset, the icon inherits the tier from an ancestor's `icon-bold` class.
+   */
+  weight?: "regular" | "bold";
+};
 
-function Icon({ size = 18, children, ...props }: IconProps & { children: React.ReactNode }) {
+const WEIGHT = { regular: 1, bold: 1.2 } as const;
+
+// Line width for the whole glyph, scaled by the weight tier (--icon-stroke-scale). The attribute is the
+// fallback for renderers without CSS.
+const stroke = (w: number) => ({ strokeWidth: w, style: { strokeWidth: `calc(${w}px * var(--icon-stroke-scale, 1))` } });
+
+function Icon({ size = 18, weight, style, children, ...props }: IconProps & { children: React.ReactNode }) {
+  const tier = stroke(1.75);
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden {...props}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      data-weight={weight}
+      strokeWidth={tier.strokeWidth}
+      style={{ ...tier.style, ...(weight ? ({ "--icon-stroke-scale": WEIGHT[weight] } as CSSProperties) : null), ...style }}
+      {...props}
+    >
       {children}
     </svg>
   );
 }
 
-// Round outline stroke: every shape in this style.
-const line = { fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+// Round outline stroke: every shape in this style. Its width comes from the <svg> (see `stroke`).
+const line = { fill: "none", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round" } as const;
+
+// Filled silhouette with the same edge as `line` (filled nav glyphs for the active state).
+const fillShape = { fill: "currentColor", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round", fillRule: "evenodd" } as const;
 
 // Small filled dots (info dot, ellipsis, bullets).
 const dot = { fill: "currentColor", stroke: "none" } as const;
@@ -551,10 +578,23 @@ export const HomeIcon = (p: IconProps) => (
     <path {...line} d="M9.5 21.5V17a2.5 2.5 0 0 1 5 0v4.5" />
   </Icon>
 );
+
+export const HomeFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...fillShape} d="M3 10.6c0-.9.4-1.7 1.1-2.3l5.6-4.6a3.6 3.6 0 0 1 4.6 0l5.6 4.6c.7.6 1.1 1.4 1.1 2.3V18a3.5 3.5 0 0 1-3.5 3.5H14.5V17a2.5 2.5 0 0 0-5 0v4.5H6.5A3.5 3.5 0 0 1 3 18z" />
+  </Icon>
+);
 export const UserIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle {...line} cx="12" cy="7.5" r="4.5" />
     <path {...line} d="M4 20.5c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+  </Icon>
+);
+
+export const UserFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle {...fillShape} cx="12" cy="7.5" r="4.5" />
+    <path {...fillShape} d="M4 20.5c0-3.3 3.6-6 8-6s8 2.7 8 6z" />
   </Icon>
 );
 
@@ -583,9 +623,22 @@ export const SettingsIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const SettingsFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...fillShape} d="M9.47 4.99Q10.58 4.53 10.7 3.34L10.71 3.16Q10.82 2.07 11.92 2.07L12.08 2.07Q13.18 2.07 13.29 3.16L13.3 3.34Q13.42 4.53 14.53 4.99L15.16 5.25Q16.27 5.71 17.2 4.96L17.34 4.84Q18.19 4.15 18.97 4.92L19.08 5.03Q19.85 5.81 19.16 6.66L19.04 6.8Q18.29 7.73 18.75 8.84L19.01 9.47Q19.47 10.58 20.66 10.7L20.84 10.71Q21.93 10.82 21.93 11.92L21.93 12.08Q21.93 13.18 20.84 13.29L20.66 13.3Q19.47 13.42 19.01 14.53L18.75 15.16Q18.29 16.27 19.04 17.2L19.16 17.34Q19.85 18.19 19.08 18.97L18.97 19.08Q18.19 19.85 17.34 19.16L17.2 19.04Q16.27 18.29 15.16 18.75L14.53 19.01Q13.42 19.47 13.3 20.66L13.29 20.84Q13.18 21.93 12.08 21.93L11.92 21.93Q10.82 21.93 10.71 20.84L10.7 20.66Q10.58 19.47 9.47 19.01L8.84 18.75Q7.73 18.29 6.8 19.04L6.66 19.16Q5.81 19.85 5.03 19.08L4.92 18.97Q4.15 18.19 4.84 17.34L4.96 17.2Q5.71 16.27 5.25 15.16L4.99 14.53Q4.53 13.42 3.34 13.3L3.16 13.29Q2.07 13.18 2.07 12.08L2.07 11.92Q2.07 10.82 3.16 10.71L3.34 10.7Q4.53 10.58 4.99 9.47L5.25 8.84Q5.71 7.73 4.96 6.8L4.84 6.66Q4.15 5.81 4.92 5.03L5.03 4.92Q5.81 4.15 6.66 4.84L6.8 4.96Q7.73 5.71 8.84 5.25zM12 8.4a3.6 3.6 0 1 0 0 7.2a3.6 3.6 0 1 0 0-7.2z" />
+  </Icon>
+);
+
 export const BellIcon = (p: IconProps) => (
   <Icon {...p}>
     <path {...line} d="M5.2 15.6l.3-5.1a6.5 6.5 0 0 1 13 0l.3 5.1 1.1 1.6c.6.9 0 2-1 2H5.1c-1 0-1.6-1.1-1-2z" />
+    <path {...line} d="M9.5 21.5h5" />
+  </Icon>
+);
+
+export const BellFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...fillShape} d="M5.2 15.6l.3-5.1a6.5 6.5 0 0 1 13 0l.3 5.1 1.1 1.6c.6.9 0 2-1 2H5.1c-1 0-1.6-1.1-1-2z" />
     <path {...line} d="M9.5 21.5h5" />
   </Icon>
 );
@@ -644,6 +697,19 @@ export const FolderIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const FolderOpenIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M2.5 17V7.5A3.5 3.5 0 0 1 6 4h2.6a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H17a3 3 0 0 1 3 3v.5" />
+    <path {...line} d="M2.5 17l2.2-5.3A2.8 2.8 0 0 1 7.3 10H20a1.8 1.8 0 0 1 1.7 2.4l-1.8 5.6a3.6 3.6 0 0 1-3.4 2.5H6A3.5 3.5 0 0 1 2.5 17z" />
+  </Icon>
+);
+
+export const FolderFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...fillShape} d="M2.5 7.5A3.5 3.5 0 0 1 6 4h2.6a2 2 0 0 1 1.6.8l1 1.4a2 2 0 0 0 1.6.8H18a3.5 3.5 0 0 1 3.5 3.5V17a3.5 3.5 0 0 1-3.5 3.5H6A3.5 3.5 0 0 1 2.5 17z" />
+  </Icon>
+);
+
 export const FileIcon = (p: IconProps) => (
   <Icon {...p}>
     <path {...line} d="M13.6 2.5H8.5a4 4 0 0 0-4 4v11a4 4 0 0 0 4 4h7a4 4 0 0 0 4-4V8.4c0-.5-.2-1-.6-1.4l-3.9-3.9c-.4-.4-.9-.6-1.4-.6z" />
@@ -669,6 +735,12 @@ export const CameraIcon = (p: IconProps) => (
 export const ChatIcon = (p: IconProps) => (
   <Icon {...p}>
     <path {...line} d="M7 3.5h10a4.5 4.5 0 0 1 4.5 4.5v6a4.5 4.5 0 0 1-4.5 4.5h-4l-4.3 3.2c-.7.5-1.7 0-1.7-.8v-2.4A4.5 4.5 0 0 1 2.5 14V8A4.5 4.5 0 0 1 7 3.5z" />
+  </Icon>
+);
+
+export const ChatFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...fillShape} d="M7 3.5h10a4.5 4.5 0 0 1 4.5 4.5v6a4.5 4.5 0 0 1-4.5 4.5h-4l-4.3 3.2c-.7.5-1.7 0-1.7-.8v-2.4A4.5 4.5 0 0 1 2.5 14V8A4.5 4.5 0 0 1 7 3.5z" />
   </Icon>
 );
 
@@ -853,6 +925,13 @@ export const InboxIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const InboxFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect {...line} x="2.5" y="3.5" width="19" height="17" rx="4.5" />
+    <path {...fillShape} d="M2.5 13h4.2c.6 0 1.1.4 1.3.9l.5 1.4c.2.5.7.9 1.3.9h4.4c.6 0 1.1-.4 1.3-.9l.5-1.4c.2-.5.7-.9 1.3-.9h4.2V16a4.5 4.5 0 0 1-4.5 4.5H7A4.5 4.5 0 0 1 2.5 16z" />
+  </Icon>
+);
+
 export const CalendarDaysIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect {...line} x="2.5" y="4" width="19" height="17.5" rx="4.5" />
@@ -863,6 +942,13 @@ export const CalendarDaysIcon = (p: IconProps) => (
     <circle {...dot} cx="7.5" cy="17.25" r="1.1" />
     <circle {...dot} cx="12" cy="17.25" r="1.1" />
     <circle {...dot} cx="16.5" cy="17.25" r="1.1" />
+  </Icon>
+);
+
+export const CalendarDaysFilledIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M8 2.5v3M16 2.5v3" />
+    <path {...fillShape} d="M7 4h10a4.5 4.5 0 0 1 4.5 4.5V17a4.5 4.5 0 0 1-4.5 4.5H7A4.5 4.5 0 0 1 2.5 17V8.5A4.5 4.5 0 0 1 7 4zM7.5 11.6a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8zM12 11.6a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8zM16.5 11.6a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8zM7.5 15.35a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8zM12 15.35a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8zM16.5 15.35a1.9 1.9 0 1 0 0 3.8a1.9 1.9 0 1 0 0-3.8z" />
   </Icon>
 );
 
@@ -884,14 +970,19 @@ export const ClipboardListIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const QinyangLogoIcon = (p: IconProps) => (
-  // Rounded square holding an uppercase Q.
+// The top-right pane of the mark takes the theme's primary colour, so accent presets and styles
+// recolour it; outside a theme it falls back to the text colour.
+const accent = { fill: "var(--primary, currentColor)" } as const;
+
+/** The PaneUI mark: an app window whose sidebar and top-right pane read as a P. */
+export const PaneuiLogoIcon = (p: IconProps) => (
   <Icon {...p}>
-    <rect {...line} x="2" y="2" width="20" height="20" rx="6" />
-    <circle {...line} cx="11.6" cy="11.5" r="4.6" />
-    <path {...line} d="M13.2 13.2l3.8 3.8" />
+    <path fill="currentColor" fillRule="evenodd" d="M8 2H16A6 6 0 0 1 22 8V16A6 6 0 0 1 16 22H8A6 6 0 0 1 2 16V8A6 6 0 0 1 8 2Z M7.25 4.75H7.25A2.5 2.5 0 0 1 9.75 7.25V16.75A2.5 2.5 0 0 1 7.25 19.25H7.25A2.5 2.5 0 0 1 4.75 16.75V7.25A2.5 2.5 0 0 1 7.25 4.75Z M15 4.75H16A3.25 3.25 0 0 1 19.25 8V11A3.25 3.25 0 0 1 16 14.25H15A3.25 3.25 0 0 1 11.75 11V8A3.25 3.25 0 0 1 15 4.75Z" />
   </Icon>
 );
+
+/** The PaneUI mark in one colour (the mark is single-ink already; kept for existing imports). */
+export const PaneuiLogoMonoIcon = PaneuiLogoIcon;
 
 export const GithubIcon = (p: IconProps) => (
   <Icon {...p}>
@@ -924,5 +1015,19 @@ export const Heading2Icon = (p: IconProps) => (
 export const Heading3Icon = (p: IconProps) => (
   <Icon {...p}>
     <path {...line} d="M3.5 5.5v13M11.5 5.5v13M3.5 12h8M15.5 8.5h4.5l-2.6 3.6a3 3 0 11-2.2 5.6" />
+  </Icon>
+);
+export const LibraryIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect {...line} x="2.25" y="3" width="4.25" height="18" rx="1.75" />
+    <rect {...line} x="8.75" y="5.5" width="4.25" height="15.5" rx="1.75" />
+    <path {...line} d="M8.75 10h4.25" />
+    <path {...line} d="M16.27 4.07L17.05 3.90A1.6 1.6 0 0 1 18.95 5.13L21.81 18.63A1.6 1.6 0 0 1 20.58 20.53L19.80 20.70A1.6 1.6 0 0 1 17.90 19.46L15.03 5.97A1.6 1.6 0 0 1 16.27 4.07z" />
+  </Icon>
+);
+export const PlugIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M9 2.5v4M15 2.5v4M12 17v4.5" />
+    <path {...line} d="M7.5 6.5h9A1.5 1.5 0 0 1 18 8v3a6 6 0 0 1-12 0V8a1.5 1.5 0 0 1 1.5-1.5z" />
   </Icon>
 );

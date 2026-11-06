@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react"
+import { useLocale } from "@/ui/locale-provider"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { motion, useReducedMotion, type Variants } from "motion/react"
 
 import { ChevronRightIcon, SidebarIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipKbd, TooltipTrigger } from "@/ui/tooltip"
 
 /*
  * Composable app sidebar.
@@ -159,7 +160,7 @@ function SidebarProvider({
       <div
         data-slot="sidebar-wrapper"
         data-state={ctx.state}
-        style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "3.75rem", ...style } as React.CSSProperties}
+        style={{ "--sidebar-width": "15rem", "--sidebar-width-icon": "3.75rem", "--sidebar-rail-width": "3rem", ...style } as React.CSSProperties}
         className={cn("group/sidebar-wrapper flex w-full min-w-0", className)}
         onFocusCapture={(e) => {
           claimShortcut()
@@ -174,6 +175,187 @@ function SidebarProvider({
     </SidebarContext.Provider>
   )
 }
+
+/* ───────────────────────── Rail (three-column layout) ───────────────────────── */
+
+type RailOrientation = "vertical" | "horizontal"
+type RailSide = "right" | "left" | "top" | "bottom"
+
+type SidebarRailProps = React.ComponentProps<"nav"> & {
+  /** `vertical`: a 48px column (desktop). `horizontal`: a 48px row, e.g. at the bottom of a mobile drawer. */
+  orientation?: RailOrientation
+  /** Which side the tooltips open on. Defaults to `right` (vertical) or `top` (horizontal). */
+  tooltipSide?: RailSide
+}
+
+const RailContext = React.createContext<{ side: RailSide; orientation: RailOrientation }>({ side: "right", orientation: "vertical" })
+
+/**
+ * Narrow app rail: a column (or, with `orientation="horizontal"`, a row) of
+ * 32px icon buttons with tooltips. Put `SidebarRailSpacer` between the leading
+ * and trailing groups. Icons follow the nav rules: outline glyphs, 16px, muted;
+ * the active item is a row fill and foreground, so it keeps the outline glyph. A horizontal rail scrolls sideways when it runs out of room.
+ */
+function SidebarRail({ orientation = "vertical", tooltipSide, className, ...props }: SidebarRailProps) {
+  const side = tooltipSide ?? (orientation === "horizontal" ? "top" : "right")
+  const ctx = React.useMemo(() => ({ side, orientation }), [side, orientation])
+  return (
+    <RailContext.Provider value={ctx}>
+      <nav
+        data-slot="sidebar-rail"
+        data-orientation={orientation}
+        className={cn(
+          "flex shrink-0 items-center gap-1",
+          orientation === "horizontal"
+            ? "h-12 w-full min-w-0 flex-row overflow-x-auto overscroll-x-contain px-2 scrollbar-none"
+            : "h-full w-12 flex-col py-2",
+          className
+        )}
+        {...props}
+      />
+    </RailContext.Provider>
+  )
+}
+
+type SidebarRailItemProps = Omit<React.ComponentProps<"button">, "children"> & {
+  /** Accessible name, also shown in the tooltip. */
+  label: string
+  icon: React.ReactNode
+  /** Keyboard shortcut shown in the tooltip, e.g. `⌘1`. */
+  shortcut?: string
+  active?: boolean
+  /** A count badge (number) or an attention dot (`true`). */
+  badge?: number | boolean
+  /** Render as another element (a link), keeping the rail styles. */
+  render?: React.ReactElement<Record<string, unknown>>
+}
+
+function SidebarRailItem({ label, icon, shortcut, active = false, badge, render, className, ...props }: SidebarRailItemProps) {
+  const { labels } = useLocale()
+  const { side } = React.useContext(RailContext)
+  const classes = cn(
+    "relative flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-inner text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-active:bg-foreground/6 data-active:text-foreground [&_svg]:size-4.5 [&_svg]:shrink-0",
+    className
+  )
+  const content = (
+    <>
+      {icon}
+      {badge !== undefined && badge !== false && (
+        <span
+          data-slot="sidebar-rail-badge"
+          className={cn(
+            "absolute top-0.5 right-0.5 flex items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-shell",
+            badge === true ? "size-2" : "h-3.5 min-w-3.5 px-1 text-ui-2xs font-semibold tabular-nums"
+          )}
+        >
+          {badge === true ? <span className="sr-only">{labels.newActivity}</span> : badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </>
+  )
+  const element = render ? (
+    React.cloneElement(render, {
+      "data-slot": "sidebar-rail-item",
+      "data-active": active || undefined,
+      "aria-current": active ? "page" : undefined,
+      "aria-label": label,
+      className: cn(classes, render.props.className as string | undefined),
+      children: content,
+    })
+  ) : (
+    <button
+      type="button"
+      data-slot="sidebar-rail-item"
+      data-active={active || undefined}
+      aria-current={active ? "page" : undefined}
+      className={classes}
+      {...props}
+      aria-label={props["aria-label"] ?? label}
+    >
+      {content}
+    </button>
+  )
+  return (
+    <Tooltip>
+      <TooltipTrigger render={element} />
+      <TooltipContent side={side} sideOffset={6}>
+        {label}
+        {shortcut && <TooltipKbd>{shortcut}</TooltipKbd>}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+type SidebarRailAvatarProps = Omit<React.ComponentProps<"button">, "children"> & {
+  label: string
+  /** Avatar content: a provider glyph, initials or an <img>. */
+  children: React.ReactNode
+  /** Status ring: connected, working, failed. */
+  status?: "online" | "busy" | "error" | "offline"
+  /** Extra tooltip text after the label. */
+  hint?: string
+}
+
+/** Round avatar button for the bottom of the rail (accounts, agent providers) with a status ring. */
+function SidebarRailAvatar({ label, status = "offline", hint, className, children, ...props }: SidebarRailAvatarProps) {
+  const { side } = React.useContext(RailContext)
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            data-slot="sidebar-rail-avatar"
+            data-status={status}
+            className={cn(
+              "flex size-7 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-card shadow-raised outline-none transition-shadow duration-150 focus-visible:ring-2 focus-visible:ring-ring data-[status=busy]:ring-2 data-[status=busy]:ring-warning/70 data-[status=error]:ring-2 data-[status=error]:ring-destructive/60 data-[status=online]:ring-2 data-[status=online]:ring-success/70 [&_svg]:size-3.5",
+              className
+            )}
+            {...props}
+            aria-label={props["aria-label"] ?? (hint ? `${label}, ${hint}` : label)}
+          >
+            {children}
+          </button>
+        }
+      />
+      <TooltipContent side={side} sideOffset={6}>
+        {label}
+        {hint && <span className="text-muted-foreground">{hint}</span>}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function SidebarRailGroup({ className, ...props }: React.ComponentProps<"div">) {
+  const { orientation } = React.useContext(RailContext)
+  return (
+    <div
+      data-slot="sidebar-rail-group"
+      role="group"
+      className={cn("flex shrink-0 items-center gap-1", orientation === "horizontal" ? "flex-row" : "flex-col", className)}
+      {...props}
+    />
+  )
+}
+
+function SidebarRailSeparator({ className, ...props }: React.ComponentProps<"div">) {
+  const { orientation } = React.useContext(RailContext)
+  return (
+    <div
+      data-slot="sidebar-rail-separator"
+      role="separator"
+      aria-orientation={orientation === "horizontal" ? "vertical" : "horizontal"}
+      className={cn("shrink-0 bg-border", orientation === "horizontal" ? "mx-1 h-5 w-px" : "my-1 h-px w-5", className)}
+      {...props}
+    />
+  )
+}
+
+/** Pushes the following items to the bottom of the rail. */
+function SidebarRailSpacer({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="sidebar-rail-spacer" aria-hidden className={cn("min-w-2 flex-1", className)} {...props} />
+}
+
 
 /* ───────────────────────── Panel ───────────────────────── */
 
@@ -190,6 +372,11 @@ type SidebarProps = Omit<React.ComponentProps<typeof motion.aside>, "children"> 
   /** `icon` folds into an icon rail; `none` never collapses. */
   collapsible?: "icon" | "none"
   panelClassName?: string
+  /**
+   * Three-column layout: an always-visible `<SidebarRail>` for app sections beside this sidebar's own
+   * content (the second level), then the main area. Collapsing hides the second level and keeps the rail.
+   */
+  rail?: React.ReactNode
 }
 
 function Sidebar({
@@ -198,21 +385,34 @@ function Sidebar({
   collapsible = "icon",
   className,
   panelClassName,
+  rail,
   children,
-  "aria-label": ariaLabel = "Sidebar",
+  "aria-label": ariaLabel,
   ...props
 }: SidebarProps) {
+  const l10n = useLocale().labels
+  if (ariaLabel === undefined) ariaLabel = l10n.sidebar
+
   const { open, reduce } = useSidebar()
   const collapsed = collapsible === "icon" && !open
+  const hasRail = rail != null
+  const width = hasRail
+    ? collapsed
+      ? "var(--sidebar-rail-width)"
+      : "calc(var(--sidebar-rail-width) + var(--sidebar-width))"
+    : collapsed
+      ? "var(--sidebar-width-icon)"
+      : "var(--sidebar-width)"
   return (
     <motion.aside
       data-slot="sidebar"
       data-state={collapsed ? "collapsed" : "expanded"}
       data-variant={variant}
       data-side={side}
+      data-rail={hasRail || undefined}
       aria-label={ariaLabel}
       initial={false}
-      animate={{ width: collapsed ? "var(--sidebar-width-icon)" : "var(--sidebar-width)" }}
+      animate={{ width }}
       transition={reduce ? { duration: 0 } : WIDTH_SPRING}
       className={cn("group/sidebar peer relative shrink-0 self-stretch", side === "right" && "order-last", className)}
       {...props}
@@ -220,7 +420,8 @@ function Sidebar({
       <div
         data-slot="sidebar-panel"
         className={cn(
-          "flex h-full w-full flex-col overflow-hidden text-foreground",
+          "flex h-full w-full overflow-hidden text-foreground",
+          hasRail ? (side === "right" ? "flex-row-reverse" : "flex-row") : "flex-col",
           // Rows sit 8px in from the panel edge: the floating card is their frame; a flush panel has square
           // corners, so its rows keep rounded-lg unless a rounded host (the app-shell window) sets --sidebar-item-radius.
           variant === "floating"
@@ -232,7 +433,26 @@ function Sidebar({
           panelClassName
         )}
       >
-        <PanelContext.Provider value={{ collapsed, side }}>{children}</PanelContext.Provider>
+        {hasRail ? (
+          <>
+            <div data-slot="sidebar-rail-column" className="flex h-full w-(--sidebar-rail-width) shrink-0 flex-col">
+              {rail}
+            </div>
+            <div
+              data-slot="sidebar-secondary"
+              inert={collapsed || undefined}
+              className={cn(
+                "flex h-full w-(--sidebar-width) shrink-0 flex-col transition-opacity duration-200",
+                side === "left" ? "border-s border-border/70" : "border-e border-border/70",
+                collapsed && "opacity-0"
+              )}
+            >
+              <PanelContext.Provider value={{ collapsed: false, side }}>{children}</PanelContext.Provider>
+            </div>
+          </>
+        ) : (
+          <PanelContext.Provider value={{ collapsed, side }}>{children}</PanelContext.Provider>
+        )}
       </div>
     </motion.aside>
   )
@@ -422,7 +642,7 @@ function SidebarItem({
         className: cn(
           "group/sidebar-item relative flex h-8 w-full min-w-0 cursor-pointer items-center gap-2 rounded-inner px-[13px] text-ui outline-none select-none",
           "text-foreground transition-[color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          "focus-visible:ring-2 focus-visible:ring-ring/50",
+          "focus-visible:ring-2 focus-visible:ring-ring",
           !showPill && "hover:bg-secondary",
           showPill && "text-foreground",
           disabled && "pointer-events-none opacity-45",
@@ -465,7 +685,7 @@ function SidebarItem({
                 initial={false}
                 animate={{ rotate: open && !collapsed ? 90 : 0, opacity: collapsed ? 0 : 1 }}
                 transition={sidebar.reduce ? { duration: 0 } : PILL_SPRING}
-                className="relative grid size-4 shrink-0 place-items-center text-muted-foreground [&_svg]:size-3.5"
+                className="relative grid size-4 shrink-0 place-items-center text-muted-foreground rtl:-scale-x-100 [&_svg]:size-3.5"
               >
                 <ChevronRightIcon />
               </motion.span>
@@ -563,7 +783,7 @@ function SidebarSubItem({ isActive = false, href, disabled, icon, render, classN
         onClick: (e: React.MouseEvent) => disabled && e.preventDefault(),
         className: cn(
           "relative flex h-7 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-ui outline-none select-none",
-          "text-foreground/85 transition-[color,background-color] duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+          "text-foreground/85 transition-[color,background-color] duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
           isActive ? "text-foreground" : "hover:bg-secondary",
           disabled && "pointer-events-none opacity-45",
           "[&_svg]:size-4 [&_svg]:shrink-0",
@@ -597,6 +817,8 @@ function SidebarSubItem({ isActive = false, href, disabled, icon, render, classN
 /* ───────────────────────── Chrome ───────────────────────── */
 
 function SidebarTrigger({ className, onClick, children, ...props }: React.ComponentProps<"button">) {
+  const l10n = useLocale().labels
+
   const { open, toggle } = useSidebar()
   return (
     <button
@@ -609,11 +831,11 @@ function SidebarTrigger({ className, onClick, children, ...props }: React.Compon
         if (!e.defaultPrevented) toggle()
       }}
       className={cn(
-        "inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-[background-color,color] duration-150 ease-out hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-4",
+        "inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4",
         className
       )}
       {...props}
-      aria-label={props["aria-label"] ?? (open ? "Collapse sidebar" : "Expand sidebar")}
+      aria-label={props["aria-label"] ?? (open ? l10n.collapseSidebar : l10n.expandSidebar)}
     >
       {children ?? <SidebarIcon />}
     </button>
@@ -656,6 +878,13 @@ export {
   SidebarTrigger,
   SidebarInset,
   SidebarHideCollapsed,
+  SidebarRail,
+  SidebarRailItem,
+  SidebarRailAvatar,
+  SidebarRailGroup,
+  SidebarRailSeparator,
+  SidebarRailSpacer,
   useSidebar,
 }
-export type { SidebarProps, SidebarProviderProps, SidebarItemProps, SidebarSubItemProps }
+export type { SidebarProps, SidebarProviderProps, SidebarItemProps, SidebarSubItemProps, SidebarRailProps, SidebarRailItemProps, SidebarRailAvatarProps }
+export type { RailOrientation as SidebarRailOrientation }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react"
+import { useLocale } from "@/ui/locale-provider"
 import {
   type MotionValue,
   motion,
@@ -78,13 +79,16 @@ function ScrollProgress(props: ScrollProgressProps) {
 function ScrollProgressBar({
   progress,
   spring = true,
-  label = "Reading progress",
+  label,
   side = "top",
   position = "fixed",
   thickness = 3,
   inset,
   className,
 }: ScrollProgressBarProps) {
+  const l10n = useLocale().labels
+  if (label === undefined) label = l10n.readingProgress
+
   const value = useProgress(progress, spring)
   const ref = useAriaValue(value)
   const top = side === "top"
@@ -134,12 +138,15 @@ function ScrollProgressBar({
 function ScrollProgressRing({
   progress,
   spring = true,
-  label = "Reading progress",
+  label,
   size = 44,
   thickness = 3,
   showValue = false,
   className,
 }: ScrollProgressRingProps) {
+  const l10n = useLocale().labels
+  if (label === undefined) label = l10n.readingProgress
+
   const value = useProgress(progress, spring)
   const ref = useAriaValue(value)
   /* Inset from the chip edge so the raised rim stays visible. */
@@ -160,7 +167,7 @@ function ScrollProgressRing({
       data-variant="ring"
       style={{ width: size, height: size }}
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center rounded-full bg-card text-primary shadow-raised",
+        "relative inline-flex shrink-0 items-center justify-center rounded-full bg-card text-primary-text shadow-raised",
         className
       )}
     >

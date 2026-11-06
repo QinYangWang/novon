@@ -58,7 +58,7 @@ function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
   return (
     <PopoverPrimitive.Title
       data-slot="popover-title"
-      className={cn("text-ui font-semibold leading-snug text-balance", className)}
+      className={cn("text-ui font-semibold icon-bold leading-snug text-balance", className)}
       {...props}
     />
   )
@@ -90,7 +90,7 @@ function PopoverCloseButton({ className, ...props }: PopoverPrimitive.Close.Prop
     <PopoverPrimitive.Close
       data-slot="popover-close-button"
       className={cn(
-        "absolute top-2 end-2 inline-flex size-6 cursor-pointer items-center justify-center rounded-[max(calc(var(--radius-xl)-var(--spacing)*2),var(--radius-sm))] text-muted-foreground transition-colors outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+        "absolute top-2 end-2 inline-flex size-6 cursor-pointer items-center justify-center rounded-[max(calc(var(--radius-xl)-var(--spacing)*2),var(--radius-sm))] text-muted-foreground transition-colors outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
         className
       )}
       {...props}

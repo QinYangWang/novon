@@ -12,7 +12,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { extname, join, resolve } from 'node:path'
 import { createElement } from 'react'
 import { novonRoot } from './vite.ts'
-import { OgImage as OgCard, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, type OgImageProps } from '@/components/og-image'
+import { OgImage as OgCard, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, type OgImageProps } from '@/ui/og-image'
 import { withBase } from '../shared.ts'
 import type { OgOptions, PageMeta, ResolvedConfig } from '../types.ts'
 
@@ -184,7 +184,7 @@ export async function ogRenderer(config: ResolvedConfig): Promise<OgRenderer> {
     return images.get(src)
   }
   // The card component's source is part of the cache key, so a library update re-renders.
-  const cardVersion = hash('og-v2', await readFile(join(novonRoot, 'src/components/og-image.tsx')))
+  const cardVersion = hash('og-v2', await readFile(join(novonRoot, 'src/ui/og-image.tsx')))
 
   const prepare = async (page: PageMeta) => {
     const { logoSrc, avatarSrc, ...props } = cardProps(config, page)

@@ -66,7 +66,7 @@ function CodeCopyButton({
         copy(typeof value === "function" ? value() : value)
       }}
       className={cn(
-        "relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-[background-color,color,scale] duration-150 ease-out outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 data-copied:text-success",
+        "relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-control text-muted-foreground transition-[background-color,color,scale] duration-150 ease-out outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-copied:text-success-text",
         className
       )}
       data-copied={copied || undefined}
@@ -74,10 +74,10 @@ function CodeCopyButton({
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
           key={copied ? "check" : "copy"}
-          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6, filter: "blur(2px)" }}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.25, filter: "blur(4px)" }}
           animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-          exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6, filter: "blur(2px)" }}
-          transition={{ type: "spring", stiffness: 600, damping: 32 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.25, filter: "blur(4px)" }}
+          transition={{ type: "spring", duration: 0.3, bounce: 0 }}
           className="grid place-items-center"
         >
           {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
@@ -136,8 +136,9 @@ const contentClass = cn(
   "[&_.highlighted-word]:rounded-2xs [&_.highlighted-word]:bg-primary/12 [&_.highlighted-word]:shadow-[0_0_0_2px_color-mix(in_oklab,var(--primary)_12%,transparent)]",
   // Line numbers (CSS counters, so copying skips them).
   "data-line-numbers:[&_code]:[counter-reset:line] data-line-numbers:[&_pre:not(:has(code))]:[counter-reset:line]",
-  "data-line-numbers:[&_.line]:before:mr-4 data-line-numbers:[&_.line]:before:inline-block data-line-numbers:[&_.line]:before:w-(--code-gutter) data-line-numbers:[&_.line]:before:text-right data-line-numbers:[&_.line]:before:text-muted-foreground/60 data-line-numbers:[&_.line]:before:tabular-nums data-line-numbers:[&_.line]:before:content-[counter(line)] data-line-numbers:[&_.line]:before:select-none data-line-numbers:[&_.line]:before:[counter-increment:line]",
-  "data-line-numbers:[&_.line.highlighted]:before:text-primary",
+  // design-check-ignore text-align-logical -- line numbers sit against code, which reads left to right
+  "data-line-numbers:[&_.line]:before:mr-4 data-line-numbers:[&_.line]:before:inline-block data-line-numbers:[&_.line]:before:w-(--code-gutter) data-line-numbers:[&_.line]:before:text-right data-line-numbers:[&_.line]:before:text-fg-tertiary data-line-numbers:[&_.line]:before:tabular-nums data-line-numbers:[&_.line]:before:content-[counter(line)] data-line-numbers:[&_.line]:before:select-none data-line-numbers:[&_.line]:before:[counter-increment:line]",
+  "data-line-numbers:[&_.line.highlighted]:before:text-primary-text",
   // Wrap long lines instead of scrolling.
   "data-wrap:[&_pre]:w-auto data-wrap:[&_pre]:whitespace-pre-wrap data-wrap:[&_pre]:break-words"
 )
@@ -208,7 +209,7 @@ function CodeBlockContent({
 
 function CodeBlockLanguage({ language }: { language: string }) {
   return (
-    <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-ui-2xs text-muted-foreground shadow-chip">
+    <span className="rounded-control-sm bg-muted px-2 py-0.5 font-mono text-ui-2xs text-muted-foreground shadow-chip">
       {language}
     </span>
   )
@@ -255,7 +256,13 @@ function CodeBlock({
   return (
     <div
       data-slot="code-block"
-      className={cn("group/code relative overflow-hidden rounded-xl bg-code text-ui text-foreground shadow-raised", className)}
+      className={cn(
+        "group/code relative overflow-hidden rounded-xl bg-code text-ui text-foreground shadow-raised",
+        // Touch screens always show the floating copy button, so the code scrolls in the space
+        // left of it instead of sliding underneath.
+        !header && copyButton && "pointer-coarse:[&>[data-slot=scroll-area]]:me-11",
+        className
+      )}
       {...props}
     >
       {header && (
@@ -267,7 +274,7 @@ function CodeBlock({
         </div>
       )}
       {!header && copyButton && (
-        <div className="absolute top-2 right-2 z-10 rounded-full bg-code/80 opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/code:opacity-100 group-focus-within/code:opacity-100 pointer-coarse:opacity-100">
+        <div className="absolute top-2 right-2 z-10 rounded-control bg-code/80 opacity-0 backdrop-blur-sm transition-opacity duration-150 group-hover/code:opacity-100 group-focus-within/code:opacity-100 pointer-coarse:opacity-100">
           {copyButton}
         </div>
       )}
@@ -308,11 +315,12 @@ function CodeGroup({
   className,
   ...props
 }: CodeGroupProps) {
+  const { labels } = useLocale()
   const blocks = React.Children.toArray(children).filter(React.isValidElement) as CodeBlockElement[]
   const tabs = blocks.map((block, i) => {
     const { title, language } = block.props
     const value = typeof title === "string" ? title : language ?? `Code ${i + 1}`
-    return { block, value, label: title ?? language ?? `Code ${i + 1}` }
+    return { block, value, label: title ?? language ?? labels.codeTab(i + 1) }
   })
   const values = tabs.map((t) => t.value)
   const valuesKey = values.join("\u0000")
@@ -369,19 +377,19 @@ function CodeGroup({
     <div
       ref={rootRef}
       data-slot="code-group"
-      className={cn("group/code relative overflow-hidden rounded-xl bg-code text-ui text-foreground shadow-raised", className)}
+      className={cn("group/code relative frame-xl frame-inset-1.5 overflow-hidden bg-code text-ui text-foreground shadow-raised", className)}
       {...props}
     >
       <Tabs value={active.value} onValueChange={(v) => select(String(v))} className="gap-0">
         <div
           data-slot="code-group-header"
-          className="flex h-10 items-stretch gap-2 pr-1.5 pl-2 shadow-[inset_0_-1px_0_var(--border)]"
+          className="flex h-10 items-center gap-2 border-b border-border/60 px-1.5"
         >
-          <TabsList variant="underline" size="sm" className="min-w-0 items-stretch overflow-x-auto shadow-none [scrollbar-width:none]">
+          <TabsList variant="ghost" size="sm" className="min-w-0 shrink overflow-x-auto [scrollbar-width:none]">
             {tabs.map((t) => {
               const shownIcon = t.block.props.icon === false ? null : (t.block.props.icon ?? titleIcon(t.block.props.title, t.block.props.language))
               return (
-                <TabsTab key={t.value} value={t.value} className="h-full font-mono font-normal">
+                <TabsTab key={t.value} value={t.value} className="font-mono font-normal">
                   {shownIcon}
                   {t.label}
                 </TabsTab>
@@ -392,6 +400,7 @@ function CodeGroup({
           {copyable && (
             <span className="flex items-center">
               <CodeCopyButton
+                className="rounded-inner"
                 value={() => codeText(rootRef.current?.querySelector('[data-slot="tabs-panel"]:not([hidden]) [data-slot="code-block-content"]'))}
               />
             </span>

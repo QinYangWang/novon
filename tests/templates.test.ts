@@ -34,9 +34,9 @@ describe('blog template', async () => {
     const looks = new Set<string>()
     for (const slug of ['hello-world', 'no-notifications', 'plain-text', 'summer-reading']) {
       const html = await read(`posts/${slug}/index.html`)
-      const m = html.match(/data-slot="cover-art" data-variant="(\d)" data-mirror="(\w+)" data-ramp="(\d)"/)
+      const m = html.match(/data-slot="cover-art" data-variant="gradient"[\s\S]*?data-slot="cover-art-gradient"[^>]*style="([^"]+)"/)
       expect(m).not.toBeNull()
-      looks.add(m!.slice(1).join(' '))
+      looks.add(m![1])
     }
     expect(looks.size).toBe(4)
   })

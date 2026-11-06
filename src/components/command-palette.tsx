@@ -128,6 +128,8 @@ function CommandPalette({
   showFooter = true,
   className,
 }: CommandPaletteProps) {
+  const l10n = useLocale().labels
+
   const { labels } = useLocale()
   const placeholder = placeholderProp ?? labels.commandPlaceholder
   const emptyMessage = emptyMessageProp ?? labels.commandNoMatches
@@ -176,7 +178,7 @@ function CommandPalette({
     if (q) matches.sort((a, b) => b.m.score - a.m.score || a.order - b.order)
     const map = new Map<string, Match[]>()
     for (const { m } of matches) {
-      const key = m.item.group ?? "Results"
+      const key = m.item.group ?? l10n.labelResults
       map.set(key, [...(map.get(key) ?? []), m])
     }
     // With a query, groups follow their best hit; without one, their first appearance.
@@ -398,7 +400,7 @@ function Highlight({ text, indices }: { text: string; indices: number[] }) {
     <>
       {Array.from(text).map((ch, i) =>
         set.has(i) ? (
-          <mark key={i} className="bg-transparent font-semibold text-primary">
+          <mark key={i} className="bg-transparent font-semibold text-primary-text">
             {ch}
           </mark>
         ) : (

@@ -46,7 +46,7 @@ function PageHeaderEyebrow({ className, ...props }: React.ComponentProps<"div">)
 }
 
 function PageHeaderTitle({ className, ...props }: React.ComponentProps<"h1">) {
-  return <h1 data-slot="page-header-title" className={cn("text-2xl font-semibold tracking-tight text-balance group-data-[size=lg]/page-header:text-3xl", className)} {...props} />
+  return <h1 data-slot="page-header-title" className={cn("font-heading text-2xl font-semibold icon-bold tracking-tight text-balance group-data-[size=lg]/page-header:text-3xl", className)} {...props} />
 }
 
 function PageHeaderDescription({ className, ...props }: React.ComponentProps<"p">) {

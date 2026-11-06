@@ -22,7 +22,9 @@ const STYLE_ID = "theme-toggle-vt"
  * on the page keep their own animations.
  */
 const VT_CSS = `:root[${VT_ATTR}]::view-transition-old(root),:root[${VT_ATTR}]::view-transition-new(root){animation:none;mix-blend-mode:normal}:root[${VT_ATTR}]::view-transition-old(root){z-index:0}:root[${VT_ATTR}]::view-transition-new(root){z-index:1}`
-const NO_TRANSITIONS_CSS = "*,*::before,*::after{transition:none!important}"
+const MUTE_ATTR = "data-theme-switching"
+/** Mutes CSS transitions while the theme flips. Lives in a static sheet keyed on an attribute, so muting rides the same style recalc as the class change instead of adding two of its own. */
+const MUTE_CSS = `:root[${MUTE_ATTR}],:root[${MUTE_ATTR}] *,:root[${MUTE_ATTR}] *::before,:root[${MUTE_ATTR}] *::after{transition:none!important}`
 
 /** Window event fired after the theme changes, so other toggles (or your own code) can stay in sync. */
 const THEME_CHANGE_EVENT = "theme-change"
@@ -63,16 +65,31 @@ function ensureStyle() {
   if (document.getElementById(STYLE_ID)) return
   const style = document.createElement("style")
   style.id = STYLE_ID
-  style.textContent = VT_CSS
+  style.textContent = VT_CSS + MUTE_CSS
   document.head.appendChild(style)
 }
 
-/** Flip the `.dark` class in one frame, with CSS transitions muted so every surface swaps together. */
-function applyTheme(theme: Theme, storageKey: string, mode: ThemeMode | null = theme) {
+let unmuteTimer = 0
+
+/** Lift the transition mute once the page is idle, so the extra recalc never lands on the click or inside the reveal. */
+function scheduleUnmute(root: HTMLElement, after?: Promise<unknown>) {
+  const unmute = () => {
+    window.clearTimeout(unmuteTimer)
+    unmuteTimer = window.setTimeout(() => root.removeAttribute(MUTE_ATTR), 0)
+  }
+  if (after) after.then(unmute, unmute)
+  else requestAnimationFrame(() => requestAnimationFrame(unmute))
+}
+
+/**
+ * Flip the `.dark` class with CSS transitions muted so every surface swaps together. Mute and flip
+ * share one style recalc, and nothing here forces layout, so the browser does the work once.
+ */
+function applyTheme(theme: Theme, storageKey: string, mode: ThemeMode | null = theme, settled?: Promise<unknown>) {
   const root = document.documentElement
-  const mute = document.createElement("style")
-  mute.textContent = NO_TRANSITIONS_CSS
-  document.head.appendChild(mute)
+  ensureStyle()
+  window.clearTimeout(unmuteTimer)
+  root.setAttribute(MUTE_ATTR, "")
   root.classList.toggle("dark", theme === "dark")
   root.style.colorScheme = theme
   // mode null: an OS change while following the system, nothing to store.
@@ -84,9 +101,7 @@ function applyTheme(theme: Theme, storageKey: string, mode: ThemeMode | null = t
       // storage can be unavailable (private mode, sandboxed iframes)
     }
   }
-  // Force a style recalc before re-enabling transitions.
-  void window.getComputedStyle(root).opacity
-  requestAnimationFrame(() => requestAnimationFrame(() => mute.remove()))
+  scheduleUnmute(root, settled)
   window.dispatchEvent(
     new CustomEvent<ThemeChangeDetail>(THEME_CHANGE_EVENT, {
       detail: { theme, storageKey, mode: mode ?? readMode(storageKey) },
@@ -104,7 +119,7 @@ type SetThemeOptions = {
 type UseThemeToggleOptions = {
   /** localStorage key, shared with the pre-paint theme script. Default "theme". */
   storageKey?: string
-  /** Reveal duration in ms. Default 560. */
+  /** Reveal duration in ms. Default 420. */
   duration?: number
   onThemeChange?: (theme: Theme) => void
 }
@@ -114,7 +129,7 @@ function useReveal(duration: number) {
   const reduceMotion = useReducedMotion()
   const busy = React.useRef(false)
   return React.useCallback(
-    (commit: () => void, origin?: { x: number; y: number }) => {
+    (commit: (settled?: Promise<unknown>) => void, origin?: { x: number; y: number }) => {
       if (busy.current) return
       const doc = document as Document & { startViewTransition?: Document["startViewTransition"] }
       if (!doc.startViewTransition || reduceMotion) {
@@ -128,7 +143,10 @@ function useReveal(duration: number) {
       const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
       busy.current = true
       root.setAttribute(VT_ATTR, "")
-      const transition = doc.startViewTransition.call(document, commit)
+      let settle: () => void = () => {}
+      const settled = new Promise<void>((resolve) => (settle = resolve))
+      const transition = doc.startViewTransition.call(document, () => commit(settled))
+      transition.finished.then(settle, settle)
       const done = () => {
         root.removeAttribute(VT_ATTR)
         busy.current = false
@@ -151,7 +169,7 @@ function useReveal(duration: number) {
  * Reads and writes the `.dark` class on <html>. Stays in sync when something else
  * (another toggle, a pre-paint script) changes the class.
  */
-function useThemeToggle({ storageKey = "theme", duration = 560, onThemeChange }: UseThemeToggleOptions = {}) {
+function useThemeToggle({ storageKey = "theme", duration = 420, onThemeChange }: UseThemeToggleOptions = {}) {
   const [theme, setThemeState] = React.useState<Theme | null>(null)
   const reveal = useReveal(duration)
 
@@ -165,9 +183,9 @@ function useThemeToggle({ storageKey = "theme", duration = 560, onThemeChange }:
   const setTheme = React.useCallback(
     (next: Theme, { origin }: SetThemeOptions = {}) => {
       if (next === readTheme()) return
-      reveal(() => {
+      reveal((settled) => {
         flushSync(() => setThemeState(next))
-        applyTheme(next, storageKey)
+        applyTheme(next, storageKey, next, settled)
         onThemeChange?.(next)
       }, origin)
     },
@@ -189,7 +207,7 @@ type UseThemeOptions = UseThemeToggleOptions
  * `resolvedTheme` the one on the page. While on "system" the page follows OS changes.
  * Both are `null` until mounted.
  */
-function useTheme({ storageKey = "theme", duration = 560, onThemeChange }: UseThemeOptions = {}) {
+function useTheme({ storageKey = "theme", duration = 420, onThemeChange }: UseThemeOptions = {}) {
   const [theme, setMode] = React.useState<ThemeMode | null>(null)
   const [resolvedTheme, setResolved] = React.useState<Theme | null>(null)
   const reveal = useReveal(duration)
@@ -236,12 +254,12 @@ function useTheme({ storageKey = "theme", duration = 560, onThemeChange }: UseTh
   const setTheme = React.useCallback(
     (mode: ThemeMode, { origin }: SetThemeOptions = {}) => {
       const next = mode === "system" ? systemTheme() : mode
-      const commit = () => {
+      const commit = (settled?: Promise<unknown>) => {
         flushSync(() => {
           setMode(mode)
           setResolved(next)
         })
-        applyTheme(next, storageKey, mode)
+        applyTheme(next, storageKey, mode, settled)
         onThemeChange?.(next)
       }
       if (next === readTheme()) commit()
@@ -314,10 +332,10 @@ function ThemeToggle({
         }
       }}
       className={cn(
-        "relative inline-flex shrink-0 cursor-pointer items-center justify-center overflow-hidden transition-[box-shadow,background-color,scale] duration-150 ease-out outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+        "relative inline-flex shrink-0 cursor-pointer items-center justify-center overflow-hidden transition-[box-shadow,background-color,scale] duration-150 ease-out outline-none select-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
         variant === "ghost"
           ? "size-7 rounded-lg text-foreground hover:bg-secondary [&_svg]:opacity-80"
-          : "size-8 rounded-full bg-card text-secondary-foreground shadow-raised hover:bg-accent hover:shadow-raised-hover",
+          : "size-8 rounded-control bg-card text-secondary-foreground shadow-raised hover:bg-accent hover:shadow-raised-hover",
         className
       )}
       {...props}
@@ -327,10 +345,10 @@ function ThemeToggle({
         <motion.span
           key={shown ?? "pending"}
           className="flex items-center justify-center"
-          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, rotate: -90, scale: 0.5 }}
-          animate={{ opacity: shown === null ? 0 : 1, rotate: 0, scale: 1 }}
-          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, rotate: 90, scale: 0.5 }}
-          transition={{ type: "spring", duration: 0.45, bounce: 0.3 }}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, rotate: -90, scale: 0.25, filter: "blur(4px)" }}
+          animate={{ opacity: shown === null ? 0 : 1, rotate: 0, scale: 1, filter: "blur(0px)" }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, rotate: 90, scale: 0.25, filter: "blur(4px)" }}
+          transition={{ type: "spring", duration: 0.3, bounce: 0 }}
         >
           <Icon size={iconSize} />
         </motion.span>
@@ -339,5 +357,70 @@ function ThemeToggle({
   )
 }
 
-export { THEME_CHANGE_EVENT, ThemeToggle, getThemeScript, useTheme, useThemeToggle }
-export type { Theme, ThemeChangeDetail, ThemeMode, ThemeToggleProps, UseThemeOptions }
+type ThemeSwitchProps = Omit<React.ComponentProps<"div">, "children" | "onChange"> &
+  UseThemeToggleOptions & {
+    /** "binary" (default) shows light and dark; "tri" adds system. */
+    modes?: "binary" | "tri"
+  }
+
+/**
+ * Segmented light/dark (or light/dark/system) switch: one pill with a thumb that slides to the
+ * current mode. Same storage, events and reveal as ThemeToggle, so the two stay in sync.
+ */
+function ThemeSwitch({ className, storageKey, duration, onThemeChange, modes = "binary", ...props }: ThemeSwitchProps) {
+  const { theme: mode, resolvedTheme, setTheme } = useTheme({ storageKey, duration, onThemeChange })
+  const reduceMotion = useReducedMotion()
+  const { labels } = useLocale()
+  const thumbId = React.useId()
+  const options: { value: ThemeMode; label: string; Icon: typeof SunIcon }[] = [
+    { value: "light", label: labels.themeLight, Icon: SunIcon },
+    { value: "dark", label: labels.themeDark, Icon: MoonIcon },
+    ...(modes === "tri" ? [{ value: "system" as const, label: labels.themeSystem, Icon: MonitorIcon }] : []),
+  ]
+  const current = modes === "tri" ? mode : resolvedTheme
+  return (
+    <div
+      role="radiogroup"
+      aria-label={props["aria-label"] ?? labels.toggleTheme}
+      data-slot="theme-switch"
+      className={cn("inline-flex h-7 shrink-0 items-center gap-px rounded-control bg-secondary p-0.5", className)}
+      {...props}
+    >
+      {options.map(({ value, label, Icon }) => {
+        const checked = current === value
+        return (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            aria-label={label}
+            onClick={(event) => {
+              if (checked) return
+              const rect = event.currentTarget.getBoundingClientRect()
+              const origin = event.detail === 0 ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: event.clientX, y: event.clientY }
+              setTheme(value, { origin })
+            }}
+            className={cn(
+              "relative grid h-full w-7 cursor-pointer place-items-center rounded-[max(calc(var(--radius-control)-var(--spacing)*0.5),1px)] text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+              checked && "text-foreground"
+            )}
+          >
+            {checked && (
+              <motion.span
+                layoutId={thumbId}
+                aria-hidden
+                transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 700, damping: 50, mass: 0.5 }}
+                className="absolute inset-0 rounded-[max(calc(var(--radius-control)-var(--spacing)*0.5),1px)] bg-background shadow-raised"
+              />
+            )}
+            <Icon size={14} className="relative" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export { THEME_CHANGE_EVENT, ThemeSwitch, ThemeToggle, getThemeScript, useTheme, useThemeToggle }
+export type { Theme, ThemeChangeDetail, ThemeMode, ThemeSwitchProps, ThemeToggleProps, UseThemeOptions }

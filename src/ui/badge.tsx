@@ -7,16 +7,16 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-full font-medium whitespace-nowrap transition-[box-shadow,background-color] focus-visible:ring-2 focus-visible:ring-ring/50 [&>svg]:pointer-events-none [&>svg]:size-3.5",
+  "group/badge inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-control-sm font-medium whitespace-nowrap icon-bold transition-[box-shadow,background-color] focus-visible:ring-2 focus-visible:ring-ring [&>svg]:pointer-events-none [&>svg]:size-3.5",
   {
     variants: {
       variant: {
         chip: "bg-muted text-foreground shadow-chip [a]:hover:shadow-raised-hover",
-        primary: "bg-primary-subtle text-primary inset-ring inset-ring-primary-border",
-        success: "bg-success-subtle text-success inset-ring inset-ring-success-border",
-        warning: "bg-warning-subtle text-warning inset-ring inset-ring-warning-border",
+        primary: "bg-primary-subtle text-primary-text inset-ring inset-ring-primary-border",
+        success: "bg-success-subtle text-success-text inset-ring inset-ring-success-border",
+        warning: "bg-warning-subtle text-warning-text inset-ring inset-ring-warning-border",
         destructive:
-          "bg-destructive-subtle text-destructive inset-ring inset-ring-destructive-border",
+          "bg-destructive-subtle text-destructive-text inset-ring inset-ring-destructive-border",
         outline: "text-muted-foreground shadow-[inset_0_0_0_1px_var(--input)]",
       },
       size: {

@@ -36,7 +36,7 @@ An `index.mdx` at the layer root replaces the list; put `<PostList />` in it to
 keep the posts. Pages without a date, like an About page, render as plain pages.
 
 A post can set `cover` (an image under `public/`) and `author`. Without a
-cover, the post gets generated cover art in the site's accent; `cover: false`
+cover, the post gets a gradient cover seeded by its slug; `cover: false`
 leaves it out. When `author` matches a name in `theme.authors`, the post ends
 with that author's card.
 

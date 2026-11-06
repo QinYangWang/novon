@@ -19,6 +19,6 @@ export const items = [
 ]
 
 if (import.meta.main) {
-  await $`bunx --bun shadcn@latest add -y -o ${items.map((i) => `@qinyang/${i}`)}`.cwd(root)
+  await $`bunx --bun shadcn@latest add -y -o ${items.map((i) => `@paneui/${i}`)}`.cwd(root)
   console.log('ui synced')
 }

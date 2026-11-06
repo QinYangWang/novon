@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 /*
  * The house frame for an icon that labels a title, header or card: a small
- * raised squircle that holds one puffy icon. Every title-level icon in the
+ * raised squircle that holds one house icon. Every title-level icon in the
  * library sits in one of these so headers read as one family; nav, menu and
  * inline icons stay bare (16px, muted, active = foreground).
  *
@@ -20,11 +20,11 @@ const iconChipVariants = cva(
     variants: {
       tone: {
         neutral: "bg-card text-muted-foreground shadow-raised",
-        primary: "bg-primary-subtle text-primary inset-ring inset-ring-primary-border",
-        success: "bg-success-subtle text-success inset-ring inset-ring-success-border",
-        warning: "bg-warning-subtle text-warning inset-ring inset-ring-warning-border",
+        primary: "bg-primary-subtle text-primary-text inset-ring inset-ring-primary-border",
+        success: "bg-success-subtle text-success-text inset-ring inset-ring-success-border",
+        warning: "bg-warning-subtle text-warning-text inset-ring inset-ring-warning-border",
         destructive:
-          "bg-destructive-subtle text-destructive inset-ring inset-ring-destructive-border",
+          "bg-destructive-subtle text-destructive-text inset-ring inset-ring-destructive-border",
         solid: "bg-primary text-primary-foreground shadow-primary",
       },
       size: {

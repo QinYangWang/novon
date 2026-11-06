@@ -76,7 +76,7 @@ function BreadcrumbLink({ className, render, ...props }: useRender.ComponentProp
       ...props,
       className: cn(
         breadcrumbCrumbVariants({ size }),
-        "cursor-pointer hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50",
+        "cursor-pointer hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
         className
       ),
     },
@@ -154,7 +154,7 @@ function BreadcrumbEllipsis({
         aria-label={label}
         className={cn(
           iconBox,
-          "cursor-pointer transition-[background-color,color,box-shadow] duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 data-popup-open:bg-secondary data-popup-open:text-foreground"
+          "cursor-pointer transition-[background-color,color,box-shadow] duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-secondary data-popup-open:text-foreground"
         )}
       >
         <MoreHorizontalIcon />

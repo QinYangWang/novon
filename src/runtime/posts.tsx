@@ -44,11 +44,11 @@ export function PostTags({ post, link = true }: { post: PageMeta; link?: boolean
   )
 }
 
-/** The post's `cover` image, or generated cover art seeded by its route. Nothing for `cover: false`. */
+/** The post's `cover` image, or a CSS gradient seeded by its route (no client code). Nothing for `cover: false`. */
 export function PostCover({ post, className }: { post: PageMeta; className?: string }) {
   const { site } = useSite()
   if (post.cover === false) return null
-  if (!post.cover) return <CoverArt seed={post.route.split('/').filter(Boolean).at(-1) ?? post.route} aria-hidden className={cn('w-full', className)} />
+  if (!post.cover) return <CoverArt seed={post.route.split('/').filter(Boolean).at(-1) ?? post.route} renderer="css" aria-hidden className={cn('w-full', className)} />
   return <img src={withBase(site.base, post.cover)} alt="" loading="lazy" className={cn('w-full object-cover', className)} />
 }
 

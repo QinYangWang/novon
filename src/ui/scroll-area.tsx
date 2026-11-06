@@ -58,27 +58,44 @@ function cornerClearance(r: number, inset: number) {
 /**
  * Publishes per-end track insets that follow the frame's own corner radii, and
  * the radii themselves (`--scroll-area-radius-top` / `-bottom`) for overlays.
+ *
+ * Measures in the ResizeObserver callback, which runs after the browser has laid
+ * the frame out, so reading its style costs nothing. Every value is read before
+ * any is written and only changed values are written: these properties inherit,
+ * so each write restyles all of the content, and a read after a write would force
+ * that restyle again while a panel is opening.
  */
 function useCornerInsets(ref: React.RefObject<HTMLDivElement | null>, inset: number, deps: unknown[]) {
   React.useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
+    const written = new Map<string, string>()
     const update = () => {
       const cs = getComputedStyle(el)
       const cap = Math.min(el.offsetWidth, el.offsetHeight) / 2
-      const end = cs.direction === "rtl" ? "Left" : "Right"
-      const start = cs.direction === "rtl" ? "Right" : "Left"
+      const rtl = cs.direction === "rtl"
       const radius = (corner: string) => Math.min(parseFloat(cs.getPropertyValue(`border-${corner}-radius`)) || 0, cap)
-      const set = (name: string, r: number) => el.style.setProperty(name, `${cornerClearance(r, inset)}px`)
-      set("--scroll-area-end-top", radius(`top-${end.toLowerCase()}`))
-      set("--scroll-area-end-bottom", radius(`bottom-${end.toLowerCase()}`))
-      set("--scroll-area-end-start", radius(`bottom-${start.toLowerCase()}`))
-      set("--scroll-area-end-end", radius(`bottom-${end.toLowerCase()}`))
-      // The frame's own radii, for overlays inside it that follow its edge.
-      el.style.setProperty("--scroll-area-radius-top", `${Math.max(radius("top-left"), radius("top-right"))}px`)
-      el.style.setProperty("--scroll-area-radius-bottom", `${Math.max(radius("bottom-left"), radius("bottom-right"))}px`)
+      const topLeft = radius("top-left")
+      const topRight = radius("top-right")
+      const bottomLeft = radius("bottom-left")
+      const bottomRight = radius("bottom-right")
+      const [topEnd, bottomEnd, bottomStart] = rtl ? [topLeft, bottomLeft, bottomRight] : [topRight, bottomRight, bottomLeft]
+      const next: [string, string][] = [
+        ["--scroll-area-end-top", `${cornerClearance(topEnd, inset)}px`],
+        ["--scroll-area-end-bottom", `${cornerClearance(bottomEnd, inset)}px`],
+        ["--scroll-area-end-start", `${cornerClearance(bottomStart, inset)}px`],
+        ["--scroll-area-end-end", `${cornerClearance(bottomEnd, inset)}px`],
+        // The frame's own radii, for overlays inside it that follow its edge.
+        ["--scroll-area-radius-top", `${Math.max(topLeft, topRight)}px`],
+        ["--scroll-area-radius-bottom", `${Math.max(bottomLeft, bottomRight)}px`],
+      ]
+      for (const [name, value] of next) {
+        if (written.get(name) === value) continue
+        written.set(name, value)
+        el.style.setProperty(name, value)
+      }
     }
-    update()
+    // The first callback arrives before the first paint after observe().
     const observer = new ResizeObserver(update)
     observer.observe(el)
     return () => observer.disconnect()
@@ -155,7 +172,7 @@ function ScrollArea({
         ref={viewportRef}
         data-slot="scroll-area-viewport"
         className={cn(
-          "size-full rounded-[inherit] overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
+          "size-full rounded-[inherit] overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
           viewportClassName
         )}
         style={{

@@ -102,7 +102,7 @@ function DrawerContent({
               <DialogPrimitive.Close
                 data-slot="drawer-close"
                 aria-label={labels.close}
-                className="absolute top-4 end-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="absolute top-4 end-4 inline-flex size-8 cursor-pointer items-center justify-center rounded-control text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <XIcon size={16} />
               </DialogPrimitive.Close>
@@ -142,7 +142,7 @@ function DrawerTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="drawer-title"
-      className={cn("text-lg leading-snug font-semibold", className)}
+      className={cn("font-heading text-lg leading-snug font-semibold icon-bold", className)}
       {...props}
     />
   )

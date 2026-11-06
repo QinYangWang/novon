@@ -27,7 +27,7 @@ export function AuthorAvatar({ name, image, size = 'md', className }: { name: st
   return (
     <Avatar size={size} className={className}>
       {src && <AvatarImage src={withBase(site.base, src)} alt="" />}
-      <AvatarFallback className="bg-primary-subtle text-primary">{initials(name)}</AvatarFallback>
+      <AvatarFallback className="bg-primary-subtle text-primary-text">{initials(name)}</AvatarFallback>
     </Avatar>
   )
 }
