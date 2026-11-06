@@ -206,6 +206,7 @@ export const configSchema: Schema = S.object({
   asyncapi: S.union(asyncapiSchema, S.array(asyncapiSchema)),
   graphql: S.union(graphqlSchema, S.array(graphqlSchema)),
   feedback: S.union(S.false, S.object({ href: S.string, event: S.union(S.string, S.false), on: S.enum('docs', 'blog', 'all') })),
+  agent: S.union(S.string, S.object({ command: S.required(S.string), args: S.array(S.string) })),
 })
 
 const metaItem = S.object({ title: S.string, badge: S.string, icon: S.string, hidden: S.boolean })

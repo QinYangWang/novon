@@ -210,6 +210,13 @@ export interface Config {
   consent?: ConsentOptions | boolean
   /** Files for coding agents and AI tools. */
   agents?: AgentOptions | false
+  /**
+   * The local coding agent `novon translate`, `migrate --agent`, `eval` and `skill --agent` run:
+   * a command line, or `{ command, args }`. A `{prompt}` argument takes the prompt; without one it
+   * goes on standard input. Default: `NOVON_AGENT`, else the first of claude, codex, gemini,
+   * opencode, cursor-agent and aider on PATH.
+   */
+  agent?: string | { command: string; args?: string[] }
   /** Fail the build when the JavaScript or CSS a page loads first is larger, gzipped. Numbers are bytes; strings like `200 kB`. */
   budget?: { js?: number | string; css?: number | string }
   /** More than one language: `content/<locale>/…` holds each translation; the default locale stays at the root. */

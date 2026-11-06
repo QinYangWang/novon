@@ -22,6 +22,15 @@ Usage
   novon add <item…> [--dir dir] [--overwrite]
                                            install components from the PaneUI registry
 
+Agent commands (run your own coding agent; --dry-run prints the prompt instead)
+  novon translate <locale> [dir] [--check] [--strict] [--only glob]
+                                           translate missing and stale pages into content/<locale>
+  novon migrate <docusaurus|mintlify|nextra|vitepress|starlight|auto> [src] [--dir out] [--agent] [--overwrite]
+                                           convert another framework's project into a novon site
+  novon eval [dir] [--offline] [--generate n]
+                                           answer the questions in evals.json from the docs
+  novon skill [dir] [--agent]              write skills/<name>/SKILL.md for the site
+
 A site is a novon.config.ts and a content/ folder of .mdx files.`
 
 const { positionals, values } = parseArgs({
@@ -41,6 +50,12 @@ const { positionals, values } = parseArgs({
     overwrite: { type: 'boolean' },
     out: { type: 'string', short: 'o' },
     locale: { type: 'string', short: 'l' },
+    check: { type: 'boolean' },
+    only: { type: 'string' },
+    'dry-run': { type: 'boolean' },
+    agent: { type: 'boolean' },
+    offline: { type: 'boolean' },
+    generate: { type: 'string' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
   },
@@ -66,10 +81,36 @@ async function main() {
     return
   }
 
-  // `novon version <id> [dir]` and `novon add <item…>` take their argument before the site folder.
-  const takesArgument = command === 'version' || command === 'add' || command === 'export'
+  if (command === 'migrate') {
+    const { migrate, migrationPrompt, MIGRATE_SOURCES } = await import('../src/node/migrate.ts')
+    if (!target) throw new Error(`novon migrate needs a source: ${MIGRATE_SOURCES.join(', ')} or auto`)
+    const dryRun = values['dry-run']
+    const r = await migrate(target as 'auto', positionals[2] ?? '.', values.dir ?? 'novon', { overwrite: values.overwrite, dryRun })
+    const rel = relative(process.cwd(), r.dir) || '.'
+    if (dryRun) {
+      for (const f of Object.keys(r.files)) console.log(`${dim('would write')} ${rel}/${f}`)
+      console.log(dim(`and copy ${r.assets} static file${r.assets === 1 ? '' : 's'}`))
+    } else console.log(`Migrated ${r.pages} page${r.pages === 1 ? '' : 's'} from ${r.source} into ${rel} ${dim(`(${r.metas} _meta.ts, ${r.assets} static files)`)}`)
+    console.log(r.leftovers.length ? `${r.leftovers.length} thing${r.leftovers.length === 1 ? '' : 's'} left to do: see ${rel}/MIGRATION.md` : 'Nothing left over.')
+    if (!values.agent || !r.leftovers.length) return
+    const { loadConfig } = await import('../src/node/load-config.ts')
+    const { resolveAgent, runAgent, commandLine, NO_AGENT } = await import('../src/node/agent.ts')
+    const config = dryRun ? null : await loadConfig(r.dir).catch(() => null)
+    const agent = resolveAgent(config?.agent)
+    const prompt = migrationPrompt(r)
+    if (dryRun) return console.log(`\n${agent ? dim(`$ ${commandLine(agent, { edit: true })}`) : dim('(no agent found)')}\n${prompt}`)
+    if (!agent) throw new Error(NO_AGENT)
+    console.log(dim(`Handing MIGRATION.md to ${agent.name}…`))
+    const run = await runAgent(agent, prompt, { cwd: r.dir, edit: true })
+    if (run.stdout.trim()) console.log(run.stdout.trim())
+    if (!run.ok) throw new Error(`${agent.name} exited with ${run.code}${run.stderr.trim() ? `: ${run.stderr.trim().split('\n').at(-1)}` : ''}`)
+    return
+  }
+
+  // `novon version <id> [dir]`, `novon translate <locale> [dir]` and `novon add <item…>` take their argument before the site folder.
+  const takesArgument = command === 'version' || command === 'add' || command === 'export' || command === 'translate'
   const root = resolve((command === 'add' ? values.dir : takesArgument ? positionals[2] : target) ?? '.')
-  if (takesArgument && !target) throw new Error(`novon ${command} needs ${command === 'add' ? 'an item, e.g. novon add timeline' : command === 'export' ? 'a format, e.g. novon export epub' : 'an id, e.g. novon version v1'}`)
+  if (takesArgument && !target) throw new Error(`novon ${command} needs ${command === 'add' ? 'an item, e.g. novon add timeline' : command === 'export' ? 'a format, e.g. novon export epub' : command === 'translate' ? 'a locale, e.g. novon translate ja' : 'an id, e.g. novon version v1'}`)
   process.chdir(root)
   const { loadConfig } = await import('../src/node/load-config.ts')
   const config = await loadConfig(root)
@@ -145,6 +186,85 @@ async function main() {
     const names = Object.keys(r.components)
     if (names.length) console.log(r.configUpdated ? `Registered for MDX: ${names.map((n) => `<${n}>`).join(' ')}` : `Add to \`components\` in your config:\n${Object.entries(r.components).map(([n, f]) => `  ${n}: '${f}',`).join('\n')}`)
     if (r.packages.length) console.log(`\nThese need npm packages novon does not have: ${r.packages.join(', ')}. Add a package.json and install them.`)
+    return
+  }
+  if (command === 'translate') {
+    const { translationStatus, translatePages, translationPrompt } = await import('../src/node/translate.ts')
+    const { resolveAgent, commandLine, NO_AGENT } = await import('../src/node/agent.ts')
+    const items = await translationStatus(config, target!, { only: values.only })
+    const todo = items.filter((i) => i.status !== 'current')
+    const label = (i: (typeof items)[number]) => `${i.status === 'missing' ? '+' : '~'} ${i.file} ${dim(i.status === 'missing' ? 'missing' : `stale: ${i.reason}`)}`
+    if (values.check) {
+      for (const i of todo) console.log(label(i))
+      console.log(todo.length ? `${todo.length} of ${items.length} page${items.length === 1 ? '' : 's'} need translating into ${target}` : `All ${items.length} pages are translated into ${target}.`)
+      if (values.strict && todo.length) process.exit(1)
+      return
+    }
+    if (!todo.length) return console.log(`All ${items.length} pages are translated into ${target}.`)
+    const agent = resolveAgent(config.agent)
+    if (values['dry-run']) {
+      console.log(agent ? dim(`$ ${commandLine(agent)}`) : dim('(no agent found)'))
+      for (const i of todo) console.log(`\n${label(i)}\n${dim('─'.repeat(40))}\n${translationPrompt(config, target!, i, await Bun.file(i.source).text(), i.status === 'stale' ? await Bun.file(i.target).text() : undefined)}`)
+      return
+    }
+    if (!agent) {
+      for (const i of todo) console.log(label(i))
+      throw new Error(NO_AGENT)
+    }
+    console.log(dim(`Translating ${todo.length} page${todo.length === 1 ? '' : 's'} into ${target} with ${agent.name}…`))
+    const r = await translatePages(config, target!, todo, agent, (i, ok) => console.log(`${ok ? '✓' : '\x1b[31m✗\x1b[0m'} content/${target}/${i.file}`))
+    for (const f of r.failed) console.log(`\x1b[31m✗\x1b[0m ${f.file} ${dim(f.message)}`)
+    if (r.failed.length) process.exit(1)
+    return
+  }
+  if (command === 'eval') {
+    const ev = await import('../src/node/eval.ts')
+    const { resolveAgent, commandLine, NO_AGENT } = await import('../src/node/agent.ts')
+    const agent = values.offline ? null : resolveAgent(config.agent)
+    if (values.generate !== undefined) {
+      const n = Number(values.generate) || 5
+      if (values['dry-run']) return console.log(`${agent ? dim(`$ ${commandLine(agent)}`) : dim('(no agent found)')}\n${ev.generatePrompt(config, n, ev.docsFilePath(config), await ev.readEvals(root))}`)
+      if (!agent) throw new Error(NO_AGENT)
+      const r = await ev.generateEvals(config, n, await ev.corpus(config), agent)
+      console.log(`Added ${r.added.length} check${r.added.length === 1 ? '' : 's'} to ${ev.EVALS_FILE}${r.dropped.length ? dim(` (dropped ${r.dropped.length} whose phrases are not in the docs)`) : ''}`)
+      return
+    }
+    const checks = await ev.readEvals(root)
+    if (!checks.length) return console.log(`No checks: add ${ev.EVALS_FILE} with [{ "question": "…", "expect": ["…"] }]${agent ? ', or run novon eval --generate 5' : ''}.`)
+    if (values['dry-run']) {
+      console.log(agent ? dim(`$ ${commandLine(agent)}`) : dim('(no agent: checks the docs offline)'))
+      for (const c of checks) console.log(`\n${agent ? ev.questionPrompt(config, c, ev.docsFilePath(config)) : `${c.question}\n  expects ${c.expect.map((e) => JSON.stringify(e)).join(', ')}`}`)
+      return
+    }
+    const docs = await ev.corpus(config)
+    const show = (r: Awaited<ReturnType<typeof ev.evalOffline>>[number]) =>
+      console.log(`${r.ok ? '✓' : '\x1b[31m✗\x1b[0m'} ${r.check.question}${r.ok ? '' : dim(`  ${r.error ?? `missing ${r.missing.map((m) => JSON.stringify(m)).join(', ')}`}`)}`)
+    if (!agent) console.log(dim(values.offline ? 'Offline: checking that the docs contain each answer.' : `${NO_AGENT.split('.')[0]}: checking that the docs contain each answer.`))
+    else console.log(dim(`Asking ${agent.name} ${checks.length} question${checks.length === 1 ? '' : 's'}…`))
+    const results = agent ? await ev.evalWithAgent(config, checks, docs, agent, show) : ev.evalOffline(checks, docs)
+    if (!agent) results.forEach(show)
+    const failed = results.filter((r) => !r.ok).length
+    console.log(`\n${results.length - failed} of ${results.length} passed`)
+    if (failed) process.exit(1)
+    return
+  }
+  if (command === 'skill') {
+    const { writeSkill } = await import('../src/node/skill.ts')
+    const { resolveAgent, commandLine, NO_AGENT } = await import('../src/node/agent.ts')
+    const agent = values.agent ? resolveAgent(config.agent) : null
+    if (values.agent && !agent && !values['dry-run']) throw new Error(NO_AGENT)
+    const r = await writeSkill(config, { agent, dryRun: values['dry-run'] })
+    if (values['dry-run']) {
+      if (values.agent) {
+        const { refinePrompt } = await import('../src/node/skill.ts')
+        const { docsFilePath } = await import('../src/node/eval.ts')
+        return console.log(`${agent ? dim(`$ ${commandLine(agent)}`) : dim('(no agent found)')}\n${refinePrompt(config, r.markdown, docsFilePath(config))}`)
+      }
+      return console.log(r.markdown)
+    }
+    if (r.warning) console.log(`\x1b[33mwarning\x1b[0m  ${r.warning}`)
+    console.log(`Wrote ${relative(process.cwd(), r.file)}${r.refined ? dim(` (refined by ${agent!.name})`) : ''}`)
+    if (config.agents === false || (config.agents && config.agents.skills === false)) console.log(dim('`agents` is off, so the build does not publish it.'))
     return
   }
   if (command === 'preview') {

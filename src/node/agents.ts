@@ -331,8 +331,10 @@ export async function agentFiles(ctx: RoutesContext): Promise<{ files: Record<st
     index.push({ name: s.name, type: s.type, description: s.description, url: absolute(config, `/${s.path}`), digest: digest(s.data) })
   }
   if (config.url && on(config, 'skill')) {
-    const skill = await siteSkill(config, pages, folders)
     const name = skillName(config.title)
+    // A `skills/<name>/SKILL.md` (from `novon skill`) replaces the generated one.
+    const own = published.skills.find((s) => s.name === name && s.type === 'skill-md')
+    const skill = own ? new TextDecoder().decode(own.data) : await siteSkill(config, pages, folders)
     files['skill.md'] = skill
     if (!index.some((s) => s.name === name)) {
       const path = `.well-known/agent-skills/${name}/SKILL.md`
