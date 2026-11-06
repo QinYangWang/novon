@@ -37,6 +37,8 @@ type VersionSwitcherProps = Omit<React.ComponentProps<"button">, "value" | "onSe
   versions: readonly VersionOption[]
   /** Value of the version being read. */
   value: string
+  /** `compact`: content width at the small height, for a header. `default` fills its container, as in a sidebar. */
+  size?: "default" | "compact"
   /** Called before the link is followed. Call `event.preventDefault()` to route on the client. */
   onSelect?: (version: VersionOption, event: React.MouseEvent<HTMLAnchorElement>) => void
 }
@@ -62,7 +64,7 @@ function VersionTagBadge({ tag }: { tag: string }) {
   )
 }
 
-function VersionSwitcher({ versions, value, onSelect, className, ...props }: VersionSwitcherProps) {
+function VersionSwitcher({ versions, value, size = "default", onSelect, className, ...props }: VersionSwitcherProps) {
   const { labels } = useLocale()
   const current = versions.find((v) => v.value === value) ?? versions[0]
   if (!current) return null
@@ -71,9 +73,10 @@ function VersionSwitcher({ versions, value, onSelect, className, ...props }: Ver
       <Menu>
         <MenuTrigger
           data-slot="version-switcher"
+          data-size={size}
           aria-label={labels.versionCurrent(current.label)}
-          render={<Button variant="secondary" />}
-          className={cn("w-full justify-between font-normal", className)}
+          render={<Button variant="secondary" size={size === "compact" ? "sm" : "default"} />}
+          className={cn("justify-between font-normal", size === "default" && "w-full", className)}
           {...props}
         >
           <span className="flex min-w-0 items-center gap-2">
@@ -82,7 +85,7 @@ function VersionSwitcher({ versions, value, onSelect, className, ...props }: Ver
           </span>
           <ChevronsUpDownIcon data-icon="inline-end" className="size-3.5 text-muted-foreground" />
         </MenuTrigger>
-        <MenuContent align="start" className="min-w-(--anchor-width)">
+        <MenuContent align="start" className={size === "compact" ? "min-w-[max(var(--anchor-width),10rem)]" : "min-w-(--anchor-width)"}>
           <MenuGroup>
             <MenuLabel className="sr-only">{labels.version}</MenuLabel>
             {versions.map((v) => {

@@ -37,8 +37,10 @@ type LocaleSwitcherProps = Omit<React.ComponentProps<"button">, "value" | "onSel
   locales: readonly LocaleOption[]
   /** Code of the current language. */
   value: string
-  /** `icon` shows only the globe, for phone headers. */
-  size?: "default" | "icon"
+  /** `icon` shows only the globe, for phone headers. `responsive`: the globe alone below `sm`, the label from `sm`. */
+  size?: "default" | "icon" | "responsive"
+  /** Classes for the no-script fallback, which `className` (the trigger's) doesn't reach. */
+  fallbackClassName?: string
   /** Popup alignment to the trigger, in the reading direction. */
   align?: "start" | "center" | "end"
   /** Called before the link is followed. Call `event.preventDefault()` to route on the client. */
@@ -52,6 +54,7 @@ function LocaleSwitcher({
   align = "end",
   onSelect,
   className,
+  fallbackClassName,
   ...props
 }: LocaleSwitcherProps) {
   const { labels } = useLocale()
@@ -66,12 +69,17 @@ function LocaleSwitcher({
           data-size={size}
           aria-label={labels.languageCurrent(current.label)}
           render={<Button variant="ghost" size={size === "icon" ? "icon-sm" : "sm"} />}
-          className={cn(size === "default" && "text-muted-foreground aria-expanded:text-foreground hover:text-foreground", className)}
+          className={cn(
+            size !== "icon" && "text-muted-foreground aria-expanded:text-foreground hover:text-foreground",
+            // Below `sm` the same square as the icon size.
+            size === "responsive" && "max-sm:size-7 max-sm:px-0 max-sm:has-data-[icon=inline-start]:ps-0",
+            className
+          )}
           {...props}
         >
-          <GlobeIcon data-icon={size === "default" ? "inline-start" : undefined} />
-          {size === "default" && (
-            <span lang={tag(current)} dir={current.dir}>
+          <GlobeIcon data-icon={size === "icon" ? undefined : "inline-start"} />
+          {size !== "icon" && (
+            <span lang={tag(current)} dir={current.dir} className={cn(size === "responsive" && "max-sm:hidden")}>
               {current.label}
             </span>
           )}
@@ -106,7 +114,11 @@ function LocaleSwitcher({
       </Menu>
       {/* Without scripts the menu can't open; the same links show inline instead. */}
       <noscript>
-        <span data-slot="locale-switcher-fallback" className="inline-flex items-center gap-3 text-ui">
+        <span
+          data-slot="locale-switcher-fallback"
+          data-size={size}
+          className={cn("inline-flex items-center gap-3 text-ui", fallbackClassName)}
+        >
           {locales.map((l) => (
             <a
               key={l.code}
@@ -117,7 +129,17 @@ function LocaleSwitcher({
               aria-current={l.code === current.code ? "page" : undefined}
               className="text-muted-foreground hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
             >
-              {l.label}
+              {/* Phone headers have no room for every name: codes there, names where the trigger shows its label. */}
+              {size === "default" ? (
+                l.label
+              ) : (
+                <>
+                  <span aria-hidden className={cn("uppercase", size === "responsive" && "sm:hidden")}>
+                    {l.code}
+                  </span>
+                  <span className={cn(size === "icon" ? "sr-only" : "max-sm:sr-only")}>{l.label}</span>
+                </>
+              )}
             </a>
           ))}
         </span>

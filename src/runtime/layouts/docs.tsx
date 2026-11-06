@@ -38,7 +38,7 @@ function byGroup(items: NavItem[]): { group?: string; items: NavItem[] }[] {
 }
 
 /** Badges of generated API pages: HTTP methods, event actions and GraphQL operation kinds. */
-const METHOD_BADGES = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'SEND', 'RECV', 'PUB', 'SUB', 'QUERY', 'MUT'])
+const METHOD_BADGES = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'SEND', 'RECEIVE', 'PUBLISH', 'SUBSCRIBE', 'QUERY', 'MUTATION', 'SUBSCRIPTION'])
 
 function NavBadge({ text }: { text?: string }) {
   if (!text) return null
@@ -197,7 +197,7 @@ function DefaultHeader({ onOpenNav }: { onOpenNav: () => void }) {
         <div className="ms-auto flex items-center gap-1.5">
           <TopNav />
           <Search />
-          <LanguageSwitcher className="max-lg:hidden" />
+          <LanguageSwitcher size="responsive" fallbackClassName="text-ui-sm" />
           <div className="flex items-center max-sm:hidden">
             <SocialLinks />
           </div>
@@ -367,16 +367,13 @@ export function DocsLayout() {
             {site.versions && (
               // Beside the drawer's close button, on its row.
               <div className="shrink-0 ps-3 pe-14">
-                <VersionSwitcher />
+                <VersionSwitcher size="compact" />
               </div>
             )}
             <Sidebar onNavigate={() => setNavOpen(false)} />
             <div className="flex shrink-0 items-center gap-1 border-t border-border px-3 py-2">
               <ThemeButton />
               <SocialLinks />
-              <span className="ms-auto">
-                <LanguageSwitcher />
-              </span>
             </div>
           </div>
         </DrawerContent>

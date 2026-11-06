@@ -75,7 +75,7 @@ export function searchIndexPath(site: SiteData, page: PageMeta | null, route: st
 }
 
 /** The language switcher: the same page in each locale, or that locale's home. */
-export function LanguageSwitcher({ className, size }: { className?: string; size?: 'default' | 'icon' }) {
+export function LanguageSwitcher({ className, size, fallbackClassName }: { className?: string; size?: 'default' | 'icon' | 'responsive'; fallbackClassName?: string }) {
   const { site, current, navigate } = useSite()
   if (!site.i18n || site.i18n.locales.length < 2) return null
   const shape = shapeOf(site)
@@ -89,6 +89,7 @@ export function LanguageSwitcher({ className, size }: { className?: string; size
       value={locale.code}
       size={size}
       className={className}
+      fallbackClassName={fallbackClassName}
       onSelect={(l, event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
         event.preventDefault()
@@ -99,7 +100,7 @@ export function LanguageSwitcher({ className, size }: { className?: string; size
 }
 
 /** The docs version switcher; hidden versions are left out. */
-export function VersionSwitcher({ className }: { className?: string }) {
+export function VersionSwitcher({ className, size }: { className?: string; size?: 'default' | 'compact' }) {
   const { site, current, navigate } = useSite()
   const versions = site.versions
   if (!versions?.list.length) return null
@@ -122,6 +123,7 @@ export function VersionSwitcher({ className }: { className?: string }) {
     <LibraryVersionSwitcher
       versions={options}
       value={active}
+      size={size}
       className={className}
       onSelect={(v, event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return

@@ -194,7 +194,7 @@ describe('a site with OpenAPI, AsyncAPI and GraphQL references', async () => {
     expect(md).toContain('| `id` (required) | `integer`')
     expect(md).toContain('"name": "Mochi"')
     expect(await read('events.md')).toContain('Update a pet')
-    expect(pages.find((p) => p.route === '/events/on-pet-updated')?.badge).toBe('RECV')
+    expect(pages.find((p) => p.route === '/events/on-pet-updated')?.badge).toBe('RECEIVE')
     expect(pages.find((p) => p.route === '/events/update-pet')?.badge).toBe('SEND')
     const search = JSON.parse(await read('search.json')) as { route: string }[]
     expect(search.some((e) => e.route === '/events/on-pet-updated')).toBe(true)
@@ -203,7 +203,7 @@ describe('a site with OpenAPI, AsyncAPI and GraphQL references', async () => {
 
   test('AsyncAPI 2 from a URL: cached, publish and subscribe pages, oneOf messages', async () => {
     expect(existsSync(asyncapiCachePath(config, { spec: `http://127.0.0.1:${server.port}/events.yaml`, path: '/legacy' }))).toBe(true)
-    expect(pages.find((p) => p.route === '/legacy/user-signed-up')?.badge).toBe('SUB')
+    expect(pages.find((p) => p.route === '/legacy/user-signed-up')?.badge).toBe('SUBSCRIBE')
     const md = await read('legacy/send-welcome.md')
     expect(md).toContain('### Welcome')
     expect(md).toContain('### Reminder')
@@ -211,8 +211,8 @@ describe('a site with OpenAPI, AsyncAPI and GraphQL references', async () => {
 
   test('GraphQL from SDL: operations, types, examples, in .md, search and llms', async () => {
     expect(pages.find((p) => p.route === '/graphql/pet')?.badge).toBe('QUERY')
-    expect(pages.find((p) => p.route === '/graphql/add-pet')?.badge).toBe('MUT')
-    expect(pages.find((p) => p.route === '/graphql/pet-added')?.badge).toBe('SUB')
+    expect(pages.find((p) => p.route === '/graphql/add-pet')?.badge).toBe('MUTATION')
+    expect(pages.find((p) => p.route === '/graphql/pet-added')?.badge).toBe('SUBSCRIPTION')
     const md = await read('graphql/pet.md')
     expect(md).toContain('## Arguments')
     expect(md).toContain('| `id` (required) | `ID!`')

@@ -59,6 +59,7 @@ export function PageFeedback({ page }: { page: PageMeta }) {
       <FeedbackWidget
         key={page.route}
         placement="inline"
+        bordered={false}
         label={t.feedback}
         title={t.feedbackTitle}
         placeholder={t.feedbackPlaceholder}

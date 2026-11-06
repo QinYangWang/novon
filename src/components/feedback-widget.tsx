@@ -28,6 +28,8 @@ export type FeedbackWidgetProps = {
   strategy?: "fixed" | "absolute"
   /** Floating only: the trigger's text. */
   label?: React.ReactNode
+  /** Inline only. Draws a rule above the question; turn it off when the page already separates the section. Default `true`. */
+  bordered?: boolean
   /** The form's heading; inline, the question beside the moods. */
   title?: React.ReactNode
   placeholder?: string
@@ -362,6 +364,7 @@ function InlineFeedback({
   placeholder,
   successTitle,
   successDescription,
+  bordered = true,
   className,
 }: PlacementProps) {
   const l10n = useLocale().labels
@@ -398,7 +401,8 @@ function InlineFeedback({
       data-slot="feedback-widget"
       data-placement="inline"
       data-state={status}
-      className={cn("border-t border-border pt-5", className)}
+      data-bordered={bordered || undefined}
+      className={cn(bordered && "border-t border-border pt-5", className)}
     >
       <AnimatePresence mode="wait" initial={false}>
         {status === "sent" ? (

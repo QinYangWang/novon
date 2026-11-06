@@ -21,12 +21,14 @@ export interface ApiEndpointProps {
   path: string
   /** Base URL; the copy button copies it with the path. */
   server?: string
+  /** What the copy button copies instead of server + path. */
+  copyValue?: string
   deprecated?: boolean
 }
 
 /** The method and path an API page documents, with its full URL to copy. */
-export function ApiEndpoint({ method, path, server, deprecated }: ApiEndpointProps) {
-  return <Endpoint data-novon="api-endpoint" className="not-typeset my-6" method={method} path={path} server={server} deprecated={deprecated} />
+export function ApiEndpoint({ method, path, server, copyValue, deprecated }: ApiEndpointProps) {
+  return <Endpoint data-novon="api-endpoint" className="not-typeset my-6" method={method} path={path} server={server} copyValue={copyValue} deprecated={deprecated} />
 }
 
 /**
@@ -34,7 +36,7 @@ export function ApiEndpoint({ method, path, server, deprecated }: ApiEndpointPro
  * pass a TypeTable as children: `.md` output and search read that instead.
  */
 export function ApiSchema({ schema }: { schema: SchemaNode; children?: React.ReactNode }) {
-  return <SchemaTree data-novon="api-schema" className="not-typeset my-6" schema={schema} defaultExpandDepth={1} />
+  return <SchemaTree data-novon="api-schema" className="not-typeset my-6" schema={schema} defaultExpandDepth={1} descriptionFormat="markdown" />
 }
 
 /* ---------- Changelog ---------- */

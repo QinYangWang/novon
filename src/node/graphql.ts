@@ -57,7 +57,6 @@ export interface GraphqlOperation {
   slug: string
 }
 
-const BADGE: Record<GraphqlKind, string> = { query: 'QUERY', mutation: 'MUT', subscription: 'SUB' }
 
 export function graphqlOperations(schema: GraphQLSchema): GraphqlOperation[] {
   const slugger = new GithubSlugger()
@@ -220,7 +219,7 @@ export function graphqlOperationPage(schema: GraphQLSchema, spec: GraphqlOptions
     '---',
     `title: ${yaml(f.name)}`,
     ...(f.description ? [`description: ${yaml(firstSentence(f.description))}`] : []),
-    `badge: ${BADGE[o.kind]}`,
+    `badge: ${o.kind.toUpperCase()}`,
     '---',
     '',
     `<ApiEndpoint method=${attr(o.kind)} path=${attr(signature)}${f.deprecationReason ? ' deprecated' : ''} />`,

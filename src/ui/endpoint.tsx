@@ -9,13 +9,17 @@ import { useLocale } from "@/ui/locale-provider"
 import { cn } from "@/lib/utils"
 
 /*
- * An HTTP method as a coloured badge, and the method + path bar an API page documents.
+ * An HTTP method (or an event / query operation kind) as a coloured badge, and the
+ * method + path bar an API page documents.
  *
  *   <MethodBadge method="post" />
+ *   <MethodBadge method="subscribe" size="sm" />
  *   <Endpoint method="get" path="/projects/{projectId}/members" server="https://api.example.com/v1" />
  */
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete" | "head" | "options"
+/** Event and query operation kinds. Their colours stay apart from the HTTP ones. */
+type OperationKind = "send" | "receive" | "publish" | "subscribe" | "query" | "mutation" | "subscription"
 
 const methodBadgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center rounded-control-sm font-mono font-medium whitespace-nowrap uppercase icon-bold",
@@ -29,6 +33,14 @@ const methodBadgeVariants = cva(
         delete: "bg-destructive-subtle text-destructive-text inset-ring inset-ring-destructive-border",
         head: "bg-tag-gray-fill text-tag-gray-text",
         options: "bg-tag-gray-fill text-tag-gray-text",
+        // Operations: outgoing and writes in orange, incoming streams in pink, reads in brown.
+        send: "bg-tag-orange-fill text-tag-orange-text",
+        publish: "bg-tag-orange-fill text-tag-orange-text",
+        mutation: "bg-tag-orange-fill text-tag-orange-text",
+        receive: "bg-tag-pink-fill text-tag-pink-text",
+        subscribe: "bg-tag-pink-fill text-tag-pink-text",
+        subscription: "bg-tag-pink-fill text-tag-pink-text",
+        query: "bg-tag-brown-fill text-tag-brown-text",
       },
       size: {
         default: "h-6 min-w-11 px-1.5 text-ui-xs",
@@ -40,14 +52,25 @@ const methodBadgeVariants = cva(
   }
 )
 
-const METHODS: readonly string[] = ["get", "post", "put", "patch", "delete", "head", "options"]
-/** Short forms for the small size, so every badge fits one width. */
-const SHORT: Partial<Record<string, string>> = { delete: "del", options: "opt" }
+const METHODS: readonly string[] = [
+  "get", "post", "put", "patch", "delete", "head", "options",
+  "send", "receive", "publish", "subscribe", "query", "mutation", "subscription",
+]
+/** Short forms for the small size, so every badge fits one width. The full name stays for screen readers. */
+const SHORT: Partial<Record<string, string>> = {
+  delete: "del",
+  options: "opt",
+  receive: "recv",
+  publish: "pub",
+  subscribe: "sub",
+  subscription: "sub",
+  mutation: "mut",
+}
 
 type MethodBadgeProps = Omit<React.ComponentProps<"span">, "children"> &
   Omit<VariantProps<typeof methodBadgeVariants>, "method"> & {
     /** Case-insensitive. Unknown methods show their name in the neutral colour. */
-    method: HttpMethod | (string & {})
+    method: HttpMethod | OperationKind | (string & {})
   }
 
 function MethodBadge({ method, size = "default", className, ...props }: MethodBadgeProps) {
@@ -58,7 +81,7 @@ function MethodBadge({ method, size = "default", className, ...props }: MethodBa
     <span
       data-slot="method-badge"
       data-method={name}
-      className={cn(methodBadgeVariants({ method: known ? (name as HttpMethod) : "head", size }), className)}
+      className={cn(methodBadgeVariants({ method: known ? (name as HttpMethod | OperationKind) : "head", size }), className)}
       {...props}
     >
       {short ? (
@@ -91,19 +114,31 @@ function EndpointPath({ path, className, ...props }: Omit<React.ComponentProps<"
 }
 
 type EndpointProps = Omit<React.ComponentProps<"div">, "children"> & {
-  method: HttpMethod | (string & {})
+  method: HttpMethod | OperationKind | (string & {})
+  /** The path, or any address or signature. One that doesn't start with `/` is joined to `server` with one. */
   path: string
   /** Base URL shown before the path (hidden when the bar is narrow); the copy button copies both. */
   server?: string
+  /** What the copy button copies. Defaults to `server` + `path`. */
+  copyValue?: string
   /** Strikes the path through and adds a "Deprecated" badge. */
   deprecated?: boolean
   /** Hides the copy button. */
   copyable?: boolean
 }
 
-function Endpoint({ method, path, server, deprecated, copyable = true, className, ...props }: EndpointProps) {
+/** `server` and `path` with exactly one `/` between them. */
+function joinEndpoint(server: string | undefined, path: string) {
+  if (!server) return path
+  const base = server.replace(/\/+$/, "")
+  return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`
+}
+
+function Endpoint({ method, path, server, copyValue, deprecated, copyable = true, className, ...props }: EndpointProps) {
   const { labels } = useLocale()
-  const url = `${server?.replace(/\/+$/, "") ?? ""}${path}`
+  const url = joinEndpoint(server, path)
+  const base = server?.replace(/\/+$/, "")
+  const separator = server && !path.startsWith("/") ? "/" : ""
   return (
     <div
       data-slot="endpoint"
@@ -119,7 +154,8 @@ function Endpoint({ method, path, server, deprecated, copyable = true, className
       >
         {server && (
           <span data-slot="endpoint-server" className="min-w-0 shrink-100 truncate text-muted-foreground @max-md/endpoint:hidden">
-            {server.replace(/\/+$/, "")}
+            {base}
+            {separator}
           </span>
         )}
         <EndpointPath path={path} className={cn("min-w-0 truncate", deprecated && "line-through decoration-muted-foreground")} />
@@ -129,10 +165,10 @@ function Endpoint({ method, path, server, deprecated, copyable = true, className
           {labels.deprecated}
         </Badge>
       )}
-      {copyable && <CodeCopyButton value={url} label={labels.copyUrl} className="-my-0.5 rounded-inner" />}
+      {copyable && <CodeCopyButton value={copyValue ?? url} label={labels.copyUrl} className="-my-0.5 rounded-inner" />}
     </div>
   )
 }
 
 export { MethodBadge, methodBadgeVariants, EndpointPath, Endpoint }
-export type { HttpMethod, MethodBadgeProps, EndpointProps }
+export type { HttpMethod, OperationKind, MethodBadgeProps, EndpointProps }

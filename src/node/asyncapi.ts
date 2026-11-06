@@ -80,8 +80,6 @@ export function asyncOperations(doc: Json, fallbackGroup: string): AsyncOperatio
   return out.map((o) => ({ ...o, group: o.group || fallbackGroup, slug: slugger.slug(kebab(o.id) || 'operation') }))
 }
 
-/** Sidebar badges: short, so they fit beside HTTP methods. */
-const ACTION_BADGE: Record<string, string> = { send: 'SEND', receive: 'RECV', publish: 'PUB', subscribe: 'SUB' }
 
 /** A payload schema; 3.x may wrap it with its format. */
 const payloadSchema = (p: Json) => (p && p.schemaFormat && p.schema ? p.schema : p)
@@ -139,10 +137,10 @@ export function asyncOperationPage(doc: Json, o: AsyncOperation, t: Labels): str
     '---',
     `title: ${yaml(o.title)}`,
     ...(op.description ? [`description: ${yaml(firstSentence(op.description))}`] : []),
-    `badge: ${ACTION_BADGE[o.action] ?? o.action.toUpperCase()}`,
+    `badge: ${o.action.toUpperCase()}`,
     '---',
     '',
-    `<ApiEndpoint method=${attr(o.action)} path=${attr(o.address)}${serverUrl(doc) ? ` server=${attr(serverUrl(doc)!.replace(/\/$/, '') + (o.address.startsWith('/') ? '' : '/'))}` : ''}${op.deprecated ? ' deprecated' : ''} />`,
+    `<ApiEndpoint method=${attr(o.action)} path=${attr(o.address)}${serverUrl(doc) ? ` server=${attr(serverUrl(doc)!)}` : ''}${op.deprecated ? ' deprecated' : ''} />`,
     '',
   ]
   if (description) out.push(mdxText(description), '')
