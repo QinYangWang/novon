@@ -1,0 +1,17 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Pulse",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          { "group": "Get started", "pages": ["index", "quickstart"] },
+          { "group": "Essentials", "pages": ["essentials/settings", "essentials/code"] }
+        ]
+      }
+    ],
+    "global": { "anchors": [{ "anchor": "Blog", "href": "https://pulse.dev/blog" }] }
+  }
+}

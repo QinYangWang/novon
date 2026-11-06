@@ -1,0 +1,7 @@
+{
+  "index": "Welcome",
+  "guide": "Guide",
+  "---": { "type": "separator", "title": "More" },
+  "faq": { "title": "FAQ" },
+  "github": { "title": "GitHub", "href": "https://github.com/orbit/orbit" }
+}
