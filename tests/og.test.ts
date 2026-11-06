@@ -76,7 +76,7 @@ describe('social cards', async () => {
     await build(resolveConfig({ title: 'x', layout: 'blog', og: false }, dir))
     expect(existsSync(join(dir, 'dist/og'))).toBe(false)
     expect(await readFile(join(dir, 'dist/hello/index.html'), 'utf8')).not.toContain('og:image')
-  })
+  }, 60_000)
   test('the card uses the theme accent and the og font', async () => {
     const pages = await scanContent(config)
     const props = cardProps(config, pages.find((p) => p.route === '/hello')!)

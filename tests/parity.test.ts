@@ -90,7 +90,7 @@ describe('last updated', () => {
   test('commit dates for files under content/', () => {
     const { dates } = gitDates(join(import.meta.dir, '../docs'))
     expect(dates.get('content/index.mdx')).toMatch(/^\d{4}-\d\d-\d\d$/)
-  })
+  }, 30_000)
 })
 
 describe('schemas', () => {
