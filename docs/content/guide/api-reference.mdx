@@ -1,6 +1,6 @@
 ---
 title: API reference
-description: Pages for every operation in an OpenAPI 3 description.
+description: Reference pages from OpenAPI, AsyncAPI and GraphQL descriptions.
 icon: Braces
 ---
 
@@ -32,10 +32,53 @@ Pass an array for more than one API.
 
 - Method and path, summary and description.
 - Authentication from `security`.
-- Path, query, header and cookie parameters, and the request body, as tables
-  with nested fields.
+- Path, query, header and cookie parameters as tables; request and response
+  bodies as schema trees that expand nested objects, arrays and `oneOf` options.
 - Code samples with an example body built from the schema.
 - Each response with its schema and an example.
 
 The pages are plain MDX under the hood, so they are in `.md` output, search and
-`llms.txt`. There is no in-page request runner: novon builds static files only.
+`llms.txt` (schemas as tables there). There is no in-page request runner: novon
+builds static files only.
+
+## Event APIs (AsyncAPI)
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  asyncapi: { spec: 'api/events.yaml', path: '/events' },
+})
+```
+
+AsyncAPI 2.x and 3.x, JSON or YAML. Each operation (`send`/`receive`, or
+`publish`/`subscribe` in 2.x) gets a page grouped by tag, or by channel without
+one: the channel address and server, channel parameters, then each message with
+its headers, payload and an example. See the [event reference](/events).
+
+<TypeTable>
+  <Field name="spec" type="string" required>File relative to the site root, or a URL (cached by `novon sync`).</Field>
+  <Field name="path" type="string" required>URL prefix for the reference.</Field>
+  <Field name="title" type="string" default="info.title">Overview page title.</Field>
+</TypeTable>
+
+## GraphQL
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  graphql: { schema: 'api/schema.graphql', path: '/graphql', endpoint: 'https://api.example.com/graphql' },
+})
+```
+
+`schema` is SDL (`.graphql`) or an introspection result (`.json`, with or
+without its `data` wrapper). Every query, mutation and subscription gets a page
+with its arguments, return type and an example operation with variables (and a
+`curl` call when `endpoint` is set); every named type gets a page under
+`types/`. See the [GraphQL reference](/graphql).
+
+<TypeTable>
+  <Field name="schema" type="string" required>File relative to the site root, or a URL (cached by `novon sync`).</Field>
+  <Field name="path" type="string" required>URL prefix for the reference.</Field>
+  <Field name="title" type="string" default="'GraphQL API'">Overview page title.</Field>
+  <Field name="endpoint" type="string">Endpoint shown on the overview and used in `curl` examples.</Field>
+</TypeTable>
+
+Both take an array for more than one description, like `openapi`.

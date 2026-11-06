@@ -1,0 +1,141 @@
+asyncapi: 3.0.0
+info:
+  title: Pet store events
+  version: 1.0.0
+  description: |
+    Events the pet store publishes when pets and orders change, and the commands it listens for.
+    Connect over WebSocket and subscribe to a channel.
+defaultContentType: application/json
+servers:
+  production:
+    host: events.petstore.example.com
+    pathname: /v1
+    protocol: wss
+    description: Live events.
+channels:
+  petUpdated:
+    address: pets/{petId}/updated
+    title: Pet updated
+    description: One message each time a pet changes.
+    parameters:
+      petId:
+        description: The pet's ID.
+    messages:
+      petUpdated:
+        $ref: '#/components/messages/PetUpdated'
+  orderPlaced:
+    address: orders/placed
+    messages:
+      orderPlaced:
+        $ref: '#/components/messages/OrderPlaced'
+  adoptPet:
+    address: commands/adopt
+    messages:
+      adoptPet:
+        $ref: '#/components/messages/AdoptPet'
+operations:
+  onPetUpdated:
+    action: receive
+    title: Pet updated
+    summary: Pet updated
+    description: Sent when a pet's name, status or tags change.
+    channel:
+      $ref: '#/channels/petUpdated'
+    tags:
+      - name: Pets
+  onOrderPlaced:
+    action: receive
+    summary: Order placed
+    description: Sent after an order is accepted.
+    channel:
+      $ref: '#/channels/orderPlaced'
+    tags:
+      - name: Orders
+  adoptPet:
+    action: send
+    summary: Adopt a pet
+    description: Ask the store to reserve a pet for you.
+    channel:
+      $ref: '#/channels/adoptPet'
+    tags:
+      - name: Pets
+components:
+  messages:
+    PetUpdated:
+      name: PetUpdated
+      title: Pet updated
+      headers:
+        type: object
+        properties:
+          x-correlation-id:
+            type: string
+            format: uuid
+            description: Matches the request that caused the change.
+      payload:
+        $ref: '#/components/schemas/PetEvent'
+    OrderPlaced:
+      name: OrderPlaced
+      title: Order placed
+      payload:
+        type: object
+        required: [orderId, petId]
+        properties:
+          orderId:
+            type: integer
+          petId:
+            type: integer
+          placedAt:
+            type: string
+            format: date-time
+      examples:
+        - payload:
+            orderId: 7
+            petId: 42
+            placedAt: '2026-11-06T08:00:00Z'
+    AdoptPet:
+      name: AdoptPet
+      title: Adopt pet
+      payload:
+        type: object
+        required: [petId]
+        properties:
+          petId:
+            type: integer
+            description: The pet to adopt.
+          note:
+            type: string
+  schemas:
+    PetEvent:
+      type: object
+      required: [pet, changed]
+      properties:
+        pet:
+          $ref: '#/components/schemas/Pet'
+        changed:
+          type: array
+          items:
+            type: string
+            enum: [name, status, tags]
+          description: The fields that changed.
+    Pet:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          example: 42
+        name:
+          type: string
+          example: Mochi
+        status:
+          type: string
+          enum: [available, pending, sold]
+        tags:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string

@@ -1,0 +1,83 @@
+"""
+The pet store as a graph: pets, owners and orders.
+"""
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Query {
+  "A pet by ID."
+  pet(id: ID!): Pet
+  "Pets, newest first."
+  pets(status: PetStatus, first: Int = 20, after: String): PetConnection!
+  "Search pets and owners by name."
+  search(text: String!): [SearchResult!]!
+}
+
+type Mutation {
+  "Add a pet to the store."
+  addPet(input: AddPetInput!): Pet!
+  "Place an order for a pet."
+  placeOrder(petId: ID!, quantity: Int = 1): Order!
+}
+
+type Subscription {
+  "Sent each time a pet changes."
+  petUpdated(id: ID): Pet!
+}
+
+"Anything with an ID."
+interface Node {
+  id: ID!
+}
+
+"A pet in the store."
+type Pet implements Node {
+  id: ID!
+  name: String!
+  status: PetStatus!
+  tags: [String!]!
+  owner: Owner
+  "Old name for `status`."
+  available: Boolean @deprecated(reason: "Use `status`.")
+}
+
+"Someone who adopted a pet."
+type Owner implements Node {
+  id: ID!
+  name: String!
+  pets: [Pet!]!
+}
+
+type Order implements Node {
+  id: ID!
+  pet: Pet!
+  quantity: Int!
+  placedAt: DateTime!
+}
+
+type PetConnection {
+  nodes: [Pet!]!
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+union SearchResult = Pet | Owner
+
+enum PetStatus {
+  "Ready for adoption."
+  AVAILABLE
+  PENDING
+  SOLD
+}
+
+input AddPetInput {
+  name: String!
+  status: PetStatus = AVAILABLE
+  tags: [String!]
+}
+
+"An ISO 8601 date and time."
+scalar DateTime

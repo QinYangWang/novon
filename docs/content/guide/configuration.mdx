@@ -25,7 +25,7 @@ export default defineConfig({
     logo: '/logo.svg',
     logoDark: '/logo-dark.svg',
     favicon: '/favicon.svg',
-    social: { github: 'https://github.com/acme', email: 'hi@acme.dev' },
+    social: { github: 'https://github.com/acme', email: 'hi@acme.dev', rss: true }, // rss: a feed button in the header
     editLink: 'https://github.com/acme/site/edit/main/',
     footer: { text: '© Acme', links: [{ label: 'Privacy', href: '/privacy' }] },
     authors: { 'Ada Park': { bio: 'Writes the changelog.', avatar: '/ada.jpg' } },
@@ -52,6 +52,8 @@ export default defineConfig({
   versions: { list: ['v1'] },     // see Versions; made by `novon version`
   sources: [{ type: 'git', repo: 'https://github.com/acme/sdk.git', dir: 'docs', path: '/sdk' }], // see Sources
   openapi: { spec: 'openapi.yaml', path: '/api' }, // see API reference
+  asyncapi: { spec: 'events.yaml', path: '/events' }, // event API reference
+  graphql: { schema: 'schema.graphql', path: '/graphql' }, // GraphQL reference
   feedback: { href: 'https://github.com/acme/site/issues/new?body={message}' }, // see Feedback
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
