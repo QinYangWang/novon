@@ -120,7 +120,7 @@ const llms: NovonPlugin = {
 
 /** Every indexable page's Markdown in one file, each headed by its URL. */
 export function llmsFull(config: ResolvedConfig, pages: PageMeta[], markdown: Map<string, string>): string {
-  const head = [`# ${config.title}`, config.description ? `\n> ${config.description}` : ''].join('\n')
+  const head = [`# ${config.title}`, config.description && `> ${config.description}`].filter(Boolean).join('\n\n')
   const parts = pages.filter((p) => markdown.has(p.route)).map((p) => `Source: ${absolute(config, p.route)}\n\n${markdown.get(p.route)!.trim()}`)
   return `${[head, ...parts].join('\n\n---\n\n')}\n`
 }
@@ -132,7 +132,10 @@ export function markdownPath(route: string): string {
 /** A page as plain Markdown: title, description, then the body with components written out. */
 export async function pageMarkdown(config: ResolvedConfig, page: PageMeta, pages?: PageMeta[]): Promise<string> {
   const { content } = matter(await readFile(join(config.root, page.file), 'utf8'))
-  const body = mdxToMarkdown(content, { page, pages, mdx: !page.file.endsWith('.md'), link: (r) => absolute(config, markdownPath(r)) })
+  let body = mdxToMarkdown(content, { page, pages, mdx: !page.file.endsWith('.md'), link: (r) => absolute(config, markdownPath(r)) })
+  // The title is written above; a body that opens with the same heading would repeat it.
+  const h1 = body.match(/^# (.+)\n*/)
+  if (h1 && h1[1].trim() === page.title) body = body.slice(h1[0].length)
   return `# ${page.title}\n\n${page.description ? `${page.description}\n\n` : ''}${body}\n`
 }
 
