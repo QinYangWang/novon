@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from 'node:util'
-import { resolve } from 'node:path'
+import { relative, resolve } from 'node:path'
 import pkg from '../package.json' with { type: 'json' }
 
 const help = `novon ${pkg.version} ฅ^•ﻌ•^ฅ
@@ -17,6 +17,8 @@ Usage
   novon audit [dir] [--json] [--strict]    check the built site for search and sharing problems
   novon version <id> [dir]                 freeze the current docs as version <id>
   novon sync [dir]                         refresh outside sources and remote API descriptions
+  novon export epub|pdf [dir] [--out file] [--locale code]
+                                           the docs as one book (PDF needs Chromium, or NOVON_CHROME)
   novon add <item…> [--dir dir] [--overwrite]
                                            install components from the PaneUI registry
 
@@ -37,6 +39,8 @@ const { positionals, values } = parseArgs({
     external: { type: 'boolean' },
     dir: { type: 'string', short: 'd' },
     overwrite: { type: 'boolean' },
+    out: { type: 'string', short: 'o' },
+    locale: { type: 'string', short: 'l' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
   },
@@ -63,9 +67,9 @@ async function main() {
   }
 
   // `novon version <id> [dir]` and `novon add <item…>` take their argument before the site folder.
-  const takesArgument = command === 'version' || command === 'add'
+  const takesArgument = command === 'version' || command === 'add' || command === 'export'
   const root = resolve((command === 'add' ? values.dir : takesArgument ? positionals[2] : target) ?? '.')
-  if (takesArgument && !target) throw new Error(`novon ${command} needs ${command === 'add' ? 'an item, e.g. novon add timeline' : 'an id, e.g. novon version v1'}`)
+  if (takesArgument && !target) throw new Error(`novon ${command} needs ${command === 'add' ? 'an item, e.g. novon add timeline' : command === 'export' ? 'a format, e.g. novon export epub' : 'an id, e.g. novon version v1'}`)
   process.chdir(root)
   const { loadConfig } = await import('../src/node/load-config.ts')
   const config = await loadConfig(root)
@@ -120,6 +124,17 @@ async function main() {
     if (!results.length) return console.log('Nothing to sync: no `sources` and no remote `openapi` descriptions.')
     for (const r of results) console.log(`${r.ok ? '✓' : '\x1b[31m✗\x1b[0m'} ${r.name}  ${dim(r.message)}`)
     if (results.some((r) => !r.ok)) process.exit(1)
+    return
+  }
+  if (command === 'export') {
+    const { exportBook } = await import('../src/node/export.ts')
+    const r = await exportBook(config, target as 'epub' | 'pdf', { out: values.out, locale: values.locale })
+    const rel = (f: string) => relative(process.cwd(), f) || f
+    if (target === 'pdf' && !r.printed) {
+      console.log(`Wrote ${rel(r.printFile!)} ${dim(`(${r.chapters} chapters)`)}\nNo Chromium found: open it in a browser and print to PDF, or set NOVON_CHROME to a Chromium binary and run again.`)
+      return
+    }
+    console.log(`Wrote ${rel(r.file)} ${dim(`(${r.chapters} chapters)`)}`)
     return
   }
   if (command === 'add') {
