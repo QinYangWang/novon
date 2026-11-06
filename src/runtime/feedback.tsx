@@ -8,12 +8,7 @@ import { FeedbackWidget, type FeedbackData } from '@/components/feedback-widget'
 import { withBase } from '../shared.ts'
 import type { FeedbackOptions, PageMeta, SiteData } from '../types.ts'
 import { useLabels, useSite } from './site.tsx'
-
-type Analytics = Window & {
-  plausible?: (event: string, options?: { props?: Record<string, string> }) => void
-  umami?: { track: (event: string, data?: Record<string, string>) => void }
-  gtag?: (command: 'event', event: string, params?: Record<string, string>) => void
-}
+import { track } from './track.ts'
 
 /** Fills `{page}`, `{url}`, `{title}`, `{mood}` and `{message}`, URL-encoded. */
 export function feedbackHref(template: string, values: Record<string, string>): string {
@@ -32,13 +27,7 @@ export async function sendFeedback(site: SiteData, page: PageMeta, data: Feedbac
   const url = typeof location === 'undefined' ? withBase(site.base, page.route) : location.href.split('#')[0]
   const values = { page: page.route, url, title: page.title, mood: data.mood ?? '', message: data.message }
   const event = options.event === false ? null : (options.event ?? 'feedback')
-  if (event && typeof window !== 'undefined') {
-    const w = window as Analytics
-    const props = { page: page.route, mood: values.mood }
-    w.plausible?.(event, { props })
-    w.umami?.track(event, props)
-    w.gtag?.('event', event, props)
-  }
+  if (event) track(event, { page: page.route, mood: values.mood })
   const href = options.href
   if (!href) return
   if (href.startsWith('post:')) {

@@ -8,6 +8,8 @@ import type { SiteData } from '../types.ts'
 import { mdxComponents } from './mdx.tsx'
 import { SiteContext, layoutOf, loadRoute, type Loaded, type Loaders, type SiteContextValue } from './site.tsx'
 import { DocsLayout } from './layouts/docs.tsx'
+import { ConsentBanner } from './consent.tsx'
+import { ReadAloudBar } from './listen.tsx'
 import { BlogLayout } from './layouts/blog.tsx'
 import { PageContent } from './chrome.tsx'
 import { currentLocale, localizeSite } from './i18n.tsx'
@@ -113,7 +115,15 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
       <MDXProvider components={{ ...mdxComponents, ...components }}>
         <LocaleProvider locale={view.lang} labels={localeLabels}>
           <TooltipProvider>
-            {contentOnly ? <PageContent /> : <Layout />}
+            {contentOnly ? (
+              <PageContent />
+            ) : (
+              <>
+                <Layout />
+                <ReadAloudBar />
+                <ConsentBanner />
+              </>
+            )}
           </TooltipProvider>
         </LocaleProvider>
       </MDXProvider>

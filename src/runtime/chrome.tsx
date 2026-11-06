@@ -21,10 +21,12 @@ import {
   GithubIcon,
   MailIcon,
   MoreHorizontalIcon,
+  PlayIcon,
   RssIcon,
   SearchIcon,
 } from '@/components/icons'
 import { withBase } from '../shared.ts'
+import { startReading, useSpeechSupported } from './listen.tsx'
 import { Link } from './link.tsx'
 import { resolveIcon } from './icons.tsx'
 import { useLabels, useOverride, useSite } from './site.tsx'
@@ -162,7 +164,7 @@ export function editUrl(site: SiteData, page: PageMeta): string | undefined {
   return site.theme.editLink && page.file ? `${site.theme.editLink.replace(/\/?$/, '/')}${page.file}` : undefined
 }
 
-const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity']
+const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'pdf', 'listen', 'edit', 'chatgpt', 'claude', 'perplexity']
 
 /** Chat apps that take a prompt in the URL. */
 const CHATS: Record<'chatgpt' | 'claude' | 'perplexity', { name: string; href: string; icon: BrandIconData }> = {
@@ -184,6 +186,7 @@ export function PageActions() {
   const { site, current } = useSite()
   const [copied, setCopied] = React.useState(false)
   const t = useLabels()
+  const speech = useSpeechSupported()
   const page = current.page
   const actions = site.theme.pageActions === false ? [] : (site.theme.pageActions ?? DEFAULT_ACTIONS)
   if (!page?.file || !actions.length) return null
@@ -213,6 +216,13 @@ export function PageActions() {
       items.push(
         <MenuItem key={i} onClick={() => window.print()}>
           <DownloadIcon /> {t.downloadPdf}
+        </MenuItem>,
+      )
+    } else if (action === 'listen') {
+      if (!speech) continue
+      items.push(
+        <MenuItem key={i} onClick={() => startReading()}>
+          <PlayIcon /> {t.listen}
         </MenuItem>,
       )
     } else if (action === 'edit') {

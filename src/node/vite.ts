@@ -11,6 +11,7 @@ import { mdxOptions } from './mdx.ts'
 import { collectRedirects } from './redirects.ts'
 import { transformSource } from './source.ts'
 import { bannerData, inlineMarkdown } from './banner.ts'
+import { consentOf } from './analytics.ts'
 import { isMountedFile, mounts } from './mounts.ts'
 import type { FolderMeta, PageMeta, ResolvedConfig, SiteData } from '../types.ts'
 
@@ -21,6 +22,12 @@ export const entryServer = join(runtimeDir, 'entry-server.tsx')
 
 const SITE_ID = 'virtual:novon/site'
 const CSS_ID = 'virtual:novon/css'
+
+function consentData(config: ResolvedConfig): Pick<SiteData, 'consent'> {
+  const c = consentOf(config)
+  if (!c) return {}
+  return { consent: { version: c.version, ...(c.text ? { html: inlineMarkdown(c.text, config.base) } : {}), ...(c.policy ? { policy: c.policy } : {}) } }
+}
 
 export function siteData(config: ResolvedConfig, pages: PageMeta[], folders: Record<string, FolderMeta> = {}): SiteData {
   const plugins = config.plugins ?? []
@@ -42,6 +49,7 @@ export function siteData(config: ResolvedConfig, pages: PageMeta[], folders: Rec
     ...(config.i18n ? { i18n: { ...config.i18n, locales: config.i18n.locales.map((l) => (l.banner ? { ...l, banner: inlineMarkdown(l.banner, config.base) } : l)) } } : {}),
     ...(config.versions ? { versions: config.versions } : {}),
     ...(config.feedback ? { feedback: config.feedback } : {}),
+    ...consentData(config),
     search: plugins.includes('search'),
     rss: plugins.includes('rss'),
     rssPath: config.rss.path,

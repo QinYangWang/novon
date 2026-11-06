@@ -22,6 +22,11 @@
   .typeset :where(h2, h3, h4)[id] {
     scroll-margin-top: 4.5rem;
   }
+  /* The block being read aloud. */
+  [data-novon-reading] {
+    @apply rounded-sm bg-accent/60 transition-colors;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 60%, transparent);
+  }
 }
 
 /* Printing (and "Download PDF"): the page's content only, every block whole. */
