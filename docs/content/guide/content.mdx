@@ -30,6 +30,7 @@ hidden: true              # left out of navigation, search and feeds
 draft: true               # left out of production builds
 noindex: true             # robots noindex; left out of the sitemap and llms.txt
 redirectFrom: [/old-path] # old URLs that redirect here
+badge: New                # tag beside the sidebar link
 head:                     # extra tags for this page's <head>
   - tag: meta
     attrs: { name: keywords, content: mdx, docs }
@@ -42,9 +43,44 @@ a key that looks like a typo of a known one is a warning. Other keys are yours.
 The first `# Heading` is used when there is no `title`. Write the body from
 `##` down: the layout prints the title.
 
+## Sidebar order
+
+Pages sort by `order`, then by title. A folder's `_meta.ts` sets the order of
+its pages and sub-folders by name, and more:
+
+```ts title="content/guide/_meta.ts"
+import { defineMeta } from 'novon/config'
+
+export default defineMeta({
+  title: 'Guide',              // section label; default: the folder's index page
+  badge: 'Beta',
+  collapsed: false,            // start folded
+  pages: [
+    'install',                 // file or folder names, without extension
+    { group: 'Basics', pages: ['content', 'writing'] }, // under a small label
+    '...',                     // the rest, in their usual order
+    { title: 'Changelog', href: 'https://github.com/acme/site/releases' },
+  ],
+  items: {
+    writing: { title: 'Write', badge: 'New' },
+    internal: { hidden: true }, // out of navigation, search and feeds
+  },
+})
+```
+
+Without `'...'`, pages the list leaves out come after it. A `_meta.ts` at the
+root of `content/` orders the top level. `_meta.json` works too.
+`novon check` flags names that match no page.
+
+## Partials
+
+Files under `content/_partials/` are not pages; `<Partial file="name" />`
+includes one. See [Writing](/guide/writing#partials-and-variables).
+
 ## Headings
 
-`##` and `###` headings get ids and show up in "On this page" and in search.
+`##` and `###` headings get ids and show up in "On this page" and in search,
+which opens a result at its heading.
 
 ## Generated files
 
@@ -57,6 +93,7 @@ The first `# Heading` is used when there is no `title`. Write the body from
 | `rss.xml` (or `rss.path`) | `rss` (blog layouts) |
 | `llms.txt`, `llms-full.txt` and `<page>.md` | `llms` |
 | `_redirects` and a page per old path | [redirects](/guide/configuration#redirects) |
+| `api/*.json`, `openapi.json`, `skill.md`, `.well-known/*`, `_headers` | [agent files](/guide/agents) |
 | `og/<page>.png` | share images, see [Configuration](/guide/configuration#share-images) |
 
 `<page>.md` is the page as plain Markdown: callouts become quotes, tabs become

@@ -1,0 +1,29 @@
+---
+title: Search
+description: Full-text search over every page and section, with no server.
+icon: Search
+---
+
+Press <Kbd>⌘K</Kbd> (or <Kbd>Ctrl K</Kbd>) or the search button. Results are
+pages and the sections under their `##` and `###` headings; picking a section
+opens the page at that heading.
+
+## How it matches
+
+- Every word of the query has to appear in the result. Words match from their
+  start, so `conf` finds `configuration`.
+- A match in a heading or title counts most, then the description, then the text.
+- Chinese, Japanese and Korean text is matched by pairs of characters, so
+  `配置文件` finds pages with `配置` and `文件` without spaces between words.
+
+## The index
+
+The `search` plugin writes `search.json`: one entry per page and one per
+section, each with its full plain text (code included, components' text
+included, expressions left out). Hidden pages are not in it. The file loads the
+first time search opens.
+
+`search.json` is also what the in-browser agent tools read; see
+[For agents](/guide/agents#webmcp).
+
+Remove `search` from `plugins` to turn search off.

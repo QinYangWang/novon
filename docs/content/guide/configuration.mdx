@@ -32,8 +32,9 @@ export default defineConfig({
     labels: { onThisPage: 'Contents' },
     css: ['./styles/extra.css'],
     override: { Footer: './theme/Footer.tsx' },
-    pageActions: ['copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity'],
+    pageActions: ['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity'],
     lastUpdated: true,            // see Content › Last updated
+    imageZoom: true,              // Markdown images open full size on click
   },
   components: { Pricing: './components/Pricing.tsx' },
   plugins: ['search', 'sitemap', 'rss', 'llms'],
@@ -42,9 +43,16 @@ export default defineConfig({
   og: { font: './fonts/NotoSansSC-Bold.ttf' }, // see Share images; false turns them off
   redirects: { '/old': '/new' },  // see Redirects
   head: [{ tag: 'meta', attrs: { name: 'theme-color', content: '#fff' } }],
+  variables: { version: '2.1' },  // {{version}} in pages; see Writing
+  banner: 'Version 2 is out',     // see Banner
+  analytics: { plausible: { domain: 'acme.dev' } }, // see Analytics
+  agents: { skills: './skills' }, // see For agents
+  budget: { js: '320 kB', css: '60 kB' }, // see Budgets
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: false,           // number every code block
+    math: true,                   // $…$ and $$…$$
+    mermaid: true,                // ```mermaid fences
     remarkPlugins: [],
     rehypePlugins: [],
   },
@@ -125,6 +133,7 @@ theme: {
   pageActions: [
     'copy',          // copy the page as Markdown
     'markdown',      // open <page>.md
+    'pdf',           // print, or save as PDF
     'edit',          // needs theme.editLink
     'chatgpt', 'claude', 'perplexity',
     { label: 'Ask Acme AI', href: 'https://ai.acme.dev/?q={prompt}' },
@@ -135,6 +144,52 @@ theme: {
 In `href`, `{prompt}` is "Read … and answer questions about it" with the
 page's Markdown URL, `{markdown}` that URL and `{url}` the page itself. Blog
 posts show the menu only when `pageActions` is set.
+
+"Download PDF" opens the print dialog. The print stylesheet keeps only the
+page's content: no header, sidebars, outline or banner, code blocks unclipped,
+and blocks kept whole across pages.
+
+## Banner
+
+A line above the header of every page, for an announcement. Inline Markdown
+works: `**bold**`, `` `code` ``, `[links](/x)`.
+
+```ts
+banner: {
+  text: 'Version 2 is out. [Read what changed](/blog/v2)',
+  href: '/blog/v2',     // make the whole banner a link
+  dismissible: true,    // default; a closed banner stays closed
+  id: 'v2',             // change it to show a closed banner again
+},
+```
+
+A string is the same as `{ text }`. Without `id`, changing the text shows the
+banner again to readers who closed it.
+
+## Analytics
+
+```ts
+analytics: {
+  plausible: { domain: 'acme.dev' },         // src for a self-hosted script
+  umami: { websiteId: '…', src: 'https://umami.acme.dev/script.js' },
+  ga4: 'G-XXXXXXX',
+  cloudflare: 'token',                       // Cloudflare Web Analytics
+  custom: 'https://stats.acme.dev/script.js', // or head elements
+},
+```
+
+Each adds its script to every page. Moving between pages without a reload
+counts as a page view: the scripts follow the browser history.
+
+## Budgets
+
+```ts
+budget: { js: '320 kB', css: '60 kB' },
+```
+
+The build fails when the JavaScript or CSS every page loads first is larger,
+gzipped. Code loaded later, like diagrams, does not count. `novon build`
+prints both sizes; `--budget-js` and `--budget-css` override the config.
 
 ## Search engines
 
@@ -149,14 +204,5 @@ prints what it finds. See [Checking](/guide/checking).
 
 ## Plugins
 
-Built-in plugins are named by string. Your own plugin is an object with a
-`buildEnd` hook that runs after every page is written:
-
-```ts
-const robots = {
-  name: 'humans',
-  async buildEnd({ emit, pages }) {
-    await emit('humans.txt', `${pages.length} pages, written by people.`)
-  },
-}
-```
+Built-in plugins are named by string; your own are objects with hooks. See
+[Plugins](/guide/plugins).

@@ -148,6 +148,147 @@ remembered across pages.
 
 `managers` picks and orders the tabs; the default is npm, pnpm, yarn and bun.
 
+## Math
+
+`$…$` is inline math and `$$…$$` a block, rendered at build time, so pages
+load no math code.
+
+The area of a circle is $A = \pi r^2$, and
+
+$$
+\int_0^1 x^2\,dx = \frac{1}{3}
+$$
+
+```mdx
+The area of a circle is $A = \pi r^2$, and
+
+$$
+\int_0^1 x^2\,dx = \frac{1}{3}
+$$
+```
+
+`mdx.math: { singleDollar: false }` keeps single dollars as text (prices);
+`mdx.math: false` turns math off.
+
+## Diagrams
+
+A `mermaid` fence becomes a diagram in the page's colours, light or dark. It is
+drawn in the browser, and the drawing code loads only on pages that have one.
+Click a diagram to see it full size.
+
+```mermaid
+flowchart LR
+  A[content/*.mdx] --> B(novon build)
+  B --> C[dist/ pages]
+  B --> D[search.json]
+  B --> E[llms.txt]
+```
+
+````mdx
+```mermaid
+flowchart LR
+  A[content/*.mdx] --> B(novon build)
+  B --> C[dist/ pages]
+```
+````
+
+`mdx.mermaid: false` leaves `mermaid` fences as code.
+
+## Type tables
+
+`TypeTable` lists props, options or fields: name, type, default and
+description. Write the rows as `Field` elements, or pass an object as `type`.
+
+<TypeTable>
+  <Field name="title" type="string" required>Page title and `<title>`.</Field>
+  <Field name="order" type="number" default="Infinity">Lower comes first in the sidebar.</Field>
+  <Field name="badge" type="string">A short tag beside the sidebar link.</Field>
+</TypeTable>
+
+```mdx
+<TypeTable>
+  <Field name="title" type="string" required>Page title and `<title>`.</Field>
+  <Field name="order" type="number" default="Infinity">Lower comes first.</Field>
+</TypeTable>
+
+<TypeTable type={{ badge: { type: 'string', description: 'A short tag.' } }} />
+```
+
+## Diffs
+
+`Diff` shows a change to a file. Put a `diff` fence inside, or pass `before`
+and `after`. Lines start with `+`, `-` or a space; `split` shows the two sides
+next to each other.
+
+<Diff file="novon.config.ts">
+```diff
+ export default defineConfig({
+   title: 'Acme',
+-  layout: 'blog',
++  layout: 'docs',
++  banner: 'Version 2 is out',
+ })
+```
+</Diff>
+
+````mdx
+<Diff file="novon.config.ts">
+```diff
+ export default defineConfig({
+-  layout: 'blog',
++  layout: 'docs',
+ })
+```
+</Diff>
+````
+
+## Prompts
+
+`Prompt` is text for an AI assistant with a copy button. The copy is the
+source as written; one short line shows as a command bar.
+
+<Prompt title="Add a page">
+Read https://qinyangwang.github.io/novon/llms.txt, then add a page called
+"Deploying" to my novon site that explains GitHub Pages.
+</Prompt>
+
+```mdx
+<Prompt title="Add a page">
+Read https://example.com/llms.txt, then add a page called "Deploying".
+</Prompt>
+```
+
+## Images
+
+Markdown images open full size on click; `theme.imageZoom: false` turns that
+off. `ImageZoom` takes a larger file for the zoomed view:
+
+![The docs template](/templates/docs.webp)
+
+```mdx
+![Dashboard](/shots/dashboard.png)
+<ImageZoom src="/shots/small.png" zoomSrc="/shots/large.png" alt="Dashboard" />
+```
+
+## Partials and variables
+
+A file in `content/_partials/` is a partial: `<Partial file="name" />` puts its
+content in place, before the page is compiled, indexed or checked. The tag's
+other attributes fill the partial's `{{name}}` placeholders.
+
+```mdx title="content/_partials/new-site.mdx"
+novon new {{name}}
+```
+
+```mdx
+<Partial file="new-site" name="my-docs" />
+```
+
+`{{name}}` anywhere in a page, code included, is replaced with
+`variables.name` from the config: install commands here read
+`novon@\{{version}}`. Write `\\{{name}}` to keep the braces. An unknown variable
+or a missing partial is an error in `novon check`.
+
 ## Accordion
 
 <AccordionGroup>

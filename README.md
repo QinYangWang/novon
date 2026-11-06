@@ -29,19 +29,23 @@ my-docs/
 
 - **Layouts.** `docs` (sidebar, search, page outline, prev/next) and `blog`
   (dated posts, tags, RSS). Mount both in one site with `layers`.
-- **Writing.** Callouts, cards, steps, tabs, code groups, accordions, file trees
-  and terms work in every page without an import, as do `:::note` blocks,
-  GitHub alerts and install tabs for npm, pnpm, yarn and bun. Code is
-  highlighted at build time in both themes, with line highlights, diffs, focus
-  and line numbers.
+- **Writing.** Callouts, cards, steps, tabs, code groups, accordions, file trees,
+  terms, type tables, diffs, prompts and zoomable images work in every page
+  without an import, as do `:::note` blocks, GitHub alerts, install tabs for
+  npm, pnpm, yarn and bun, `$math$`, `mermaid` diagrams, partials and
+  `{{variables}}`. Code is highlighted at build time in both themes, with line
+  highlights, diffs, focus and line numbers. `_meta.ts` files order the sidebar.
 - **Output.** Every page is prerendered HTML that hydrates into a single-page
   app. `search.json`, `sitemap.xml`, `rss.xml`, `llms.txt`, `llms-full.txt`,
   a plain Markdown copy of each page, a share image per page, structured data,
-  redirects and "Open in" links for chat apps come with it.
+  redirects and "Open in" links for chat apps come with it, plus a JSON API,
+  agent skills, discovery files and in-browser agent tools. Search covers every
+  section's full text, Chinese and Japanese included.
 - **Languages.** Built-in strings and dates follow `lang` (English and
   Chinese ship built in); replace any of them with `theme.labels`.
 - **Extending.** Register React components for MDX, swap the header, footer,
-  sidebar or 404 for your own, add stylesheets, or write a plugin.
+  sidebar or 404 for your own, add stylesheets, or write a plugin with hooks
+  for content, page data, head tags, routes and the build.
 
 Documentation: <https://qinyangwang.github.io/novon/> (source in
 [docs/content](docs/content), `bun run dev`). Live demos of both templates:

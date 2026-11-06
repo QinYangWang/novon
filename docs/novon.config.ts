@@ -12,6 +12,8 @@ export default defineConfig({
     { label: 'GitHub', href: 'https://github.com/QinYangWang/novon' },
   ],
   components: { TemplateCard: './components/TemplateCard.tsx' },
+  variables: { version: 'latest' },
+  banner: { text: 'novon now writes [agent files](/guide/agents) and draws diagrams and math.', id: 'p1' },
   theme: {
     accent: 'blue',
     favicon: '/favicon.svg',
