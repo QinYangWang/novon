@@ -11,9 +11,11 @@ import { tagRoute } from '../src/shared.ts'
 
 describe('labels', () => {
   test('lang picks the set; Chinese variants fall back to zh-CN', () => {
-    expect(labelsFor('en').onThisPage).toBe('On this page')
-    for (const lang of ['zh-CN', 'zh', 'zh-Hans', 'zh-TW', 'ZH-cn']) expect(labelsFor(lang).onThisPage).toBe('本页目录')
-    expect(labelsFor('fr').onThisPage).toBe('On this page')
+    expect(labelsFor('en').keepReading).toBe('Keep reading')
+    for (const lang of ['zh-CN', 'zh', 'zh-Hans', 'zh-TW', 'ZH-cn']) expect(labelsFor(lang).keepReading).toBe('继续阅读')
+    expect(labelsFor('fr').keepReading).toBe('Keep reading')
+    // The outline's own strings come from the library; novon keeps them only as overrides.
+    expect(labelsFor('en').onThisPage).toBeUndefined()
   })
   test('theme.labels replaces single strings', () => {
     const t = labelsFor('zh-CN', { onThisPage: '目录' })

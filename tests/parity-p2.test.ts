@@ -326,7 +326,7 @@ describe('P2 units', () => {
 
   test('ja labels are complete', () => {
     const ja = labelsFor('ja-JP')
-    expect(ja.language).toBe('言語')
+    expect(ja.feedback).toBe('フィードバック')
     expect(Object.keys(ja).sort()).toEqual(Object.keys(labelsFor('en')).sort())
   })
 })
