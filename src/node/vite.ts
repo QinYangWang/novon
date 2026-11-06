@@ -23,10 +23,15 @@ export const entryServer = join(runtimeDir, 'entry-server.tsx')
 const SITE_ID = 'virtual:novon/site'
 const CSS_ID = 'virtual:novon/css'
 
+/** Root-relative Markdown links with the site's base, for text rendered in the browser. */
+export function withBaseLinks(text: string, base: string): string {
+  return base === '/' ? text : text.replace(/\]\(\/(?!\/)/g, `](${base}`)
+}
+
 function consentData(config: ResolvedConfig): Pick<SiteData, 'consent'> {
   const c = consentOf(config)
   if (!c) return {}
-  return { consent: { version: c.version, ...(c.text ? { html: inlineMarkdown(c.text, config.base) } : {}), ...(c.policy ? { policy: c.policy } : {}) } }
+  return { consent: { version: c.version, ...(c.text ? { text: withBaseLinks(c.text, config.base) } : {}), ...(c.policy ? { policy: c.policy } : {}) } }
 }
 
 export function siteData(config: ResolvedConfig, pages: PageMeta[], folders: Record<string, FolderMeta> = {}): SiteData {

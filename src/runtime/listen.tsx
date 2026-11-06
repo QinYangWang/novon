@@ -1,14 +1,12 @@
 /**
  * Read aloud: the `listen` page action speaks the page's blocks one by one
  * with the browser's speech synthesis, marks the block being read, and shows a
- * pause/stop bar. Escape or leaving the page stops it. Hidden where speech
- * synthesis is missing.
+ * media bar (pause, skip, stop, progress). Escape or leaving the page stops it.
+ * Hidden where speech synthesis is missing.
  */
 import * as React from 'react'
-import { PauseIcon, PlayIcon, StopIcon } from '@/components/icons'
-import { Button } from '@/ui/button'
-import { Card } from '@/ui/card'
-import { useLabels, useSite } from './site.tsx'
+import { MediaBar, markSpeaking } from '@/ui/media-bar'
+import { useSite } from './site.tsx'
 
 type State = 'idle' | 'playing' | 'paused'
 
@@ -34,12 +32,7 @@ export function readableBlocks(root: ParentNode): HTMLElement[] {
   return all.filter((el) => !el.closest(SKIP) && !el.querySelector(BLOCKS) && (el.textContent ?? '').trim().length > 0)
 }
 
-function mark(el: HTMLElement | undefined) {
-  document.querySelectorAll('[data-novon-reading]').forEach((n) => n.removeAttribute('data-novon-reading'))
-  if (!el) return
-  el.setAttribute('data-novon-reading', '')
-  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-}
+const mark = (el: HTMLElement | undefined) => markSpeaking(el ?? null)
 
 function speakNext(ticket: number) {
   if (ticket !== run) return
@@ -82,6 +75,22 @@ export function resumeReading() {
   set('playing')
 }
 
+/** Jumps to the previous or next block and reads on from there. */
+export function skipReading(by: number) {
+  if (state === 'idle' || !queue.length) return
+  index = Math.max(0, Math.min(queue.length - 1, index + by))
+  speechSynthesis.cancel()
+  if (state === 'paused') speechSynthesis.resume()
+  const ticket = ++run
+  set('playing')
+  speakNext(ticket)
+}
+
+/** The block being read, from 1, and how many there are. */
+export function readingProgress(): { current: number; total: number } {
+  return { current: Math.min(index + 1, queue.length), total: queue.length }
+}
+
 export function stopReading() {
   run++
   if (speechSupported()) speechSynthesis.cancel()
@@ -108,11 +117,10 @@ export function useSpeechSupported(): boolean {
   return ok
 }
 
-/** The bar shown while reading: pause or resume, and stop. */
+/** The bar shown while reading: play/pause, skip, stop and progress. */
 export function ReadAloudBar() {
   const reading = useReading()
   const { current } = useSite()
-  const t = useLabels()
   React.useEffect(() => stopReading, [current.route])
   React.useEffect(() => {
     if (reading === 'idle') return
@@ -126,20 +134,18 @@ export function ReadAloudBar() {
     }
   }, [reading])
   if (reading === 'idle') return null
-  const paused = reading === 'paused'
+  const progress = readingProgress()
   return (
-    <div data-novon-chrome="" data-novon-read-aloud="" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center p-3 sm:p-4">
-      <Card role="region" aria-label={t.readingAloud} size="sm" className="pointer-events-auto flex-row items-center gap-1 rounded-full py-1 ps-4 pe-1">
-        <span className="me-2 text-ui-sm text-muted-foreground" aria-live="polite">
-          {paused ? t.readingPaused : t.readingAloud}
-        </span>
-        <Button variant="ghost" size="icon-sm" shape="pill" aria-label={paused ? t.listenResume : t.listenPause} onClick={paused ? resumeReading : pauseReading}>
-          {paused ? <PlayIcon /> : <PauseIcon />}
-        </Button>
-        <Button variant="ghost" size="icon-sm" shape="pill" aria-label={t.listenStop} onClick={stopReading}>
-          <StopIcon />
-        </Button>
-      </Card>
-    </div>
+    <MediaBar
+      data-novon-chrome=""
+      playing={reading === 'playing'}
+      onPlayingChange={(play) => (play ? resumeReading() : pauseReading())}
+      onSkipBack={() => skipReading(-1)}
+      onSkipForward={() => skipReading(1)}
+      onStop={stopReading}
+      current={progress.current}
+      total={progress.total}
+      order={0}
+    />
   )
 }

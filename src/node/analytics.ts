@@ -17,11 +17,14 @@ export const consentKey = (version: string) => `novon:consent:${version}`
 
 /**
  * Runs in the head after the inert analytics scripts: \`window.novonConsent\` and,
- * when the reader already allowed them, the scripts themselves.
+ * when the reader already allowed them, the scripts themselves. The answer is
+ * stored the way the library's consent banner stores it (\`accepted\` or
+ * \`declined\` under the version's key), and every change, from the banner or
+ * from \`novonConsent\`, arrives as a \`paneui:consent\` event.
  */
 export function consentScript(version: string): string {
   const key = JSON.stringify(consentKey(version))
-  return `(function(){var k=${key},d=document;function get(){try{return localStorage.getItem(k)}catch(e){return null}}function put(v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}function run(){d.querySelectorAll('script[data-novon-consent]').forEach(function(o){var s=d.createElement('script');for(var i=0;i<o.attributes.length;i++){var a=o.attributes[i];if(a.name!=='type'&&a.name!=='data-novon-consent')s.setAttribute(a.name,a.value)}s.text=o.text;o.replaceWith(s)})}function tell(v){dispatchEvent(new CustomEvent('novon:consent',{detail:v}))}window.novonConsent={version:${JSON.stringify(version)},get:function(){var v=get();return v==='granted'||v==='denied'?v:null},allow:function(){put('granted');run();tell('granted')},deny:function(){var was=get()==='granted';put('denied');tell('denied');if(was)location.reload()},reset:function(){put(null);tell(null)}};if(get()==='granted')run()})();`
+  return `(function(){var k=${key},d=document,ran=0;function norm(v){return v==='accepted'||v==='granted'?'granted':v==='declined'||v==='denied'?'denied':null}function get(){try{return norm(localStorage.getItem(k))}catch(e){return null}}function put(v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}dispatchEvent(new CustomEvent('paneui:consent',{detail:{key:k,value:v}}))}function run(){if(ran)return;ran=1;d.querySelectorAll('script[data-novon-consent]').forEach(function(o){var s=d.createElement('script');for(var i=0;i<o.attributes.length;i++){var a=o.attributes[i];if(a.name!=='type'&&a.name!=='data-novon-consent')s.setAttribute(a.name,a.value)}s.text=o.text;o.replaceWith(s)})}addEventListener('paneui:consent',function(e){if(!e.detail||e.detail.key!==k)return;var v=norm(e.detail.value);dispatchEvent(new CustomEvent('novon:consent',{detail:v}));if(v==='granted')run();else if(v==='denied'&&ran)location.reload()});window.novonConsent={version:${JSON.stringify(version)},key:k,get:get,allow:function(){put('accepted')},deny:function(){put('declined')},reset:function(){put(null)}};if(get()==='granted')run()})();`
 }
 
 /** Head elements for the configured providers, in a stable order. */

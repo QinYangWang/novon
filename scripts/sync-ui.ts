@@ -18,6 +18,7 @@ export const items = [
   'sidebar-nav', 'simple-table', 'og-image', 'locale-provider', 'brand-icon', 'file-diff', 'command-copy',
   'dialog', 'timeline', 'feedback-widget', 'image-zoom', 'banner', 'diagram',
   'locale-switcher', 'version-switcher', 'schema-tree', 'endpoint',
+  'bottom-stack', 'consent-banner', 'media-bar', 'inline-markdown',
 ]
 
 if (import.meta.main) {

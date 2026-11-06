@@ -21,7 +21,7 @@ import {
   GithubIcon,
   MailIcon,
   MoreHorizontalIcon,
-  PlayIcon,
+  Volume2Icon,
   RssIcon,
   SearchIcon,
 } from '@/components/icons'
@@ -222,7 +222,7 @@ export function PageActions() {
       if (!speech) continue
       items.push(
         <MenuItem key={i} onClick={() => startReading()}>
-          <PlayIcon /> {t.listen}
+          <Volume2Icon /> {t.listen}
         </MenuItem>,
       )
     } else if (action === 'edit') {

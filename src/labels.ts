@@ -32,16 +32,6 @@ export interface Labels {
   morePageActions: string
   /** The read-aloud page action and its bar. */
   listen: string
-  listenPause: string
-  listenResume: string
-  listenStop: string
-  readingAloud: string
-  readingPaused: string
-  /** The analytics consent banner. */
-  consentText: string
-  consentAccept: string
-  consentDecline: string
-  consentPolicy: string
   viewMarkdown: string
   editPage: string
   askAboutPage: string
@@ -152,15 +142,6 @@ export const en: Labels = {
   copied: 'Copied',
   morePageActions: 'More page actions',
   listen: 'Listen',
-  listenPause: 'Pause',
-  listenResume: 'Resume',
-  listenStop: 'Stop reading',
-  readingAloud: 'Reading aloud',
-  readingPaused: 'Paused',
-  consentText: 'This site uses analytics to learn how its pages are read. Allow it?',
-  consentAccept: 'Allow',
-  consentDecline: 'Decline',
-  consentPolicy: 'Privacy policy',
   viewMarkdown: 'View as Markdown',
   editPage: 'Edit this page',
   askAboutPage: 'Ask about this page',
@@ -259,15 +240,6 @@ export const zhCN: Labels = {
   copied: '已复制',
   morePageActions: '更多操作',
   listen: '朗读',
-  listenPause: '暂停',
-  listenResume: '继续',
-  listenStop: '停止朗读',
-  readingAloud: '正在朗读',
-  readingPaused: '已暂停',
-  consentText: '本站使用统计分析来了解页面的阅读情况。是否允许？',
-  consentAccept: '允许',
-  consentDecline: '拒绝',
-  consentPolicy: '隐私政策',
   viewMarkdown: '查看 Markdown',
   editPage: '编辑此页',
   askAboutPage: '就此页提问',
@@ -366,15 +338,6 @@ export const ja: Labels = {
   copied: 'コピーしました',
   morePageActions: 'その他の操作',
   listen: '読み上げ',
-  listenPause: '一時停止',
-  listenResume: '再開',
-  listenStop: '読み上げを停止',
-  readingAloud: '読み上げ中',
-  readingPaused: '一時停止中',
-  consentText: 'このサイトはページの読まれ方を知るためにアクセス解析を使います。許可しますか？',
-  consentAccept: '許可',
-  consentDecline: '拒否',
-  consentPolicy: 'プライバシーポリシー',
   viewMarkdown: 'Markdown で表示',
   editPage: 'このページを編集',
   askAboutPage: 'このページについて質問',

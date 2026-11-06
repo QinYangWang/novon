@@ -24,7 +24,7 @@ export type FeedbackWidgetProps = {
   placement?: "floating" | "inline"
   /** Floating only. */
   position?: "bottom-right" | "bottom-left"
-  /** Floating only. `fixed` pins to the viewport corner; `absolute` (default) to the nearest positioned ancestor. */
+  /** Floating only. `fixed` pins to the viewport corner, above any bottom stack; `absolute` (default) to the nearest positioned ancestor. */
   strategy?: "fixed" | "absolute"
   /** Floating only: the trigger's text. */
   label?: React.ReactNode
@@ -207,7 +207,13 @@ function FloatingFeedback({
       data-slot="feedback-widget"
       data-placement="floating"
       data-state={status}
-      className={cn(strategy === "fixed" ? "fixed" : "absolute", "bottom-4 z-40", left ? "left-4" : "right-4", className)}
+      className={cn(
+        // Fixed widgets lift above a bottom stack (consent card, media bar) while one is showing.
+        strategy === "fixed" ? "fixed bottom-[calc(var(--bottom-overlay-offset,0px)+--spacing(4))]" : "absolute bottom-4",
+        "z-40",
+        left ? "left-4" : "right-4",
+        className
+      )}
       onKeyDown={(e) => {
         if (e.key === "Escape" && isOpen && !busy) {
           e.stopPropagation()

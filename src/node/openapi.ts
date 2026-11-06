@@ -12,6 +12,7 @@ import GithubSlugger from 'github-slugger'
 import { labelsFor, type Labels } from '../labels.ts'
 import type { OpenApiOptions, ResolvedConfig } from '../types.ts'
 import { GENERATED_DIR, openapiName, SOURCES_DIR } from './mounts.ts'
+import { joinEndpoint } from '@/ui/endpoint'
 
 type Json = any
 
@@ -351,7 +352,7 @@ export function samples(doc: Json, spec: OpenApiOptions, o: Operation): string {
     return v === undefined || v === 'string' ? `{${k}}` : encodeURIComponent(String(v))
   })
   const qs = Object.entries(query).map(([k, v]) => `${encodeURIComponent(k)}=${v.startsWith('$') ? v : encodeURIComponent(v)}`).join('&')
-  const url = `${server}${path}${qs ? `?${qs}` : ''}`
+  const url = `${joinEndpoint(server, path)}${qs ? `?${qs}` : ''}`
   const body = deref(doc, o.op.requestBody)
   const mediaType = body?.content ? (Object.keys(body.content).find((k) => k.includes('json')) ?? Object.keys(body.content)[0]) : undefined
   const example = mediaType ? mediaExample(doc, body.content[mediaType]) : undefined

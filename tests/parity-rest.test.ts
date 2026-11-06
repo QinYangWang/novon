@@ -444,7 +444,7 @@ describe('part B units', () => {
   test('new labels exist in every built-in language', () => {
     for (const lang of ['en', 'zh-CN', 'ja']) {
       const l = labelsFor(lang)
-      for (const k of ['listen', 'listenPause', 'listenResume', 'listenStop', 'readingAloud', 'readingPaused', 'consentText', 'consentAccept', 'consentDecline', 'consentPolicy'] as const) expect(l[k]).toBeTruthy()
+      for (const k of ['listen'] as const) expect(l[k]).toBeTruthy()
     }
   })
 })
@@ -496,7 +496,7 @@ export default {
     expect(html).toContain('novon:consent:3')
     const { pages } = await scanSite(config)
     const site = siteData(config, pages)
-    expect(site.consent).toEqual({ version: '3', html: 'We count <strong>visits</strong>.', policy: '/privacy' })
+    expect(site.consent).toEqual({ version: '3', text: 'We count **visits**.', policy: '/privacy' })
   })
 
   test('check accepts the new keys', async () => {

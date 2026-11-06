@@ -685,5 +685,5 @@ export interface SiteData {
   versions?: ResolvedVersions
   feedback?: FeedbackOptions
   /** The consent banner, when `consent` and `analytics` are both set. */
-  consent?: { html?: string; policy?: string; version: string }
+  consent?: { text?: string; policy?: string; version: string }
 }

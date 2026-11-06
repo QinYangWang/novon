@@ -41,7 +41,7 @@ consent: {
 
 With `consent`, the analytics scripts are written inert and run only after the
 reader allows them. A banner at the bottom asks once; the answer is kept in the
-browser under `novon:consent:<version>`. `consent` does nothing without
+browser under `novon:consent:<version>`, as `accepted` or `declined`. `consent` does nothing without
 `analytics`.
 
 Scripts on the page can read and change the choice:
@@ -53,5 +53,6 @@ window.novonConsent.deny()   // reloads the page if analytics had started
 window.novonConsent.reset()  // shows the banner again
 ```
 
-`novon:consent` fires on `window` after each change. A button of your own that
+`novon:consent` fires on `window` after each change, with `'granted'`, `'denied'`
+or `null`; the library's `paneui:consent` event fires too. A button of your own that
 calls `novonConsent.reset()` lets readers change their mind.

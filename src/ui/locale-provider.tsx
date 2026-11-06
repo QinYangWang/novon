@@ -733,6 +733,23 @@ type LocaleLabels = {
   results: string
   noItems: (noun: string) => string
   itemRange: (from: string, to: string, total: string, noun: string) => string
+  /* Consent banner */
+  consentRegion: string
+  consentText: string
+  consentPolicy: string
+  consentAccept: string
+  consentDecline: string
+  consentCustomize: string
+  /* Media bar */
+  mediaControls: string
+  mediaReading: string
+  mediaPlaying: string
+  mediaPaused: string
+  mediaPlay: string
+  mediaPause: string
+  mediaSkipBack: string
+  mediaSkipForward: string
+  mediaProgress: (current: number, total: number) => string
 }
 
 const en: LocaleLabels = {
@@ -1437,6 +1454,21 @@ const en: LocaleLabels = {
   results: "results",
   noItems: (n) => `No ${n}`,
   itemRange: (f, t, total, n) => `${f}–${t} of ${total} ${n}`,
+  consentRegion: "Privacy choices",
+  consentText: "This site uses analytics to learn how its pages are read. Allow it?",
+  consentPolicy: "Privacy policy",
+  consentAccept: "Allow",
+  consentDecline: "Decline",
+  consentCustomize: "Customize",
+  mediaControls: "Playback",
+  mediaReading: "Reading aloud",
+  mediaPlaying: "Playing",
+  mediaPaused: "Paused",
+  mediaPlay: "Play",
+  mediaPause: "Pause",
+  mediaSkipBack: "Skip back",
+  mediaSkipForward: "Skip forward",
+  mediaProgress: (c, t) => `Part ${c} of ${t}`,
 }
 
 const zhCN: LocaleLabels = {
@@ -2141,6 +2173,21 @@ const zhCN: LocaleLabels = {
   results: "结果",
   noItems: (n) => `没有${n}`,
   itemRange: (f, t, total, n) => `${f}–${t}，共 ${total} 个${n}`,
+  consentRegion: "隐私选项",
+  consentText: "本站使用分析工具了解页面的阅读情况。是否允许？",
+  consentPolicy: "隐私政策",
+  consentAccept: "允许",
+  consentDecline: "拒绝",
+  consentCustomize: "自定义",
+  mediaControls: "播放控制",
+  mediaReading: "正在朗读",
+  mediaPlaying: "正在播放",
+  mediaPaused: "已暂停",
+  mediaPlay: "播放",
+  mediaPause: "暂停",
+  mediaSkipBack: "后退",
+  mediaSkipForward: "前进",
+  mediaProgress: (c, t) => `第 ${c} 部分，共 ${t} 部分`,
 }
 
 const ja: LocaleLabels = {
@@ -2845,6 +2892,21 @@ const ja: LocaleLabels = {
   results: "件",
   noItems: (n) => `${n}はありません`,
   itemRange: (f, t, total, n) => `${total} 件の${n}中 ${f}–${t}`,
+  consentRegion: "プライバシーの選択",
+  consentText: "このサイトはページの読まれ方を知るためにアクセス解析を使います。許可しますか？",
+  consentPolicy: "プライバシーポリシー",
+  consentAccept: "許可",
+  consentDecline: "拒否",
+  consentCustomize: "カスタマイズ",
+  mediaControls: "再生コントロール",
+  mediaReading: "読み上げ中",
+  mediaPlaying: "再生中",
+  mediaPaused: "一時停止中",
+  mediaPlay: "再生",
+  mediaPause: "一時停止",
+  mediaSkipBack: "戻る",
+  mediaSkipForward: "進む",
+  mediaProgress: (c, t) => `${t} 件中 ${c} 件目`,
 }
 
 /** Built-in label sets, keyed by BCP 47 tag. */

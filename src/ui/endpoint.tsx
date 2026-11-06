@@ -170,5 +170,5 @@ function Endpoint({ method, path, server, copyValue, deprecated, copyable = true
   )
 }
 
-export { MethodBadge, methodBadgeVariants, EndpointPath, Endpoint }
+export { MethodBadge, methodBadgeVariants, EndpointPath, Endpoint, joinEndpoint }
 export type { HttpMethod, OperationKind, MethodBadgeProps, EndpointProps }

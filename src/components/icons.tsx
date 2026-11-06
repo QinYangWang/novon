@@ -784,6 +784,48 @@ export const StopIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const SkipBackIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M19.5 6.6v10.8c0 1.1-1.2 1.8-2.2 1.2l-8.4-5.4c-.8-.5-.8-1.8 0-2.4l8.4-5.4c1-.6 2.2.1 2.2 1.2z" />
+    <path {...line} d="M4.5 5v14" />
+  </Icon>
+);
+
+export const SkipForwardIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M4.5 6.6v10.8c0 1.1 1.2 1.8 2.2 1.2l8.4-5.4c.8-.5.8-1.8 0-2.4L6.7 5.4c-1-.6-2.2.1-2.2 1.2z" />
+    <path {...line} d="M19.5 5v14" />
+  </Icon>
+);
+
+export const Volume2Icon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M11.5 4.8v14.4c0 .9-1 1.4-1.7.8l-3.6-3.5H4.5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h1.7l3.6-3.5c.7-.6 1.7-.1 1.7.8z" />
+    <path {...line} d="M15 8.5a5 5 0 0 1 0 7M18 5.5a9.2 9.2 0 0 1 0 13" />
+  </Icon>
+);
+
+export const VolumeXIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M11.5 4.8v14.4c0 .9-1 1.4-1.7.8l-3.6-3.5H4.5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h1.7l3.6-3.5c.7-.6 1.7-.1 1.7.8z" />
+    <path {...line} d="M15.5 9.5l5 5M20.5 9.5l-5 5" />
+  </Icon>
+);
+
+export const HeadphonesIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M3.5 16V12a8.5 8.5 0 0 1 17 0v4" />
+    <rect {...line} x="3.5" y="13.5" width="5" height="7.5" rx="2.5" />
+    <rect {...line} x="15.5" y="13.5" width="5" height="7.5" rx="2.5" />
+  </Icon>
+);
+
+export const AudioLinesIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M3 10v4M7.5 6.5v11M12 3.5v17M16.5 7.5v9M21 10v4" />
+  </Icon>
+);
+
 export const MonitorIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect {...line} x="2" y="3" width="20" height="14" rx="4" />
