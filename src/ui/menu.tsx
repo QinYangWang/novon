@@ -83,6 +83,17 @@ function MenuItem({
   )
 }
 
+/** A menu row that is a real link: it navigates with the browser, and modified clicks open a tab. */
+function MenuLinkItem({ className, inset, ...props }: MenuPrimitive.LinkItem.Props & { inset?: boolean }) {
+  return (
+    <MenuPrimitive.LinkItem
+      data-slot="menu-link-item"
+      className={cn(itemClass, inset && "ps-7.5", className)}
+      {...props}
+    />
+  )
+}
+
 function MenuCheckboxItem({ className, children, ...props }: MenuPrimitive.CheckboxItem.Props) {
   return (
     <MenuPrimitive.CheckboxItem data-slot="menu-checkbox-item" className={cn(itemClass, "ps-7.5", className)} {...props}>
@@ -173,6 +184,7 @@ export {
   MenuTrigger,
   MenuContent,
   MenuItem,
+  MenuLinkItem,
   MenuCheckboxItem,
   MenuRadioGroup,
   MenuRadioItem,

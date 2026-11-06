@@ -93,11 +93,10 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
   )
 
   // The library localizes its own strings from `lang`; only a site's `theme.labels` overrides go in.
-  // A language the library has no strings for (Japanese) takes novon's own for the ones novon knows.
   const localeLabels = React.useMemo(() => {
-    const o = /^(en|zh)\b/i.test(view.lang) ? (view.theme.labels ?? {}) : labelsFor(view.lang, view.theme.labels)
+    const o = view.theme.labels ?? {}
     return { onThisPage: o.onThisPage, backToTop: o.backToTop }
-  }, [view.lang, view.theme.labels])
+  }, [view.theme.labels])
   React.useEffect(() => {
     // In-place navigation between locales keeps <html lang> and dir in step.
     document.documentElement.lang = view.lang

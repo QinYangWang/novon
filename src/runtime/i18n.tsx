@@ -4,12 +4,11 @@
  * version switchers, and the notices on untranslated and older pages.
  */
 import * as React from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/ui/button'
-import { Menu, MenuContent, MenuGroup, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger } from '@/ui/menu'
+import { LocaleSwitcher } from '@/ui/locale-switcher'
+import { VersionSwitcher as LibraryVersionSwitcher } from '@/ui/version-switcher'
 import { Alert, AlertContent, AlertDescription, AlertIcon } from '@/ui/alert'
-import { ChevronsUpDownIcon, GlobeIcon, InfoIcon } from '@/components/icons'
-import { buildRoute, counterpart, normalizeRoute, routeLocale } from '../shared.ts'
+import { GlobeIcon, InfoIcon } from '@/components/icons'
+import { buildRoute, counterpart, normalizeRoute, routeLocale, withBase } from '../shared.ts'
 import { fill } from '../labels.ts'
 import type { PageMeta, ResolvedLocale, SiteData } from '../types.ts'
 import { useLabels, useSite } from './site.tsx'
@@ -76,80 +75,60 @@ export function searchIndexPath(site: SiteData, page: PageMeta | null, route: st
 }
 
 /** The language switcher: the same page in each locale, or that locale's home. */
-export function LanguageSwitcher({ className }: { className?: string }) {
+export function LanguageSwitcher({ className, size }: { className?: string; size?: 'default' | 'icon' }) {
   const { site, current, navigate } = useSite()
-  const t = useLabels()
   if (!site.i18n || site.i18n.locales.length < 2) return null
   const shape = shapeOf(site)
   const locale = currentLocale(site, current.page, current.route)!
   const hrefFor = (code: string) =>
     current.page ? counterpart(site.pages, shape, current.page, { locale: code }) : buildRoute(shape, '/', code)
+  const locales = site.i18n.locales.map((l) => ({ code: l.code, label: l.label, lang: l.lang, dir: l.dir, href: withBase(site.base, hrefFor(l.code)) }))
   return (
-    <Menu>
-      <MenuTrigger
-        render={<Button variant="ghost" size="sm" aria-label={t.language} className={cn('gap-1.5 px-2 text-muted-foreground', className)} />}
-      >
-        <GlobeIcon />
-        <span className="max-sm:hidden">{locale.label}</span>
-      </MenuTrigger>
-      <MenuContent align="end" className="min-w-40">
-        <MenuGroup>
-          <MenuLabel>{t.language}</MenuLabel>
-          <MenuRadioGroup value={locale.code} onValueChange={(code) => navigate(hrefFor(String(code)))}>
-            {site.i18n.locales.map((l) => (
-              <MenuRadioItem key={l.code} value={l.code} lang={l.lang}>
-                {l.label}
-              </MenuRadioItem>
-            ))}
-          </MenuRadioGroup>
-        </MenuGroup>
-      </MenuContent>
-    </Menu>
+    <LocaleSwitcher
+      locales={locales}
+      value={locale.code}
+      size={size}
+      className={className}
+      onSelect={(l, event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+        event.preventDefault()
+        navigate(hrefFor(l.code))
+      }}
+    />
   )
 }
 
 /** The docs version switcher; hidden versions are left out. */
 export function VersionSwitcher({ className }: { className?: string }) {
   const { site, current, navigate } = useSite()
-  const t = useLabels()
   const versions = site.versions
   if (!versions?.list.length) return null
   const page = current.page
   if (page && page.layout !== 'docs') return null
   const shape = shapeOf(site)
   const active = page?.version ?? ''
-  const label = active ? (versions.list.find((v) => v.id === active)?.label ?? active) : versions.latest
   // Hidden versions and versions with no pages built are left out.
   const listed = versions.list.filter((v) => (!v.hidden || v.id === active) && site.pages.some((p) => p.version === v.id))
   if (!listed.length && !active) return null
-  const go = (id: string) => {
-    const to = { version: id || null }
-    navigate(page ? counterpart(site.pages, shape, page, to) : buildRoute(shape, '/', currentLocale(site, null, current.route)?.code, id || undefined))
-  }
+  const routeFor = (id: string) =>
+    page
+      ? counterpart(site.pages, shape, page, { version: id || null })
+      : buildRoute(shape, '/', currentLocale(site, null, current.route)?.code, id || undefined)
+  const options = [
+    { value: '', label: versions.latest, href: withBase(site.base, routeFor('')), tag: 'latest' },
+    ...listed.map((v) => ({ value: v.id, label: v.label, href: withBase(site.base, routeFor(v.id)), ...(v.archived ? { tag: 'archived' } : {}) })),
+  ]
   return (
-    <Menu>
-      <MenuTrigger
-        render={
-          <Button variant="secondary" size="sm" aria-label={`${t.version}: ${label}`} className={cn('w-full justify-between px-3 font-normal', className)} />
-        }
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="text-muted-foreground">{t.version}</span>
-          <span className="truncate font-medium">{label}</span>
-        </span>
-        <ChevronsUpDownIcon className="text-muted-foreground" />
-      </MenuTrigger>
-      <MenuContent align="start" className="min-w-(--anchor-width)">
-        <MenuRadioGroup value={active} onValueChange={(id) => go(String(id))}>
-          <MenuRadioItem value="">{versions.latest}</MenuRadioItem>
-          {listed.map((v) => (
-            <MenuRadioItem key={v.id} value={v.id}>
-              {v.label}
-            </MenuRadioItem>
-          ))}
-        </MenuRadioGroup>
-      </MenuContent>
-    </Menu>
+    <LibraryVersionSwitcher
+      versions={options}
+      value={active}
+      className={className}
+      onSelect={(v, event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+        event.preventDefault()
+        navigate(routeFor(v.value))
+      }}
+    />
   )
 }
 

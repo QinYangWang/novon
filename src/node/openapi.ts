@@ -21,7 +21,7 @@ export function specList(config: Pick<ResolvedConfig, 'openapi'>): OpenApiOption
   return config.openapi ? (Array.isArray(config.openapi) ? config.openapi : [config.openapi]) : []
 }
 
-const isUrl = (s: string) => /^https?:\/\//i.test(s)
+export const isUrl = (s: string) => /^https?:\/\//i.test(s)
 
 /** Where a spec given as a URL is cached by `novon sync`. */
 export function specCachePath(config: ResolvedConfig, spec: OpenApiOptions): string {
@@ -34,30 +34,41 @@ export function parseSpec(text: string): Json {
 }
 
 export async function loadSpec(config: ResolvedConfig, spec: OpenApiOptions): Promise<Json | null> {
-  const file = isUrl(spec.spec) ? specCachePath(config, spec) : join(config.root, spec.spec)
+  const text = await readDescription(config, spec.spec, specCachePath(config, spec), 'OpenAPI description')
+  return text === null ? null : parseSpec(text)
+}
+
+/**
+ * A description file's text: read from the site, or for a URL from its cache,
+ * fetched once when not cached yet. Null when the URL cannot be fetched.
+ */
+export async function readDescription(config: ResolvedConfig, ref: string, cache: string, what: string): Promise<string | null> {
+  const file = isUrl(ref) ? cache : join(config.root, ref)
   if (!existsSync(file)) {
-    if (!isUrl(spec.spec)) throw new Error(`OpenAPI description ${spec.spec} not found`)
-    // Not cached yet: fetch it once; `novon sync` refreshes it later.
+    if (!isUrl(ref)) throw new Error(`${what} ${ref} not found`)
     try {
-      await fetchSpec(config, spec)
+      await fetchTo(ref, cache)
     } catch (error) {
-      warnOnce(`openapi:${spec.spec}`, `Could not fetch ${spec.spec} (${(error as Error).message}); run \`novon sync\` when online.`)
+      warnOnce(`${what}:${ref}`, `Could not fetch ${ref} (${(error as Error).message}); run \`novon sync\` when online.`)
       return null
     }
   }
-  return parseSpec(await readFile(file, 'utf8'))
+  return readFile(file, 'utf8')
 }
 
-export async function fetchSpec(config: ResolvedConfig, spec: OpenApiOptions): Promise<void> {
-  const res = await fetch(spec.spec, { headers: { 'user-agent': 'novon' } })
+export async function fetchTo(url: string, file: string): Promise<void> {
+  const res = await fetch(url, { headers: { 'user-agent': 'novon' } })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-  const file = specCachePath(config, spec)
   await mkdir(join(file, '..'), { recursive: true })
   await writeFile(file, await res.text())
 }
 
+export async function fetchSpec(config: ResolvedConfig, spec: OpenApiOptions): Promise<void> {
+  await fetchTo(spec.spec, specCachePath(config, spec))
+}
+
 const warned = new Set<string>()
-function warnOnce(key: string, message: string) {
+export function warnOnce(key: string, message: string) {
   if (warned.has(key)) return
   warned.add(key)
   console.warn(`\x1b[33m${message}\x1b[0m`)
@@ -66,7 +77,7 @@ function warnOnce(key: string, message: string) {
 /* ---------- References and schemas ---------- */
 
 /** Follows a local `$ref` (`#/components/schemas/Pet`). */
-function deref(doc: Json, value: Json, seen = new Set<string>()): Json {
+export function deref(doc: Json, value: Json, seen = new Set<string>()): Json {
   let v = value
   while (v && typeof v === 'object' && typeof v.$ref === 'string') {
     if (seen.has(v.$ref) || !v.$ref.startsWith('#/')) return {}
@@ -80,7 +91,7 @@ function deref(doc: Json, value: Json, seen = new Set<string>()): Json {
   return v ?? {}
 }
 
-const refName = (v: Json): string | undefined => (v && typeof v.$ref === 'string' ? v.$ref.split('/').at(-1) : undefined)
+export const refName = (v: Json): string | undefined => (v && typeof v.$ref === 'string' ? v.$ref.split('/').at(-1) : undefined)
 
 /** A short type for a schema: `string<date-time>`, `Pet[]`, `"a" | "b"`, `string | null`. */
 export function typeName(doc: Json, raw: Json, depth = 0): string {
@@ -155,22 +166,63 @@ export function schemaRows(doc: Json, raw: Json, prefix = '', depth = 0, seen: s
   return rows
 }
 
+/**
+ * A schema with every `$ref` resolved and `allOf` merged, in the subset the
+ * schema tree reads. A named schema already open above (a tree, a linked
+ * list) stays a titled leaf.
+ */
+export function treeSchema(doc: Json, raw: Json, seen: string[] = [], depth = 0): Json {
+  const ref = refName(raw)
+  if ((ref && seen.includes(ref)) || depth > 12) return { type: 'object', title: ref ?? 'object' }
+  const open = ref ? [...seen, ref] : seen
+  const s = merged(doc, raw)
+  const out: Json = {}
+  if (s.type !== undefined) out.type = s.type
+  const title = ref ?? s.title
+  if (title && (s.type === 'object' || s.properties || s.allOf)) out.title = title
+  else if (s.title) out.title = s.title
+  for (const key of ['description', 'format', 'default', 'const', 'readOnly', 'deprecated', 'nullable'] as const) if (s[key] !== undefined) out[key] = s[key]
+  if (Array.isArray(s.enum)) out.enum = s.enum
+  if (Array.isArray(s.required) && s.required.length) out.required = s.required
+  if (s.properties && typeof s.properties === 'object') out.properties = Object.fromEntries(Object.entries<Json>(s.properties).map(([k, v]) => [k, treeSchema(doc, v, open, depth + 1)]))
+  if (s.items) out.items = treeSchema(doc, s.items, open, depth + 1)
+  for (const key of ['oneOf', 'anyOf'] as const) if (Array.isArray(s[key])) out[key] = s[key].map((x: Json) => treeSchema(doc, x, open, depth + 1))
+  return out
+}
+
+/** A schema for a page: an expandable tree, with a TypeTable of the same rows for `.md` output and search. */
+export function schemaBlock(doc: Json, raw: Json): string {
+  const rows = schemaRows(doc, raw)
+  if (!rows.length) return `Type: \`${typeName(doc, raw)}\``
+  return `<ApiSchema schema={${JSON.stringify(treeSchema(doc, raw))}}>\n\n${fieldTable(rows)}\n\n</ApiSchema>`
+}
+
 /** An example value: the schema's own example, else one built from types. */
-export function exampleOf(doc: Json, raw: Json, depth = 0): unknown {
+export function exampleOf(doc: Json, raw: Json, depth = 0, seen: string[] = []): unknown {
+  const ref = refName(raw)
+  // A named schema already being built (a tree, a linked list) is left out.
+  if (ref && seen.includes(ref)) return undefined
+  const open = ref ? [...seen, ref] : seen
   const s = merged(doc, raw)
   if (s.example !== undefined) return s.example
   if (Array.isArray(s.examples) && s.examples.length) return s.examples[0]
   if (s.default !== undefined) return s.default
   if (Array.isArray(s.enum) && s.enum.length) return s.enum[0]
   if (depth > 5) return null
-  if (Array.isArray(s.oneOf) || Array.isArray(s.anyOf)) return exampleOf(doc, (s.oneOf ?? s.anyOf)[0], depth + 1)
+  if (Array.isArray(s.oneOf) || Array.isArray(s.anyOf)) return exampleOf(doc, (s.oneOf ?? s.anyOf)[0], depth + 1, open)
   const type = Array.isArray(s.type) ? s.type.find((t: string) => t !== 'null') : (s.type ?? (s.properties ? 'object' : s.items ? 'array' : undefined))
-  if (type === 'object') return Object.fromEntries(Object.entries<Json>(s.properties ?? {}).map(([k, v]) => [k, exampleOf(doc, v, depth + 1)]))
-  if (type === 'array') return [exampleOf(doc, s.items ?? {}, depth + 1)]
+  if (type === 'object') {
+    const entries = Object.entries<Json>(s.properties ?? {}).map(([k, v]) => [k, exampleOf(doc, v, depth + 1, open)] as const)
+    return Object.fromEntries(entries.filter(([, v]) => v !== undefined))
+  }
+  if (type === 'array') {
+    const item = exampleOf(doc, s.items ?? {}, depth + 1, open)
+    return item === undefined ? [] : [item]
+  }
   if (type === 'integer' || type === 'number') return 0
   if (type === 'boolean') return true
   if (type === 'string') {
-    const formats: Record<string, string> = { 'date-time': '2026-01-01T00:00:00Z', date: '2026-01-01', email: 'user@example.com', uri: 'https://example.com', uuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }
+    const formats: Record<string, string> = { 'date-time': '2026-01-01T08:00:00Z', date: '2026-01-01', email: 'user@example.com', uri: 'https://example.com', uuid: '3fa85f64-5717-4562-b3fc-2c963f66afa6' }
     return formats[s.format] ?? 'string'
   }
   return null
@@ -231,10 +283,10 @@ export function mdxText(s: string | undefined): string {
 }
 
 /** A JSX attribute value; quoted text when it can be, an expression otherwise (JSX strings have no escapes). */
-const attr = (s: string) => (!/["\\]/.test(s) ? `"${s}"` : !/['\\\n]/.test(s) ? `{'${s}'}` : `{${JSON.stringify(s)}}`)
-const yaml = (s: string) => JSON.stringify(s)
+export const attr = (s: string) => (!/["\\]/.test(s) ? `"${s}"` : !/['\\\n]/.test(s) ? `{'${s}'}` : `{${JSON.stringify(s)}}`)
+export const yaml = (s: string) => JSON.stringify(s)
 
-function fieldTable(rows: Row[]): string {
+export function fieldTable(rows: Row[]): string {
   if (!rows.length) return ''
   const fields = rows.map((r) => {
     const props = [`name=${attr(r.name)}`, `type=${attr(r.type)}`, r.required ? 'required' : '', r.deprecated ? 'deprecated' : '', r.default ? `default=${attr(r.default)}` : ''].filter(Boolean).join(' ')
@@ -244,7 +296,7 @@ function fieldTable(rows: Row[]): string {
   return `<TypeTable>\n${fields.join('\n')}\n</TypeTable>`
 }
 
-function fence(lang: string, value: string, meta = ''): string {
+export function fence(lang: string, value: string, meta = ''): string {
   const ticks = value.includes('```') ? '````' : '```'
   return `${ticks}${lang}${meta ? ` ${meta}` : ''}\n${value}\n${ticks}`
 }
@@ -383,9 +435,7 @@ export function operationPage(doc: Json, spec: OpenApiOptions, o: Operation, t: 
     if (body.description) out.push(mdxText(body.description), '')
     for (const [media, value] of Object.entries<Json>(body.content)) {
       out.push(`\`${media}\`${body.required ? ` · ${t.required}` : ''}`, '')
-      const rows = value.schema ? schemaRows(doc, value.schema) : []
-      if (rows.length) out.push(fieldTable(rows), '')
-      else if (value.schema) out.push(`Type: \`${typeName(doc, value.schema)}\``, '')
+      if (value.schema) out.push(schemaBlock(doc, value.schema), '')
     }
   }
   out.push(`## ${t.apiExamples}`, '', samples(doc, spec, o), '')
@@ -406,8 +456,7 @@ export function operationPage(doc: Json, spec: OpenApiOptions, o: Operation, t: 
       const media = r.content ? (Object.keys(r.content).find((k) => k.includes('json')) ?? Object.keys(r.content)[0]) : undefined
       if (media) {
         const value = r.content[media]
-        const rows = value.schema ? schemaRows(doc, value.schema) : []
-        if (rows.length) out.push(fieldTable(rows), '')
+        if (value.schema && schemaRows(doc, value.schema).length) out.push(schemaBlock(doc, value.schema), '')
         const example = mediaExample(doc, value)
         if (example !== undefined) out.push(fence(media.includes('json') ? 'json' : 'text', typeof example === 'string' ? example : JSON.stringify(example, null, 2), `title=${attr(`${code} · ${media}`)}`), '')
       }
@@ -416,7 +465,7 @@ export function operationPage(doc: Json, spec: OpenApiOptions, o: Operation, t: 
   return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`
 }
 
-const firstSentence = (s: string) => s.replace(/\s+/g, ' ').trim().split(/(?<=[.!?。])\s/)[0].slice(0, 200)
+export const firstSentence = (s: string) => s.replace(/\s+/g, ' ').trim().split(/(?<=[.!?。])\s/)[0].slice(0, 200)
 
 export function overviewPage(doc: Json, spec: OpenApiOptions, ops: Operation[], t: Labels, prefix: string): string {
   const info = doc.info ?? {}
@@ -447,7 +496,7 @@ export function metaFor(doc: Json, ops: Operation[], title: string): Json {
   return { title, pages: tags.map((tag) => ({ group: tag, pages: ops.filter((o) => o.tag === tag).map((o) => o.slug) })) }
 }
 
-async function writeIfChanged(file: string, text: string) {
+export async function writeIfChanged(file: string, text: string) {
   if (existsSync(file) && (await readFile(file, 'utf8')) === text) return
   await mkdir(join(file, '..'), { recursive: true })
   await writeFile(file, text)

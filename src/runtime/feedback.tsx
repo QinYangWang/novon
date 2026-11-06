@@ -49,7 +49,7 @@ export async function sendFeedback(site: SiteData, page: PageMeta, data: Feedbac
   window.open(feedbackHref(href, values), '_blank', 'noopener')
 }
 
-/** The feedback button in the page corner, when `feedback` is set and the page takes it. */
+/** "Was this helpful?" at the end of the page, when `feedback` is set and the page takes it. */
 export function PageFeedback({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const t = useLabels()
@@ -58,7 +58,7 @@ export function PageFeedback({ page }: { page: PageMeta }) {
     <div data-novon-chrome="" data-novon-feedback="">
       <FeedbackWidget
         key={page.route}
-        strategy="fixed"
+        placement="inline"
         label={t.feedback}
         title={t.feedbackTitle}
         placeholder={t.feedbackPlaceholder}

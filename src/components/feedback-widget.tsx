@@ -17,10 +17,18 @@ export type FeedbackData = { message: string; mood: FeedbackMood | null }
 export type FeedbackWidgetProps = {
   /** Called on send. Return a promise to show the sending state; reject to show the retry state. */
   onSubmit?: (data: FeedbackData) => void | Promise<void>
+  /**
+   * `floating` (default) is a corner trigger that opens a form. `inline` sits in the flow, such as at the
+   * end of an article: a question and the moods, opening the note field once a mood is picked.
+   */
+  placement?: "floating" | "inline"
+  /** Floating only. */
   position?: "bottom-right" | "bottom-left"
-  /** `fixed` pins to the viewport corner; `absolute` (default) to the nearest positioned ancestor. */
+  /** Floating only. `fixed` pins to the viewport corner; `absolute` (default) to the nearest positioned ancestor. */
   strategy?: "fixed" | "absolute"
+  /** Floating only: the trigger's text. */
   label?: React.ReactNode
+  /** The form's heading; inline, the question beside the moods. */
   title?: React.ReactNode
   placeholder?: string
   successTitle?: React.ReactNode
@@ -70,7 +78,46 @@ function useNaturalSize() {
   return [ref, size] as const
 }
 
-export function FeedbackWidget({
+type MoodGroupProps = {
+  value: FeedbackMood | null
+  onValueChange: (mood: FeedbackMood) => void
+  disabled?: boolean
+  labelledBy?: string
+}
+
+function MoodGroup({ value, onValueChange, disabled, labelledBy }: MoodGroupProps) {
+  const l10n = useLocale().labels
+  return (
+    <RadioGroup
+      aria-label={labelledBy ? undefined : l10n.howDoYouFeel}
+      aria-labelledby={labelledBy}
+      value={value}
+      onValueChange={(next) => onValueChange(next as FeedbackMood)}
+      disabled={disabled}
+      className="flex gap-1"
+    >
+      {getMoods(l10n).map((m) => (
+        <Radio.Root
+          key={m.value}
+          value={m.value}
+          aria-label={m.label}
+          title={m.label}
+          className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-base outline-none grayscale-[0.7] transition-[transform,filter,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-110 hover:grayscale-0 focus-visible:ring-2 focus-visible:ring-ring data-checked:scale-110 data-checked:bg-card data-checked:shadow-raised data-checked:grayscale-0 data-disabled:pointer-events-none"
+        >
+          <span aria-hidden>{m.emoji}</span>
+        </Radio.Root>
+      ))}
+    </RadioGroup>
+  )
+}
+
+export function FeedbackWidget({ placement = "floating", ...props }: FeedbackWidgetProps) {
+  return placement === "inline" ? <InlineFeedback {...props} /> : <FloatingFeedback {...props} />
+}
+
+type PlacementProps = Omit<FeedbackWidgetProps, "placement">
+
+function FloatingFeedback({
   onSubmit,
   position = "bottom-right",
   strategy = "absolute",
@@ -80,10 +127,8 @@ export function FeedbackWidget({
   successTitle,
   successDescription,
   className,
-}: FeedbackWidgetProps) {
+}: PlacementProps) {
   const l10n = useLocale().labels
-
-  const moods = getMoods(l10n)
 
   if (label === undefined) label = l10n.feedback
   if (title === undefined) title = l10n.helpUsImprove
@@ -158,6 +203,7 @@ export function FeedbackWidget({
     <div
       ref={rootRef}
       data-slot="feedback-widget"
+      data-placement="floating"
       data-state={status}
       className={cn(strategy === "fixed" ? "fixed" : "absolute", "bottom-4 z-40", left ? "left-4" : "right-4", className)}
       onKeyDown={(e) => {
@@ -246,31 +292,13 @@ export function FeedbackWidget({
                     className="min-h-24 w-full resize-none rounded-xl bg-background dark:bg-input/32 px-3 py-2.5 text-ui shadow-well outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
                   />
                   <div className="flex items-center justify-between gap-3">
-                    <RadioGroup
-                      aria-label={l10n.howDoYouFeel}
-                      value={mood}
-                      onValueChange={(value) => setMood(value as FeedbackMood)}
-                      disabled={busy}
-                      className="flex gap-1"
-                    >
-                      {moods.map((m) => (
-                        <Radio.Root
-                          key={m.value}
-                          value={m.value}
-                          aria-label={m.label}
-                          title={m.label}
-                          className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-base outline-none grayscale-[0.7] transition-[transform,filter,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-110 hover:grayscale-0 focus-visible:ring-2 focus-visible:ring-ring data-checked:scale-110 data-checked:bg-card data-checked:shadow-raised data-checked:grayscale-0 data-disabled:pointer-events-none"
-                        >
-                          <span aria-hidden>{m.emoji}</span>
-                        </Radio.Root>
-                      ))}
-                    </RadioGroup>
+                    <MoodGroup value={mood} onValueChange={setMood} disabled={busy} />
                     <StatefulButton
                       type="submit"
                       size="sm"
                       state={status === "sending" ? "loading" : status === "error" ? "error" : "idle"}
-                      loadingText="Sending"
-                      errorText="Retry"
+                      loadingText={l10n.sending}
+                      errorText={l10n.retry}
                       disabled={!message.trim()}
                     >
                       {l10n.send}
@@ -323,6 +351,142 @@ export function FeedbackWidget({
           </AnimatePresence>
         </div>
       </motion.div>
+    </div>
+  )
+}
+
+/** In the flow: the question and moods on one row; a picked mood opens the note and send in place. */
+function InlineFeedback({
+  onSubmit,
+  title,
+  placeholder,
+  successTitle,
+  successDescription,
+  className,
+}: PlacementProps) {
+  const l10n = useLocale().labels
+  if (title === undefined) title = l10n.wasThisPageHelpful
+  if (placeholder === undefined) placeholder = l10n.shareAnIdeaOrReportABug
+  if (successTitle === undefined) successTitle = l10n.thanksForTheFeedback
+  if (successDescription === undefined) successDescription = l10n.weReadEveryMessage
+
+  const reduce = useReducedMotion()
+  const titleId = React.useId()
+  const [status, setStatus] = React.useState<Exclude<Status, "closed">>("open")
+  const [message, setMessage] = React.useState("")
+  const [mood, setMood] = React.useState<FeedbackMood | null>(null)
+  const busy = status === "sending"
+  const expanded = mood !== null
+  // A mood alone is an answer here; the note is optional.
+  const ready = mood !== null || message.trim() !== ""
+
+  const submit = async () => {
+    if (!ready || busy) return
+    setStatus("sending")
+    try {
+      await onSubmit?.({ message: message.trim(), mood })
+      setStatus("sent")
+    } catch {
+      setStatus("error")
+    }
+  }
+
+  const fade = reduce ? { duration: 0.12 } : { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const }
+
+  return (
+    <div
+      data-slot="feedback-widget"
+      data-placement="inline"
+      data-state={status}
+      className={cn("border-t border-border pt-5", className)}
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {status === "sent" ? (
+          <motion.div
+            key="sent"
+            role="status"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={fade}
+            className="flex min-h-8 items-center gap-2.5"
+          >
+            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+              <CheckIcon size={14} />
+            </span>
+            <span className="text-ui font-medium">{successTitle}</span>
+            <span className="text-ui-sm text-muted-foreground max-sm:hidden">{successDescription}</span>
+          </motion.div>
+        ) : (
+          <motion.form
+            key="form"
+            aria-labelledby={titleId}
+            aria-busy={busy || undefined}
+            exit={{ opacity: 0 }}
+            transition={fade}
+            onSubmit={(e) => {
+              e.preventDefault()
+              void submit()
+            }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <span id={titleId} className="text-ui font-medium">
+                {title}
+              </span>
+              <MoodGroup value={mood} onValueChange={setMood} disabled={busy} labelledBy={titleId} />
+            </div>
+            <AnimatePresence initial={false}>
+              {expanded && (
+                <motion.div
+                  key="note"
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                  animate={reduce ? { opacity: 1 } : { opacity: 1, height: "auto" }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                  transition={fade}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-3 px-0.5 pt-3 pb-0.5">
+                    <textarea
+                      aria-label={l10n.yourFeedback}
+                      value={message}
+                      disabled={busy}
+                      placeholder={placeholder}
+                      onChange={(e) => {
+                        setMessage(e.target.value)
+                        if (status === "error") setStatus("open")
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          e.preventDefault()
+                          void submit()
+                        }
+                      }}
+                      rows={3}
+                      className="min-h-20 w-full resize-none rounded-xl bg-background dark:bg-input/32 px-3 py-2.5 text-ui shadow-well outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+                    />
+                    <div className="flex items-center justify-end gap-3">
+                      {status === "error" && (
+                        <p role="alert" className="me-auto text-ui-sm text-destructive-text">
+                          {l10n.feedbackSendFailed}
+                        </p>
+                      )}
+                      <StatefulButton
+                        type="submit"
+                        size="sm"
+                        state={busy ? "loading" : status === "error" ? "error" : "idle"}
+                        loadingText={l10n.sending}
+                        errorText={l10n.retry}
+                        disabled={!ready}
+                      >
+                        {l10n.send}
+                      </StatefulButton>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.form>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

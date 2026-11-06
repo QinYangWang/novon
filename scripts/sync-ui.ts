@@ -17,15 +17,10 @@ export const items = [
   'code-block', 'kbd', 'separator', 'animated-sidebar', 'page-header', 'outline', 'cover-art',
   'sidebar-nav', 'simple-table', 'og-image', 'locale-provider', 'brand-icon', 'file-diff', 'command-copy',
   'dialog', 'timeline', 'feedback-widget', 'image-zoom', 'banner', 'diagram',
+  'locale-switcher', 'version-switcher', 'schema-tree', 'endpoint',
 ]
 
 if (import.meta.main) {
   await $`bunx --bun shadcn@latest add -y -o ${items.map((i) => `@paneui/${i}`)}`.cwd(root)
-  // Items ask for a shiki range; novon pins the major its highlighter is built on.
-  for (const file of ['package.json', 'bun.lock']) {
-    const path = join(root, file)
-    const text = await Bun.file(path).text()
-    await Bun.write(path, text.replace(/"shiki": "[^"]*"/, '"shiki": "4"'))
-  }
   console.log('ui synced')
 }

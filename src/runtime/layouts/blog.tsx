@@ -63,7 +63,7 @@ function DefaultHeader() {
             )
           })}
           <Search compact />
-          <LanguageSwitcher />
+          <LanguageSwitcher size="icon" />
           <span className="flex items-center max-sm:hidden">
             <SocialLinks />
           </span>

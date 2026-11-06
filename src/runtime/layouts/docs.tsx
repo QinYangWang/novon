@@ -6,6 +6,7 @@ import { SidebarNav, SidebarNavContent, SidebarNavLink, SidebarNavList, SidebarN
 import { PageHeader, PageHeaderContent, PageHeaderDescription, PageHeaderEyebrow, PageHeaderTitle } from '@/ui/page-header'
 import { ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, EditIcon, MenuIcon } from '@/components/icons'
 import { Badge } from '@/ui/badge'
+import { MethodBadge } from '@/ui/endpoint'
 import { formatDate } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
 import { Brand, Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton, editUrl } from '../chrome.tsx'
@@ -36,15 +37,15 @@ function byGroup(items: NavItem[]): { group?: string; items: NavItem[] }[] {
   return out
 }
 
-/** Badge colours for HTTP methods, so generated API pages read like a reference. */
-const METHOD_BADGE: Record<string, 'success' | 'primary' | 'warning' | 'destructive'> = { GET: 'success', POST: 'primary', PUT: 'warning', PATCH: 'warning', DELETE: 'destructive' }
+/** Badges of generated API pages: HTTP methods, event actions and GraphQL operation kinds. */
+const METHOD_BADGES = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'SEND', 'RECV', 'PUB', 'SUB', 'QUERY', 'MUT'])
 
 function NavBadge({ text }: { text?: string }) {
   if (!text) return null
-  const method = METHOD_BADGE[text]
+  if (METHOD_BADGES.has(text)) return <MethodBadge method={text} size="sm" />
   return (
-    <Badge size="sm" variant={method ?? 'primary'} className={method && 'font-mono'}>
-      {text === 'DELETE' ? 'DEL' : text}
+    <Badge size="sm" variant="primary">
+      {text}
     </Badge>
   )
 }
@@ -196,7 +197,7 @@ function DefaultHeader({ onOpenNav }: { onOpenNav: () => void }) {
         <div className="ms-auto flex items-center gap-1.5">
           <TopNav />
           <Search />
-          <LanguageSwitcher />
+          <LanguageSwitcher className="max-lg:hidden" />
           <div className="flex items-center max-sm:hidden">
             <SocialLinks />
           </div>
@@ -373,7 +374,9 @@ export function DocsLayout() {
             <div className="flex shrink-0 items-center gap-1 border-t border-border px-3 py-2">
               <ThemeButton />
               <SocialLinks />
-              <LanguageSwitcher className="ms-auto" />
+              <span className="ms-auto">
+                <LanguageSwitcher />
+              </span>
             </div>
           </div>
         </DrawerContent>

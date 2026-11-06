@@ -21,6 +21,7 @@ import {
   GithubIcon,
   MailIcon,
   MoreHorizontalIcon,
+  RssIcon,
   SearchIcon,
 } from '@/components/icons'
 import { withBase } from '../shared.ts'
@@ -30,7 +31,7 @@ import { useLabels, useOverride, useSite } from './site.tsx'
 import { fill } from '../labels.ts'
 import { loadSearchIndex, search, type SearchEntry } from './search.ts'
 import type { PageAction, PageMeta, SiteData } from '../types.ts'
-import { searchIndexPath } from './i18n.tsx'
+import { currentLocale, searchIndexPath } from './i18n.tsx'
 
 export function Brand({ className }: { className?: string }) {
   const { site } = useSite()
@@ -55,9 +56,11 @@ export function ThemeButton() {
 }
 
 export function SocialLinks() {
-  const { site } = useSite()
+  const { site, current } = useSite()
   const social = site.theme.social ?? {}
   const t = useLabels()
+  const locale = currentLocale(site, current.page, current.route)
+  const feed = `${locale && locale.code !== site.i18n?.defaultLocale ? `/${locale.code}` : ''}${site.rssPath}`
   return (
     <>
       {social.github && (
@@ -68,6 +71,11 @@ export function SocialLinks() {
       {social.email && (
         <Button variant="ghost" size="icon-sm" aria-label={t.email} nativeButton={false} render={<a href={`mailto:${social.email}`} />}>
           <MailIcon />
+        </Button>
+      )}
+      {social.rss && site.rss && (
+        <Button variant="ghost" size="icon-sm" aria-label={t.rssFeed} nativeButton={false} render={<a href={withBase(site.base, feed)} type="application/rss+xml" />}>
+          <RssIcon />
         </Button>
       )}
     </>

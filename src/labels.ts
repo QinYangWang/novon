@@ -5,8 +5,10 @@
  */
 
 export interface Labels {
-  onThisPage: string
-  backToTop: string
+  /** The outline's heading. The library has it in every language; set it only to replace it. */
+  onThisPage?: string
+  /** The outline's back-to-top link. The library has it in every language; set it only to replace it. */
+  backToTop?: string
   readingProgress: string
   search: string
   /** The search button's text on wide headers. */
@@ -68,10 +70,6 @@ export interface Labels {
   default: string
   description: string
   required: string
-  /** The language switcher's name. */
-  language: string
-  /** The version switcher's name. */
-  version: string
   /** `{version}` */
   outdatedVersion: string
   /** `{version}` */
@@ -86,6 +84,8 @@ export interface Labels {
   feedbackThanks: string
   feedbackThanksText: string
   releases: string
+  /** The header's feed button. */
+  rssFeed: string
   /** Link to a changelog's feed. */
   subscribe: string
   apiEndpoints: string
@@ -98,13 +98,29 @@ export interface Labels {
   apiResponses: string
   apiAuthentication: string
   apiExamples: string
-  apiDeprecated: string
   apiServers: string
+  apiChannels: string
+  apiOperations: string
+  apiMessages: string
+  apiPayload: string
+  apiMessageHeaders: string
+  apiChannelParameters: string
+  apiSend: string
+  apiReceive: string
+  apiQueries: string
+  apiMutations: string
+  apiSubscriptions: string
+  apiTypes: string
+  apiArguments: string
+  apiFields: string
+  apiReturns: string
+  apiValues: string
+  apiImplements: string
+  apiMembers: string
+  apiImplementedBy: string
 }
 
 export const en: Labels = {
-  onThisPage: 'On this page',
-  backToTop: 'Back to top',
   readingProgress: 'Reading progress',
   search: 'Search',
   searchButton: 'Search…',
@@ -157,12 +173,11 @@ export const en: Labels = {
   default: 'Default',
   description: 'Description',
   required: 'Required',
-  language: 'Language',
-  version: 'Version',
   outdatedVersion: 'You are reading the docs for {version}.',
   archivedVersion: '{version} is archived and no longer updated.',
   viewLatest: 'Go to the latest version',
   untranslated: 'This page is not translated into {language} yet; it is shown in {original}.',
+  rssFeed: 'RSS feed',
   feedback: 'Feedback',
   feedbackTitle: 'Was this page helpful?',
   feedbackPlaceholder: 'What could be better?',
@@ -180,13 +195,29 @@ export const en: Labels = {
   apiResponses: 'Responses',
   apiAuthentication: 'Authentication',
   apiExamples: 'Examples',
-  apiDeprecated: 'Deprecated',
   apiServers: 'Servers',
+  apiChannels: 'Channels',
+  apiOperations: 'Operations',
+  apiMessages: 'Messages',
+  apiPayload: 'Payload',
+  apiMessageHeaders: 'Message headers',
+  apiChannelParameters: 'Channel parameters',
+  apiSend: 'Send',
+  apiReceive: 'Receive',
+  apiQueries: 'Queries',
+  apiMutations: 'Mutations',
+  apiSubscriptions: 'Subscriptions',
+  apiTypes: 'Types',
+  apiArguments: 'Arguments',
+  apiFields: 'Fields',
+  apiReturns: 'Returns',
+  apiValues: 'Values',
+  apiImplements: 'Implements',
+  apiMembers: 'Members',
+  apiImplementedBy: 'Implemented by',
 }
 
 export const zhCN: Labels = {
-  onThisPage: '本页目录',
-  backToTop: '回到顶部',
   readingProgress: '阅读进度',
   search: '搜索',
   searchButton: '搜索…',
@@ -239,12 +270,11 @@ export const zhCN: Labels = {
   default: '默认值',
   description: '说明',
   required: '必填',
-  language: '语言',
-  version: '版本',
   outdatedVersion: '你正在阅读 {version} 版本的文档。',
   archivedVersion: '{version} 已归档，不再更新。',
   viewLatest: '查看最新版本',
   untranslated: '此页尚未翻译成{language}，以下为{original}原文。',
+  rssFeed: 'RSS 订阅',
   feedback: '反馈',
   feedbackTitle: '这页内容有帮助吗？',
   feedbackPlaceholder: '有什么可以改进的？',
@@ -262,13 +292,29 @@ export const zhCN: Labels = {
   apiResponses: '响应',
   apiAuthentication: '认证',
   apiExamples: '示例',
-  apiDeprecated: '已弃用',
   apiServers: '服务器',
+  apiChannels: '频道',
+  apiOperations: '操作',
+  apiMessages: '消息',
+  apiPayload: '载荷',
+  apiMessageHeaders: '消息头',
+  apiChannelParameters: '频道参数',
+  apiSend: '发送',
+  apiReceive: '接收',
+  apiQueries: '查询',
+  apiMutations: '变更',
+  apiSubscriptions: '订阅',
+  apiTypes: '类型',
+  apiArguments: '参数',
+  apiFields: '字段',
+  apiReturns: '返回',
+  apiValues: '取值',
+  apiImplements: '实现',
+  apiMembers: '成员',
+  apiImplementedBy: '实现类型',
 }
 
 export const ja: Labels = {
-  onThisPage: 'このページ',
-  backToTop: 'トップへ戻る',
   readingProgress: '読書の進捗',
   search: '検索',
   searchButton: '検索…',
@@ -321,12 +367,11 @@ export const ja: Labels = {
   default: 'デフォルト',
   description: '説明',
   required: '必須',
-  language: '言語',
-  version: 'バージョン',
   outdatedVersion: '{version} のドキュメントを表示しています。',
   archivedVersion: '{version} はアーカイブされており、更新されません。',
   viewLatest: '最新版を見る',
   untranslated: 'このページはまだ{language}に翻訳されていません。{original}で表示しています。',
+  rssFeed: 'RSS フィード',
   feedback: 'フィードバック',
   feedbackTitle: 'このページは役に立ちましたか？',
   feedbackPlaceholder: '改善できる点はありますか？',
@@ -344,8 +389,26 @@ export const ja: Labels = {
   apiResponses: 'レスポンス',
   apiAuthentication: '認証',
   apiExamples: '例',
-  apiDeprecated: '非推奨',
   apiServers: 'サーバー',
+  apiChannels: 'チャンネル',
+  apiOperations: '操作',
+  apiMessages: 'メッセージ',
+  apiPayload: 'ペイロード',
+  apiMessageHeaders: 'メッセージヘッダー',
+  apiChannelParameters: 'チャンネルパラメーター',
+  apiSend: '送信',
+  apiReceive: '受信',
+  apiQueries: 'クエリ',
+  apiMutations: 'ミューテーション',
+  apiSubscriptions: 'サブスクリプション',
+  apiTypes: '型',
+  apiArguments: '引数',
+  apiFields: 'フィールド',
+  apiReturns: '戻り値',
+  apiValues: '値',
+  apiImplements: '実装',
+  apiMembers: 'メンバー',
+  apiImplementedBy: '実装する型',
 }
 
 export const builtinLabels: Record<string, Labels> = { en, 'zh-CN': zhCN, ja }

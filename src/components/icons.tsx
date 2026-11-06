@@ -1031,3 +1031,37 @@ export const PlugIcon = (p: IconProps) => (
     <path {...line} d="M7.5 6.5h9A1.5 1.5 0 0 1 18 8v3a6 6 0 0 1-12 0V8a1.5 1.5 0 0 1 1.5-1.5z" />
   </Icon>
 );
+export const RssIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M4.5 11a8.5 8.5 0 0 1 8.5 8.5M4.5 4.5a15 15 0 0 1 15 15" />
+    <circle {...fillShape} cx="5.75" cy="18.25" r="1.25" />
+  </Icon>
+);
+export const LanguagesIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M2.5 5.5h10M7.5 3v2.5M10.5 5.5c-.6 3.6-2.9 6.6-6.5 8.5M5.5 8.5c1.2 2.3 3.1 4 5.5 5" />
+    <path {...line} d="M12.5 21l4.25-9.5L21 21M13.9 18h5.7" />
+  </Icon>
+);
+export const BlocksIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M10.5 5H6.5a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-4H10.5zM3.5 14h7v7" />
+    <rect {...line} x="13.75" y="2.75" width="7.5" height="7.5" rx="2.25" />
+  </Icon>
+);
+export const PuzzleIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M3.5 10a2.5 2.5 0 0 1 2.5-2.5h2a2.5 2.5 0 1 1 4 0h2a2.5 2.5 0 0 1 2.5 2.5v2a2.5 2.5 0 1 1 0 4v2a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 18z" />
+  </Icon>
+);
+export const MessageSquareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M7 3.5h10a4.5 4.5 0 0 1 4.5 4.5v6a4.5 4.5 0 0 1-4.5 4.5H8.3l-4.1 3.2c-.7.5-1.7 0-1.7-.8V8A4.5 4.5 0 0 1 7 3.5z" />
+  </Icon>
+);
+export const ScrollTextIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path {...line} d="M19 16.5V6a3 3 0 0 0-3-3H4.5M10 8.5h5.5M10 12.5h5.5" />
+    <path {...line} d="M9 21h9.5a3 3 0 0 0 3-3v-.5a.5.5 0 0 0-.5-.5H12a.5.5 0 0 0-.5.5v1a2.5 2.5 0 0 1-5 0V5a2 2 0 0 0-4 0v2a.5.5 0 0 0 .5.5h3.5" />
+  </Icon>
+);
