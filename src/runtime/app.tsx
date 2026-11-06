@@ -3,7 +3,7 @@ import { MDXProvider } from '@mdx-js/react'
 import { TooltipProvider } from '@/ui/tooltip'
 import { LocaleProvider } from '@/ui/locale-provider'
 import { labelsFor } from '../labels.ts'
-import { stripBase, withBase } from '../shared.ts'
+import { normalizeRoute, stripBase, withBase } from '../shared.ts'
 import type { SiteData } from '../types.ts'
 import { mdxComponents } from './mdx.tsx'
 import { SiteContext, layoutOf, loadRoute, type Loaded, type Loaders, type SiteContextValue } from './site.tsx'
@@ -40,6 +40,11 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
 
   const show = React.useCallback(
     async (href: string, mode: 'push' | 'replace' | 'pop') => {
+      // Old paths follow the site's redirects, like the host would.
+      const [path, hash] = href.split('#')
+      const to = site.redirects?.[normalizeRoute(path.split('?')[0])]
+      if (to && /^[a-z][a-z0-9+.-]*:/i.test(to)) return void location.assign(to)
+      if (to) href = `${to}${hash !== undefined && !to.includes('#') ? `#${hash}` : ''}`
       const ticket = ++pending.current
       const url = withBase(site.base, href)
       const next = await loadRoute(site, loaders, url)

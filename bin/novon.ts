@@ -8,8 +8,10 @@ const help = `novon ${pkg.version} ฅ^•ﻌ•^ฅ
 Usage
   novon new <dir> [--template docs|blog]   start a site
   novon dev [dir] [--port 4321] [--host]   preview with live reload
-  novon build [dir]                        write the static site to dir/dist
+  novon build [dir] [--strict]             write the static site to dir/dist
   novon preview [dir] [--port 4173]        serve dir/dist
+  novon check [dir] [--json] [--strict] [--external]
+                                           validate config, frontmatter, links and redirects
 
 A site is a novon.config.ts and a content/ folder of .mdx files.`
 
@@ -19,6 +21,9 @@ const { positionals, values } = parseArgs({
     template: { type: 'string', short: 't', default: 'docs' },
     port: { type: 'string', short: 'p' },
     host: { type: 'boolean' },
+    strict: { type: 'boolean' },
+    json: { type: 'boolean' },
+    external: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
   },
@@ -53,13 +58,23 @@ async function main() {
   }
   if (command === 'build') {
     const { build } = await import('../src/node/build.ts')
-    const r = await build(config)
+    const r = await build(config, { strict: values.strict })
     console.log(`Built ${r.pages} pages into ${r.outDir} ${dim(`in ${r.ms} ms`)}`)
+    return
+  }
+  if (command === 'check') {
+    const { check, formatIssues, summarize } = await import('../src/node/check.ts')
+    const issues = await check(config, { external: values.external })
+    const { errors, warnings } = summarize(issues)
+    if (values.json) console.log(JSON.stringify({ errors, warnings, issues }, null, 2))
+    else if (issues.length) console.log(`${formatIssues(issues)}\n\n${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`)
+    else console.log('No problems found.')
+    if (errors || (values.strict && warnings)) process.exit(1)
     return
   }
   if (command === 'preview') {
     const { preview } = await import('../src/node/preview.ts')
-    const server = preview(config, values.port ? Number(values.port) : undefined)
+    const server = await preview(config, values.port ? Number(values.port) : undefined)
     console.log(`Serving dist at ${new URL(config.base, server.url).href}`)
     return
   }

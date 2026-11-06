@@ -44,6 +44,28 @@ export interface ThemeOptions {
   labels?: Partial<Labels>
   /** Replace a built-in part with your own component file. */
   override?: Partial<Record<OverrideSlot, string>>
+  /**
+   * The page actions menu, in order. `copy` is the button beside it.
+   * Default `['copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity']`; `false` hides it.
+   */
+  pageActions?: PageAction[] | false
+  /** Show the last-updated date on pages. Default true. */
+  lastUpdated?: boolean
+}
+
+/**
+ * A built-in page action, or a link of your own. In `href`, `{markdown}` is the
+ * page's absolute `.md` URL, `{url}` the page URL and `{prompt}` the encoded
+ * "read this page" prompt.
+ */
+export type PageAction = 'copy' | 'markdown' | 'edit' | 'chatgpt' | 'claude' | 'perplexity' | { label: string; href: string }
+
+/** An extra element for `<head>`. */
+export interface HeadTag {
+  tag: 'meta' | 'link' | 'script' | 'style' | 'noscript'
+  attrs?: Record<string, string | boolean>
+  /** Inner text, for `script`, `style` and `noscript`. */
+  content?: string
 }
 
 export interface Author {
@@ -75,8 +97,10 @@ export interface BuildContext {
 export interface MdxOptions {
   remarkPlugins?: any[]
   rehypePlugins?: any[]
-  /** Shiki themes for light and dark. Default github-light / github-dark. */
+  /** Code themes for light and dark. Default github-light / github-dark. */
   highlight?: { light?: string; dark?: string } | false
+  /** Number the lines of every code block. A fence's `lineNumbers` or `lineNumbers=false` wins. Default false. */
+  lineNumbers?: boolean
 }
 
 /** Social cards: a 1200×630 PNG per page at `/og/<route>.png`. */
@@ -124,6 +148,10 @@ export interface Config {
   rss?: RssOptions
   /** Tag pages of blog layers. */
   tags?: TagOptions
+  /** Old path → new path or URL. Written to `_redirects` and as redirect pages. */
+  redirects?: Record<string, string>
+  /** Extra elements for every page's `<head>`. */
+  head?: HeadTag[]
 }
 
 export interface RssOptions {
@@ -149,6 +177,7 @@ export interface ResolvedConfig extends Config {
   theme: ThemeOptions & { accent: Accent; toc: boolean }
   rss: Required<RssOptions>
   tags: Required<TagOptions>
+  redirects: Record<string, string>
   root: string
 }
 
@@ -173,6 +202,12 @@ export interface Frontmatter {
   og?: boolean
   /** Leave the page out of navigation, search and feeds. */
   hidden?: boolean
+  /** Ask search engines not to index the page; also leaves it out of the sitemap and llms.txt. */
+  noindex?: boolean
+  /** Old paths that redirect here. */
+  redirectFrom?: string | string[]
+  /** Extra elements for this page's `<head>`. */
+  head?: HeadTag[]
   [key: string]: unknown
 }
 
@@ -205,6 +240,11 @@ export interface PageMeta {
   /** Estimated minutes to read the body. */
   readingTime?: number
   hidden: boolean
+  noindex?: boolean
+  /** Old routes that redirect here, from frontmatter `redirectFrom`. */
+  redirectFrom?: string[]
+  /** Frontmatter `head`. */
+  head?: HeadTag[]
   /** Path of the layer that owns this page, `/` for the default. */
   layer: string
   layout: LayoutKind
@@ -233,4 +273,6 @@ export interface SiteData {
   /** Feed URL path, without base. */
   rssPath: string
   tags: Required<TagOptions>
+  /** Internal redirects, old route → new route or URL, followed by in-page navigation. */
+  redirects: Record<string, string>
 }

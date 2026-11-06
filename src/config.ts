@@ -35,6 +35,9 @@ export function resolveConfig(config: Config, root: string): ResolvedConfig {
     plugins: config.plugins ?? ['search', 'sitemap', 'rss', 'llms'],
     rss: { path: normalizePrefix(config.rss?.path ?? '/rss.xml'), full: config.rss?.full ?? false },
     tags: { path: normalizePrefix(config.tags?.path ?? '/tags'), lowercase: config.tags?.lowercase ?? true },
+    redirects: Object.fromEntries(
+      Object.entries(config.redirects ?? {}).filter(([, to]) => typeof to === 'string').map(([from, to]) => [normalizePrefix(from), /^[a-z]+:\/\//i.test(to) ? to : normalizePrefix(to)]),
+    ),
     theme: { ...config.theme, accent: config.theme?.accent ?? 'blue', toc: config.theme?.toc ?? true },
   }
 }

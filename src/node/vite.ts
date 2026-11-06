@@ -8,6 +8,7 @@ import tailwind from '@tailwindcss/vite'
 import mdx from '@mdx-js/rollup'
 import { scanContent } from './content.ts'
 import { mdxOptions } from './mdx.ts'
+import { collectRedirects } from './redirects.ts'
 import type { PageMeta, ResolvedConfig, SiteData } from '../types.ts'
 
 export const novonRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -30,11 +31,12 @@ export function siteData(config: ResolvedConfig, pages: PageMeta[]): SiteData {
     theme: { ...config.theme, override: undefined, css: undefined },
     layers: config.layers,
     defaultLayout: config.layout,
-    pages: pages.map(({ text: _text, ...p }) => p),
+    pages: pages.map(({ text: _text, head: _head, redirectFrom: _from, ...p }) => p),
     search: plugins.includes('search'),
     rss: plugins.includes('rss'),
     rssPath: config.rss.path,
     tags: config.tags,
+    redirects: collectRedirects(config, pages),
   }
 }
 

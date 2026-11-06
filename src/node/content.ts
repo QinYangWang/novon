@@ -2,8 +2,8 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import matter from 'gray-matter'
 import GithubSlugger from 'github-slugger'
-import { humanize, layerFor, postsOf, tagRoute } from '../shared.ts'
-import type { Frontmatter, Heading, PageMeta, ResolvedConfig } from '../types.ts'
+import { humanize, layerFor, normalizeRoute, postsOf, tagRoute } from '../shared.ts'
+import type { Frontmatter, HeadTag, Heading, PageMeta, ResolvedConfig } from '../types.ts'
 
 const PAGE_EXT = /\.(mdx|md)$/
 
@@ -70,6 +70,63 @@ function asDate(value: unknown): string | undefined {
   return undefined
 }
 
+type GitDates = { at: number; dates: Map<string, string>; dirty: Set<string> }
+const gitCache = new Map<string, GitDates>()
+
+function git(root: string, args: string[]): string | null {
+  try {
+    const r = Bun.spawnSync(['git', '-C', root, ...args], { stdout: 'pipe', stderr: 'ignore' })
+    return r.exitCode === 0 ? r.stdout.toString() : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Last commit date of every file under `content/`, relative to the site root,
+ * and the files with uncommitted changes. One `git log` per site, cached briefly.
+ */
+export function gitDates(root: string): GitDates {
+  const cached = gitCache.get(root)
+  if (cached && performance.now() - cached.at < 5000) return cached
+  const dates = new Map<string, string>()
+  const dirty = new Set<string>()
+  const log = git(root, ['log', '--format=%x00%cI', '--name-only', '--relative', '--', 'content'])
+  if (log) {
+    let date = ''
+    for (const line of log.split('\n')) {
+      if (line.startsWith('\0')) date = line.slice(1).slice(0, 10)
+      else if (line && date && !dates.has(line)) dates.set(line, date)
+    }
+    const prefix = (git(root, ['rev-parse', '--show-prefix']) ?? '').trim()
+    for (const line of (git(root, ['status', '--porcelain', '--untracked-files=all', '--', 'content']) ?? '').split('\n')) {
+      const path = line.slice(3).split(' -> ').at(-1)?.replace(/^"|"$/g, '')
+      if (path) dirty.add(prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path)
+    }
+  }
+  const result = { at: performance.now(), dates, dirty }
+  gitCache.set(root, result)
+  return result
+}
+
+/** Frontmatter `updated`, else the last commit touching the file, else its modification time. */
+async function lastUpdated(root: string, file: string, abs: string, fm: Frontmatter): Promise<string> {
+  const given = asDate(fm.updated)
+  if (given) return given
+  const { dates, dirty } = gitDates(root)
+  const committed = dates.get(file)
+  if (committed && !dirty.has(file)) return committed
+  return (await stat(abs)).mtime.toISOString().slice(0, 10)
+}
+
+const asList = (v: unknown): string[] => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+
+function headTags(v: unknown): HeadTag[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const tags = v.filter((t): t is HeadTag => !!t && typeof t === 'object' && typeof (t as HeadTag).tag === 'string')
+  return tags.length ? tags : undefined
+}
+
 export async function readPage(root: string, abs: string, config: ResolvedConfig): Promise<PageMeta | null> {
   const file = relative(root, abs).split(sep).join('/')
   const source = await readFile(abs, 'utf8')
@@ -81,8 +138,8 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
   const fallbackTitle = route === '/' ? config.title : humanize(route.split('/').at(-1)!)
   const text = plainText(content)
   const title = fm.title ?? content.match(/^#\s+(.+)$/m)?.[1] ?? fallbackTitle
-  let updated = asDate(fm.updated)
-  if (!updated) updated = (await stat(abs)).mtime.toISOString().slice(0, 10)
+  const updated = await lastUpdated(root, file, abs, fm)
+  const redirectFrom = asList(fm.redirectFrom).map(normalizeRoute)
   return {
     route,
     file,
@@ -100,6 +157,9 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
     og: fm.og === false || fm.image === false ? false : undefined,
     readingTime: readingTime(text),
     hidden: Boolean(fm.hidden),
+    ...(fm.noindex === true ? { noindex: true } : {}),
+    ...(redirectFrom.length ? { redirectFrom } : {}),
+    ...(headTags(fm.head) ? { head: headTags(fm.head) } : {}),
     layer: layer.path,
     layout: layer.layout,
     kind: 'page',
@@ -134,17 +194,26 @@ function generated(route: string, title: string, layer: string, kind: 'posts' | 
   return { route, file: '', title, label: title, order: 0, tags: [], hidden: false, layer, layout: 'blog', kind }
 }
 
-export async function scanContent(config: ResolvedConfig): Promise<PageMeta[]> {
-  const files = await walk(join(config.root, 'content'))
-  const pages = (await Promise.all(files.map((f) => readPage(config.root, f, config)))).filter(
-    (p): p is PageMeta => p !== null,
-  )
-  const seen = new Map<string, string>()
-  for (const p of pages) {
-    const prev = seen.get(p.route)
-    if (prev) throw new Error(`${p.file} and ${prev} both map to ${p.route}`)
-    seen.set(p.route, p.file)
-  }
+export interface Duplicate {
+  route: string
+  files: string[]
+}
+
+/** Every page, plus routes more than one file maps to (the first file wins). */
+export async function scanPages(config: ResolvedConfig): Promise<{ pages: PageMeta[]; duplicates: Duplicate[] }> {
+  const files = (await walk(join(config.root, 'content'))).sort()
+  const read = (await Promise.all(files.map((f) => readPage(config.root, f, config)))).filter((p): p is PageMeta => p !== null)
+  const byRoute = new Map<string, PageMeta[]>()
+  for (const p of read) byRoute.set(p.route, [...(byRoute.get(p.route) ?? []), p])
+  const pages = [...byRoute.values()].map((list) => list[0])
+  const duplicates = [...byRoute.values()].filter((l) => l.length > 1).map((l) => ({ route: l[0].route, files: l.map((p) => p.file) }))
   const all = [...pages, ...generatedPages(pages, config)]
-  return all.sort((a, b) => a.route.localeCompare(b.route))
+  return { pages: all.sort((a, b) => a.route.localeCompare(b.route)), duplicates }
+}
+
+export async function scanContent(config: ResolvedConfig): Promise<PageMeta[]> {
+  const { pages, duplicates } = await scanPages(config)
+  const dup = duplicates[0]
+  if (dup) throw new Error(`${dup.files[1]} and ${dup.files[0]} both map to ${dup.route}`)
+  return pages
 }

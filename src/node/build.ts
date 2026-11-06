@@ -1,4 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build as viteBuild, mergeConfig, type Manifest } from 'vite'
@@ -6,6 +7,8 @@ import { scanContent } from './content.ts'
 import { renderDocument } from './html.ts'
 import { generateOgImages, pageImage } from './og.ts'
 import { activePlugins } from './plugins.ts'
+import { check, formatIssues, summarize, type Issue } from './check.ts'
+import { collectRedirects, redirectPage, redirectRules } from './redirects.ts'
 import { entryClient, entryServer, viteConfig } from './vite.ts'
 import type { PageMeta, ResolvedConfig } from '../types.ts'
 import { withBase } from '../shared.ts'
@@ -14,6 +17,15 @@ export interface BuildResult {
   outDir: string
   pages: number
   ms: number
+  /** What the checks found; printed as warnings unless `quiet`. */
+  issues: Issue[]
+}
+
+export interface BuildOptions {
+  /** Fail when the checks find anything. Default false. */
+  strict?: boolean
+  /** Do not print check results. */
+  quiet?: boolean
 }
 
 export function htmlPath(route: string, trailingSlash?: boolean): string {
@@ -48,9 +60,15 @@ function assetTags(manifest: Manifest, base: string): { head: string; scripts: s
   return { head, scripts: `<script type="module" src="${href(entry.file)}"></script>` }
 }
 
-export async function build(config: ResolvedConfig): Promise<BuildResult> {
+export async function build(config: ResolvedConfig, options: BuildOptions = {}): Promise<BuildResult> {
   const started = performance.now()
   process.env.NODE_ENV = 'production'
+  const issues = await check(config)
+  if (issues.length && !options.quiet) {
+    const { errors, warnings } = summarize(issues)
+    console.warn(`${formatIssues(issues)}\n${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'} (novon check)`)
+  }
+  if (options.strict && issues.length) throw new Error(`Build stopped: novon check found ${issues.length} issue${issues.length === 1 ? '' : 's'} (--strict).`)
   const outDir = join(config.root, 'dist')
   const serverDir = join(config.root, '.novon/server')
   await rm(outDir, { recursive: true, force: true })
@@ -89,7 +107,7 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
     const { html, title } = await server.render(withBase(config.base, page.route))
     const file = join(outDir, htmlPath(page.route, config.trailingSlash))
     await mkdir(dirname(file), { recursive: true })
-    await writeFile(file, renderDocument({ config, page, title, body: html, head, scripts, image: imageOf(page) }))
+    await writeFile(file, renderDocument({ config, page, title, body: html, head, scripts, image: imageOf(page), pages }))
   }
   function imageOf(page: PageMeta) {
     const image = pageImage(config, page)
@@ -104,9 +122,26 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
     await writeFile(file, data)
   }
   const renderContent = (page: PageMeta) => server.renderContent(withBase(config.base, page.route))
+  await writeRedirects(config, pages, outDir)
   for (const plugin of activePlugins(config)) await plugin.buildEnd?.({ outDir, config, pages, emit, renderContent })
   await writeFile(join(outDir, '.nojekyll'), '')
   await rm(join(outDir, '.vite'), { recursive: true, force: true })
 
-  return { outDir: relative(process.cwd(), outDir) || '.', pages: pages.length, ms: Math.round(performance.now() - started) }
+  return { outDir: relative(process.cwd(), outDir) || '.', pages: pages.length, ms: Math.round(performance.now() - started), issues }
+}
+
+/** `_redirects` (after any rules from `public/_redirects`) and a forwarding page at each old path that has no page. */
+async function writeRedirects(config: ResolvedConfig, pages: PageMeta[], outDir: string) {
+  const redirects = collectRedirects(config, pages)
+  const entries = Object.entries(redirects).filter(([from]) => !pages.some((p) => p.route === from))
+  if (!entries.length) return
+  for (const [from, to] of entries) {
+    const file = join(outDir, htmlPath(from, config.trailingSlash))
+    if (existsSync(file)) continue
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(file, redirectPage(config, to))
+  }
+  const rulesFile = join(outDir, '_redirects')
+  const existing = existsSync(rulesFile) ? `${(await readFile(rulesFile, 'utf8')).trimEnd()}\n` : ''
+  await writeFile(rulesFile, `${existing}${redirectRules(config, Object.fromEntries(entries))}\n`)
 }

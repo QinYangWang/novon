@@ -2,7 +2,8 @@ import { createServer, mergeConfig, type ViteDevServer } from 'vite'
 import { scanContent } from './content.ts'
 import { renderDocument } from './html.ts'
 import { ogFile, ogRenderer, pageImage } from './og.ts'
-import { pageMarkdown, searchIndex } from './plugins.ts'
+import { builtinPlugins, pageMarkdown, searchIndex } from './plugins.ts'
+import { collectRedirects, redirectTarget } from './redirects.ts'
 import { entryClient, viteConfig } from './vite.ts'
 import { stripBase } from '../shared.ts'
 import type { ResolvedConfig } from '../types.ts'
@@ -27,12 +28,19 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                     res.setHeader('content-type', 'application/json')
                     return res.end(JSON.stringify(searchIndex(await scanContent(config))))
                   }
+                  if (route === '/llms.txt' || route === '/llms-full.txt') {
+                    const files = new Map<string, string>()
+                    await builtinPlugins.llms.buildEnd!({ outDir: '', config, pages: await scanContent(config), emit: async (p, d) => void files.set(p, String(d)) })
+                    res.setHeader('content-type', 'text/plain; charset=utf-8')
+                    return res.end(files.get(route.slice(1)))
+                  }
                   if (route.endsWith('.md')) {
                     const target = route === '/index.md' ? '/' : route.slice(0, -3)
-                    const page = (await scanContent(config)).find((p) => p.route === target && p.file)
+                    const pages = await scanContent(config)
+                    const page = pages.find((p) => p.route === target && p.file)
                     if (!page) return next()
                     res.setHeader('content-type', 'text/markdown; charset=utf-8')
-                    return res.end(await pageMarkdown(config, page))
+                    return res.end(await pageMarkdown(config, page, pages))
                   }
                   if (route.startsWith('/og/') && route.endsWith('.png')) {
                     const page = (await scanContent(config)).find((p) => `/${ogFile(p.route)}` === route && pageImage(config, p)?.generated)
@@ -43,11 +51,17 @@ export async function dev(config: ResolvedConfig, port = 4321, host?: string): P
                   if (/\.[a-z0-9]+$/i.test(route)) return next()
                   const pages = await scanContent(config)
                   const page = pages.find((p) => p.route === route) ?? null
+                  const redirect = page ? undefined : collectRedirects(config, pages)[route]
+                  if (redirect) {
+                    res.statusCode = 301
+                    res.setHeader('location', redirectTarget(config, redirect) + url.search)
+                    return res.end()
+                  }
                   const title = page ? (page.route === '/' ? config.title : `${page.title} · ${config.title}`) : `Not found · ${config.title}`
                   const scripts = `<script type="module" src="${config.base}@fs${entryClient}"></script>`
                   const html = await s.transformIndexHtml(
                     req.url,
-                    renderDocument({ config, page, title, body: '', scripts, image: pageImage(config, page) }),
+                    renderDocument({ config, page, title, body: '', scripts, image: pageImage(config, page), pages }),
                   )
                   res.statusCode = page ? 200 : 404
                   res.setHeader('content-type', 'text/html; charset=utf-8')
