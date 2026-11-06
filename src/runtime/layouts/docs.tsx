@@ -231,7 +231,7 @@ function DocsHeader({ page }: { page: PageMeta }) {
         {page.description && <PageHeaderDescription className="text-lg leading-relaxed">{page.description}</PageHeaderDescription>}
       </PageHeaderContent>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-sm text-muted-foreground">
-        {page.updated && <span>{fill(t.updated, { date: formatDate(page.updated, site.lang) })}</span>}
+        {page.updated && site.theme.lastUpdated !== false && <time dateTime={page.updated}>{fill(t.updated, { date: formatDate(page.updated, site.lang) })}</time>}
         {page.readingTime && <span>{fill(t.minRead, { n: page.readingTime })}</span>}
         {edit && (
           <a href={edit} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-foreground max-sm:hidden">

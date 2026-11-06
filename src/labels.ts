@@ -31,6 +31,10 @@ export interface Labels {
   viewMarkdown: string
   editPage: string
   askAboutPage: string
+  /** `{name}`, e.g. ChatGPT. */
+  openIn: string
+  /** The question sent with "Open in"; `{url}` is the page's Markdown URL. */
+  openInPrompt: string
   allPosts: string
   latest: string
   allWriting: string
@@ -76,6 +80,8 @@ export const en: Labels = {
   viewMarkdown: 'View as Markdown',
   editPage: 'Edit this page',
   askAboutPage: 'Ask about this page',
+  openIn: 'Open in {name}',
+  openInPrompt: 'Read {url} and answer questions about it.',
   allPosts: 'All posts',
   latest: 'Latest',
   allWriting: 'All writing',
@@ -118,6 +124,8 @@ export const zhCN: Labels = {
   viewMarkdown: '查看 Markdown',
   editPage: '编辑此页',
   askAboutPage: '就此页提问',
+  openIn: '在 {name} 中打开',
+  openInPrompt: '阅读 {url}，然后回答关于它的问题。',
   allPosts: '全部文章',
   latest: '最新',
   allWriting: '全部文章',

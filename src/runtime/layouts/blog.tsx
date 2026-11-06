@@ -3,10 +3,10 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
 import { ScrollProgress } from '@/ui/scroll-progress'
 import { ArrowLeftIcon } from '@/components/icons'
-import { postsOf, withBase } from '../../shared.ts'
+import { formatDate, postsOf, withBase } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
 import { AuthorAvatar, useAuthor } from '../author.tsx'
-import { Footer, NotFound, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
+import { Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
 import { Link } from '../link.tsx'
 import { Outline, OutlinePopover } from '../outline.tsx'
 import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
@@ -81,18 +81,32 @@ function BackLink({ layer }: { layer: string }) {
 }
 
 function DefaultPostHeader({ page }: { page: PageMeta }) {
+  const { site } = useSite()
+  const t = useLabels()
+  const updated = site.theme.lastUpdated !== false && page.updated && page.date && page.updated > page.date ? page.updated : undefined
   return (
     <header className="flex max-w-3xl flex-col items-start gap-5">
       <BackLink layer={page.layer} />
       <PostTags post={page} />
       <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
       {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
-      <div className="flex items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-3">
         {page.author && <AuthorAvatar name={page.author} />}
         <div className="flex flex-col leading-tight">
           {page.author && <span className="text-ui-sm font-medium">{page.author}</span>}
           <PostMeta post={page} />
+          {updated && (
+            <time dateTime={updated} className="mt-1 text-ui-xs text-muted-foreground tabular-nums">
+              {fill(t.updated, { date: formatDate(updated, site.lang) })}
+            </time>
+          )}
         </div>
+        {/* Blog posts show page actions only when the site lists them. */}
+        {site.theme.pageActions && (
+          <div className="ms-auto">
+            <PageActions />
+          </div>
+        )}
       </div>
     </header>
   )

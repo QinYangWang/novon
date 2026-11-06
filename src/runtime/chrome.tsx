@@ -2,10 +2,13 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
-import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/menu'
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/ui/menu'
 import { ThemeToggle } from '@/ui/theme-toggle'
 import { Kbd } from '@/ui/kbd'
 import { CommandPalette, type CommandPaletteItem } from '@/components/command-palette'
+import { siClaude, siPerplexity } from 'simple-icons'
+import { BrandIcon, type BrandIconData } from '@/ui/brand-icon'
+import { markOpenai } from '@/lib/brand-marks'
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -15,12 +18,15 @@ import {
   FileIcon,
   GithubIcon,
   MailIcon,
+  MoreHorizontalIcon,
   SearchIcon,
 } from '@/components/icons'
 import { withBase } from '../shared.ts'
 import { Link } from './link.tsx'
 import { resolveIcon } from './icons.tsx'
 import { useLabels, useOverride, useSite } from './site.tsx'
+import { fill } from '../labels.ts'
+import type { PageAction } from '../types.ts'
 
 export function Brand({ className }: { className?: string }) {
   const { site } = useSite()
@@ -121,52 +127,88 @@ export function Search({ className, compact }: { className?: string; compact?: b
   )
 }
 
-/** Copy the page as Markdown, open it raw, or edit it. */
+const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'edit', 'chatgpt', 'claude', 'perplexity']
+
+/** Chat apps that take a prompt in the URL. */
+const CHATS: Record<'chatgpt' | 'claude' | 'perplexity', { name: string; href: string; icon: BrandIconData }> = {
+  chatgpt: { name: 'ChatGPT', href: 'https://chatgpt.com/?q={prompt}', icon: markOpenai },
+  claude: { name: 'Claude', href: 'https://claude.ai/new?q={prompt}', icon: siClaude },
+  perplexity: { name: 'Perplexity', href: 'https://www.perplexity.ai/search?q={prompt}', icon: siPerplexity },
+}
+
+/** Fills `{markdown}`, `{url}` and `{prompt}` in an action's link. */
+export function actionHref(template: string, values: { markdown: string; url: string; prompt: string }): string {
+  return template
+    .replace(/\{markdown\}/g, encodeURIComponent(values.markdown))
+    .replace(/\{url\}/g, encodeURIComponent(values.url))
+    .replace(/\{prompt\}/g, encodeURIComponent(values.prompt))
+}
+
+/** Copy the page as Markdown, open it raw, edit it, or open it in a chat app; the list follows `theme.pageActions`. */
 export function PageActions() {
   const { site, current } = useSite()
   const [copied, setCopied] = React.useState(false)
   const t = useLabels()
   const page = current.page
-  if (!page?.file) return null
+  const actions = site.theme.pageActions === false ? [] : (site.theme.pageActions ?? DEFAULT_ACTIONS)
+  if (!page?.file || !actions.length) return null
   const md = withBase(site.base, `${page.route === '/' ? '/index' : page.route}.md`)
+  const abs = (path: string) => (site.url ? new URL(path, site.url).href : path)
+  const values = { markdown: abs(md), url: abs(withBase(site.base, page.route)), prompt: fill(t.openInPrompt, { url: abs(md) }) }
   const copy = async () => {
     const text = await fetch(md).then((r) => r.text())
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
+  const external = (href: string) => <a href={href} target="_blank" rel="noreferrer" />
+  const items: React.ReactNode[] = []
+  let chats = false
+  for (const [i, action] of actions.entries()) {
+    if (action === 'copy') continue
+    if (action === 'markdown') {
+      items.push(
+        <MenuItem key={i} render={external(md)}>
+          <FileIcon /> {t.viewMarkdown}
+        </MenuItem>,
+      )
+    } else if (action === 'edit') {
+      if (!site.theme.editLink) continue
+      items.push(
+        <MenuItem key={i} render={external(`${site.theme.editLink.replace(/\/?$/, '/')}${page.file}`)}>
+          <EditIcon /> {t.editPage}
+        </MenuItem>,
+      )
+    } else {
+      const chat = typeof action === 'string' ? CHATS[action] : { name: action.label, href: action.href, icon: undefined }
+      if (!chat) continue
+      // One line between the page's own actions and the apps it opens in.
+      if (!chats && items.length) items.push(<MenuSeparator key={`sep-${i}`} />)
+      chats = true
+      items.push(
+        <MenuItem key={i} render={external(actionHref(chat.href, values))}>
+          {chat.icon ? <BrandIcon icon={chat.icon} /> : <ExternalLinkIcon />} {typeof action === 'string' ? fill(t.openIn, { name: chat.name }) : chat.name}
+        </MenuItem>,
+      )
+    }
+  }
+  const hasCopy = actions.includes('copy')
   return (
     <div className="flex items-center">
-      <Button variant="ghost" size="sm" onClick={copy} className="rounded-r-none">
-        {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
-        {copied ? t.copied : t.copyPage}
-      </Button>
-      <Menu>
-        <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t.morePageActions} className="rounded-l-none" />}>
-          <ChevronDownIcon />
-        </MenuTrigger>
-        <MenuContent align="end">
-          <MenuItem render={<a href={md} target="_blank" rel="noreferrer" />}>
-            <FileIcon /> {t.viewMarkdown}
-          </MenuItem>
-          {site.theme.editLink && (
-            <MenuItem render={<a href={`${site.theme.editLink.replace(/\/?$/, '/')}${page.file}`} target="_blank" rel="noreferrer" />}>
-              <EditIcon /> {t.editPage}
-            </MenuItem>
-          )}
-          <MenuItem
-            render={
-              <a
-                href={`https://chatgpt.com/?q=${encodeURIComponent(`Read ${site.url ? new URL(md, site.url).href : md} and answer questions about it.`)}`}
-                target="_blank"
-                rel="noreferrer"
-              />
-            }
-          >
-            <ExternalLinkIcon /> {t.askAboutPage}
-          </MenuItem>
-        </MenuContent>
-      </Menu>
+      {hasCopy && (
+        <Button variant="ghost" size="sm" onClick={copy} className={cn(items.length && 'rounded-r-none')}>
+          {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
+          {copied ? t.copied : t.copyPage}
+        </Button>
+      )}
+      {items.length > 0 && (
+        <Menu>
+          <MenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t.morePageActions} className={cn(hasCopy && 'rounded-l-none')} />}>
+            {hasCopy ? <ChevronDownIcon /> : <MoreHorizontalIcon />}
+          </MenuTrigger>
+          <MenuContent align="end">{items}</MenuContent>
+        </Menu>
+      )}
     </div>
   )
 }

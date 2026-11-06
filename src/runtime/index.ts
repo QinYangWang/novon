@@ -4,7 +4,7 @@
  *
  *   import { Callout, Button } from 'novon'
  */
-export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink, Author } from '../types.ts'
+export type { Frontmatter, Heading, PageMeta, SiteData, LayoutKind, Accent, NavLink, Author, PageAction, HeadTag } from '../types.ts'
 
 /* Writing components (also available in MDX without an import). */
 export {
@@ -26,6 +26,7 @@ export {
   AccordionGroup,
   Pre,
   CodeGroup,
+  PackageInstall,
   Term,
   Frame,
   YouTube,
@@ -33,6 +34,7 @@ export {
   type CalloutProps,
   type CalloutType,
   type LinkCardProps,
+  type PackageInstallProps,
   type MdxComponents,
 } from './mdx.tsx'
 export { PostList, PostItem, PostCard, PostCover, PostMeta, PostTags, TagList, TagLink } from './posts.tsx'
@@ -48,7 +50,7 @@ export { Brand, Search, ThemeButton, SocialLinks, PageActions, Footer, NotFound,
 export { DocsLayout, DocsPage } from './layouts/docs.tsx'
 export { BlogLayout } from './layouts/blog.tsx'
 export { docsNav, flatten, type NavItem, type NavSection } from './nav.ts'
-export { formatDate, withBase, humanize, postsOf, tagRoute } from '../shared.ts'
+export { formatDate, withBase, humanize, postsOf, tagRoute, packageCommands, type PackageCommandOptions } from '../shared.ts'
 
 /* The component library novon is built from, for custom components and overrides. */
 export * from '../ui/index.ts'
