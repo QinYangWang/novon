@@ -1,0 +1,104 @@
+---
+title: Agent commands
+description: Translate pages, test the docs with questions and write a site skill, with the coding agent you already use.
+icon: Terminal
+---
+
+Four commands hand work to a coding agent on your machine. novon writes the
+prompt and runs the agent; it never calls a hosted model itself.
+
+| Command | Does |
+| --- | --- |
+| `novon translate <locale>` | Translates missing and stale pages |
+| `novon migrate <source> --agent` | Finishes a migration; see [Migrating](/guide/migrating) |
+| `novon eval` | Asks the docs the questions in `evals.json` |
+| `novon skill` | Writes `skills/<name>/SKILL.md` for the site |
+
+Every one takes `--dry-run`: it prints the prompt and the command it would run,
+and runs nothing. Without an agent, `translate --check`, `eval` and `skill`
+still work on their own.
+
+## Choosing the agent
+
+novon uses the first of:
+
+1. `NOVON_AGENT`, a command line: `NOVON_AGENT="claude -p"`.
+2. `agent` in the config.
+3. The first of `claude`, `codex`, `gemini`, `opencode`, `cursor-agent` and
+   `aider` on `PATH`, in its one-shot mode.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  agent: { command: 'my-agent', args: ['--quiet', '{prompt}'] },
+})
+```
+
+A `{prompt}` argument takes the prompt; without one it goes on standard input.
+A bare known name (`NOVON_AGENT=codex`) gets that agent's usual flags. The agent
+answers on standard output; novon writes the files.
+
+## Translate
+
+```bash
+novon translate ja --check            # list what needs translating
+novon translate ja --check --strict   # same, exit 1 when anything does (for CI)
+novon translate ja --only 'guide/**'  # translate part of the site
+novon translate ja --dry-run          # print the prompts
+```
+
+A page needs translating when `content/ja/<path>` is missing or stale. Each
+translation records its source in frontmatter:
+
+```yaml
+translatedFrom: 3f2a9c41b0de
+```
+
+a short hash of the source file. When the source changes, the hash no longer
+matches. A translation without it is stale when its source was committed (or,
+outside git, modified) later.
+
+The prompt asks the agent to keep frontmatter keys, MDX components and their
+props, code blocks, links and `{{variables}}`, and to translate the prose. A
+stale page is sent with its old translation so unchanged wording stays.
+
+## Eval
+
+`evals.json` next to the config holds questions a reader might ask and phrases
+a right answer contains:
+
+```json title="evals.json"
+[
+  { "question": "How do I freeze the docs as a version?", "expect": ["novon version"], "pages": ["/guide/versions"] }
+]
+```
+
+```bash
+novon eval              # ask the agent each question
+novon eval --offline    # only check the docs contain each answer
+novon eval --generate 5 # have the agent draft five more checks
+```
+
+Offline, or without an agent, a check passes when its phrases appear in the
+docs: the pages it names, else every page as `llms-full.txt` has them. Case,
+spacing and Markdown emphasis do not matter. It is fast, and it fails when an
+edit removes an answer.
+
+With an agent, each question goes to it with the docs as one file; the answer
+must contain the phrases. `--generate n` keeps only drafted checks whose phrases
+are really in the docs. `novon eval` exits 1 when a check fails.
+
+## Skill
+
+```bash
+novon skill           # write skills/<name>/SKILL.md
+novon skill --agent   # and let the agent refine it
+novon skill --dry-run # print it
+```
+
+The outline comes from the docs: the purpose, the key pages in sidebar order,
+the commands in shell code blocks and the config files and keys the examples
+show. `--agent` rewrites it with the full docs as context, keeping the `name`.
+
+The build publishes it with the rest of `skills/` (see
+[For agents](/guide/agents#agent-skills)), and it replaces the generated
+`/skill.md`.

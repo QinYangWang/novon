@@ -1,0 +1,51 @@
+[
+  {
+    "question": "How do I start a new docs site with novon?",
+    "expect": [
+      "novon new",
+      "novon dev"
+    ],
+    "pages": [
+      "/getting-started"
+    ]
+  },
+  {
+    "question": "How do I freeze the current docs as a version?",
+    "expect": [
+      "novon version"
+    ],
+    "pages": [
+      "/guide/versions"
+    ]
+  },
+  {
+    "question": "Where do translated pages go, and how do I find untranslated ones?",
+    "expect": [
+      "folder under content/",
+      "novon translate ja --check"
+    ],
+    "pages": [
+      "/guide/languages"
+    ]
+  },
+  {
+    "question": "How do I check a site for broken links before deploying?",
+    "expect": [
+      "novon check",
+      "--strict"
+    ],
+    "pages": [
+      "/guide/checking"
+    ]
+  },
+  {
+    "question": "Which file lists every page for AI tools?",
+    "expect": [
+      "llms.txt",
+      "llms-full.txt"
+    ],
+    "pages": [
+      "/guide/agents"
+    ]
+  }
+]

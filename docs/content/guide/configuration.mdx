@@ -48,6 +48,7 @@ export default defineConfig({
   analytics: { plausible: { domain: 'acme.dev' } }, // see Analytics
   consent: { policy: '/privacy' }, // ask before analytics; see Analytics
   agents: { skills: './skills' }, // see For agents
+  agent: 'claude -p',             // local coding agent; see Agent commands
   budget: { js: '320 kB', css: '60 kB' }, // see Budgets
   i18n: { locales: { en: 'English', ja: '日本語' } }, // see Languages
   versions: { list: ['v1'] },     // see Versions; made by `novon version`
@@ -217,6 +218,12 @@ prints what it finds. See [Checking](/guide/checking).
 | `novon add <item…>` | Installs registry components; see [Components](/guide/components) |
 | `novon export epub\|pdf` | Writes the docs as one book; see [Export](/guide/export) |
 | `novon audit` | Checks the built site for search problems; see [Checking](/guide/checking#audit-the-built-site) |
+| `novon translate <locale>` | Translates missing and stale pages with your agent; see [Agent commands](/guide/agent-commands#translate) |
+| `novon migrate <source>` | Converts another framework's project; see [Migrating](/guide/migrating) |
+| `novon eval` | Checks the docs answer the questions in `evals.json`; see [Agent commands](/guide/agent-commands#eval) |
+| `novon skill` | Writes a `SKILL.md` for the site; see [Agent commands](/guide/agent-commands#skill) |
+
+Agent commands take `--dry-run` to print the prompt and run nothing.
 
 ## Plugins
 

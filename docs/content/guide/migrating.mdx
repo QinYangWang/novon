@@ -1,0 +1,58 @@
+---
+title: Migrating
+description: Move a Docusaurus, Mintlify, Nextra, VitePress or Starlight project to novon.
+icon: Upload
+---
+
+```bash
+novon migrate auto ./old-docs --dir ./site
+novon migrate docusaurus . --dir site --agent
+```
+
+The first argument is the framework, or `auto` to detect it from its config
+files. Then the project folder (default `.`). `--dir` is where the novon site
+goes (default `novon`); `--overwrite` writes into a `content/` that is not
+empty. `--dry-run` lists the files it would write.
+
+## What is converted
+
+| From | Pages | Sidebar | Config |
+| --- | --- | --- | --- |
+| Docusaurus | `docs/` | `sidebars.js`, `_category_.json`, `sidebar_position` | `docusaurus.config.js` title, tagline, URL, navbar |
+| Mintlify | the project | `docs.json` or `mint.json` navigation | name, tabs, anchors |
+| Nextra | `pages/` or `content/` | `_meta.json`, `_meta.js` | `theme.config` logo |
+| VitePress | `docs/` | `themeConfig.sidebar` | title, description, base, nav |
+| Starlight | `src/content/docs/` | `sidebar`, including `autogenerate` | title, site, base |
+
+The sidebar becomes `_meta.ts` files: a category whose pages share a folder
+titles that folder; categories in one folder become groups; links stay links.
+Static files go to `public/`.
+
+Frontmatter is renamed where novon differs: `sidebar_label`, `sidebarTitle` and
+`sidebar.label` become `label`; `sidebar_position` and `sidebar.order` become
+`order`.
+
+In pages:
+
+| From | To |
+| --- | --- |
+| `:::tip Title`, `::: tip Title`, `:::tip[Title]` | `:::tip[Title]` |
+| `::: details`, `<details><summary>` | `<Accordion>` |
+| `::: code-group` with `[label]` fences | `<CodeGroup>` with `title=` |
+| `<Tabs>`/`<TabItem label>`, `<Tabs items>`/`<Tabs.Tab>` | `<Tabs>`/`<Tab title>` |
+| `<Callout type>`, `<Aside type>`, `<Check>` | `<Callout type>`, `<Tip>` |
+| `<Cards>`, `<CardGrid>`, `<LinkCard>` | `<CardGroup>`, `<Card>` |
+| `<Steps>` over headings or an ordered list | `<Steps>` with `<Step title>` |
+| `<FileTree.Folder>`, `<FileTree.File>` | `<Folder>`, `<File>` |
+
+Imports of the framework's own components are removed: novon has them built in.
+
+## What is left
+
+`MIGRATION.md` lists what needs a hand, by file and line: components novon does
+not have, imports it cannot resolve, `{{ }}` templating, home page heroes,
+dropped `slug`s, blog posts and translations. Fix them, or pass `--agent` to
+give the list to your coding agent (see [Agent commands](/guide/agent-commands#choosing-the-agent)),
+which edits the new site and ticks each item.
+
+Then run `novon check` and `novon dev`.
