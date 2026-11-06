@@ -2,10 +2,12 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import matter from 'gray-matter'
 import GithubSlugger from 'github-slugger'
-import { humanize, layerFor, normalizeRoute, postsOf, tagRoute } from '../shared.ts'
+import { buildRoute, humanize, layerFor, normalizeRoute, postsOf, routeLocale, stripLocale, tagRoute } from '../shared.ts'
 import type { FolderMeta, Frontmatter, HeadTag, Heading, PageMeta, ResolvedConfig } from '../types.ts'
 import { transformSource } from './source.ts'
 import { applyMetas, loadMetas } from './meta.ts'
+import { locate, mountOf, mounts } from './mounts.ts'
+import { prepareGenerated } from './generated.ts'
 
 const PAGE_EXT = /\.(mdx|md)$/
 
@@ -135,9 +137,11 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
   const { data, content } = matter(source)
   const fm = data as Frontmatter
   if (fm.draft && process.env.NODE_ENV === 'production') return null
-  const route = routeFromFile(file)
+  const where = locate(config, file) ?? { route: routeFromFile(file), key: routeFromFile(file) }
+  const route = where.route
+  const mount = mountOf(config, file)
   const layer = layerFor(route, config.layers, config.layout)
-  const fallbackTitle = route === '/' ? config.title : humanize(route.split('/').at(-1)!)
+  const fallbackTitle = where.key === '/' ? config.title : humanize(route.split('/').at(-1)!)
   const text = plainText(content)
   const title = fm.title ?? content.match(/^#\s+(.+)$/m)?.[1] ?? fallbackTitle
   const updated = await lastUpdated(root, file, abs, fm)
@@ -168,12 +172,24 @@ export async function readPage(root: string, abs: string, config: ResolvedConfig
     kind: 'page',
     text,
     headings: headingsOf(content),
+    ...(config.i18n || where.version ? { key: where.key } : {}),
+    ...(where.locale ? { locale: where.locale } : {}),
+    ...(where.version ? { version: where.version } : {}),
+    ...(mount?.editLink ? { editUrl: `${mount.editLink.replace(/\/?$/, '/')}${file.slice(mount.rel.length + 1)}` } : mount?.external ? { editUrl: '' } : {}),
+    ...(fm.layout === 'changelog' || fm.changelog === true ? { changelog: true } : {}),
+    ...(fm.feedback === false ? { feedback: false as const } : {}),
   }
   const { activePlugins } = await import('./plugins.ts')
   for (const plugin of activePlugins(config)) {
     if (plugin.pageData) page = (await plugin.pageData(page, { config, file, frontmatter: fm })) ?? page
   }
   return page
+}
+
+/** The site title in the locale a route belongs to. */
+function localeTitle(config: ResolvedConfig, route: string): string {
+  const code = routeLocale(config, route)
+  return config.i18n?.locales.find((l) => l.code === code)?.title ?? config.title
 }
 
 /** Adds the pages a blog layer generates: its post list (when no index file exists) and tag pages. */
@@ -185,11 +201,11 @@ function generatedPages(pages: PageMeta[], config: ResolvedConfig): PageMeta[] {
   for (const layer of blogLayers) {
     const layerTitle = config.layers.find((l) => l.path === layer)?.title
     if (!pages.some((p) => p.route === layer)) {
-      out.push(generated(layer, layerTitle ?? (layer === '/' ? config.title : humanize(layer.slice(1))), layer, 'posts'))
+      out.push(generated(layer, layerTitle ?? (layer === '/' || config.i18n?.locales.some((l) => `/${l.code}` === layer) ? localeTitle(config, layer) : humanize(layer.split('/').at(-1)!)), layer, 'posts', config))
     }
     const tags = new Set(postsOf(pages, layer).flatMap((p) => p.tags))
     for (const tag of tags) {
-      const page = generated(tagRoute(layer, tag, config.tags), `#${tag}`, layer, 'tag')
+      const page = generated(tagRoute(layer, tag, config.tags), `#${tag}`, layer, 'tag', config)
       page.tag = tag
       page.hidden = true
       out.push(page)
@@ -198,8 +214,32 @@ function generatedPages(pages: PageMeta[], config: ResolvedConfig): PageMeta[] {
   return out
 }
 
-function generated(route: string, title: string, layer: string, kind: 'posts' | 'tag'): PageMeta {
-  return { route, file: '', title, label: title, order: 0, tags: [], hidden: false, layer, layout: 'blog', kind }
+function generated(route: string, title: string, layer: string, kind: 'posts' | 'tag', config?: ResolvedConfig): PageMeta {
+  const page: PageMeta = { route, file: '', title, label: title, order: 0, tags: [], hidden: false, layer, layout: 'blog', kind }
+  if (config?.i18n) {
+    const locale = routeLocale(config, route)
+    page.locale = locale
+    page.key = stripLocale(config, route)
+  }
+  return page
+}
+
+/** Pages of the default locale served at another locale's route where that locale has no translation. */
+function fallbackPages(pages: PageMeta[], config: ResolvedConfig): PageMeta[] {
+  const i18n = config.i18n
+  if (!i18n?.fallback) return []
+  const have = new Set(pages.map((p) => `${p.locale}|${p.version ?? ''}|${p.key ?? p.route}`))
+  const out: PageMeta[] = []
+  for (const locale of i18n.locales) {
+    if (locale.code === i18n.defaultLocale) continue
+    for (const p of pages) {
+      if (p.kind !== 'page' || p.locale !== i18n.defaultLocale || have.has(`${locale.code}|${p.version ?? ''}|${p.key ?? p.route}`)) continue
+      const route = buildRoute(config, p.key ?? p.route, locale.code, p.version)
+      const layer = layerFor(route, config.layers, config.layout)
+      out.push({ ...p, route, locale: locale.code, fallback: true, layer: layer.path, layout: layer.layout, redirectFrom: undefined })
+    }
+  }
+  return out
 }
 
 export interface Duplicate {
@@ -209,11 +249,15 @@ export interface Duplicate {
 
 /** Every page, plus routes more than one file maps to (the first file wins), and folder settings from `_meta` files. */
 export async function scanPages(config: ResolvedConfig): Promise<{ pages: PageMeta[]; duplicates: Duplicate[]; folders: Record<string, FolderMeta> }> {
-  const files = (await walk(join(config.root, 'content'))).sort()
+  await prepareGenerated(config)
+  const files: string[] = []
+  for (const m of mounts(config)) files.push(...(await walk(join(config.root, m.rel))).filter((f) => mountOf(config, relative(config.root, f).split(sep).join('/'))?.rel === m.rel))
+  files.sort()
   const read = (await Promise.all(files.map((f) => readPage(config.root, f, config)))).filter((p): p is PageMeta => p !== null)
   const byRoute = new Map<string, PageMeta[]>()
   for (const p of read) byRoute.set(p.route, [...(byRoute.get(p.route) ?? []), p])
   const pages = [...byRoute.values()].map((list) => list[0])
+  pages.push(...fallbackPages(pages, config))
   const duplicates = [...byRoute.values()].filter((l) => l.length > 1).map((l) => ({ route: l[0].route, files: l.map((p) => p.file) }))
   const folders = applyMetas(pages, await loadMetas(config))
   const all = [...pages, ...generatedPages(pages, config)]

@@ -136,14 +136,15 @@ export function search(entries: SearchEntry[], query: string, limit = 20): Searc
 
 let cache: { base: string; promise: Promise<SearchEntry[]> } | null = null
 
-/** search.json, fetched once per page load. */
-export function loadSearchIndex(base: string): Promise<SearchEntry[]> {
-  if (!cache || cache.base !== base) {
-    const promise = fetch(withBase(base, '/search.json'))
+/** search.json (or a locale's or version's index, e.g. `/ja/search.json`), fetched once per page load. */
+export function loadSearchIndex(base: string, path = '/search.json'): Promise<SearchEntry[]> {
+  const key = `${base}|${path}`
+  if (!cache || cache.base !== key) {
+    const promise = fetch(withBase(base, path))
       .then((r) => (r.ok ? r.json() : []))
       .then((data: unknown) => (Array.isArray(data) ? (data as SearchEntry[]) : []))
       .catch(() => [] as SearchEntry[])
-    cache = { base, promise }
+    cache = { base: key, promise }
     promise.then((list) => {
       if (!list.length && cache?.promise === promise) cache = null
     })

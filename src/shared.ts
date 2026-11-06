@@ -104,3 +104,70 @@ function packageCommand(pm: PackageManager, o: PackageCommandOptions): string {
   const dev = o.dev ? ' -D' : ''
   return pm === 'npm' ? `npm install${dev} ${pkgs}` : `${pm} add${dev} ${pkgs}`
 }
+
+/** What routing needs to know about locales, versions and layers. */
+export interface RouteShape {
+  layout: LayoutKind
+  /** Layers as written, without the ones locales and versions add. */
+  baseLayers: Layer[]
+  i18n?: { defaultLocale: string; locales: { code: string }[] }
+}
+
+/**
+ * A page's route from its key (`/docs/guide`), locale and version: the locale
+ * prefixes the route and the version follows the docs layer it belongs to,
+ * `/ja/docs/v1/guide`. The default locale has no prefix.
+ */
+export function buildRoute(shape: RouteShape, key: string, locale?: string, version?: string): string {
+  let route = normalizeRoute(key)
+  if (version) {
+    const layer = layerFor(route, shape.baseLayers, shape.layout)
+    const p = layer.layout === 'docs' ? layer.path : '/'
+    const rest = route.slice(p === '/' ? 0 : p.length)
+    route = normalizeRoute(`${p === '/' ? '' : p}/${version}${rest === '/' ? '' : rest}`)
+  }
+  if (locale && shape.i18n && locale !== shape.i18n.defaultLocale) route = normalizeRoute(`/${locale}${route === '/' ? '' : route}`)
+  return route
+}
+
+/** The locale a route belongs to, from its first segment. */
+export function routeLocale(shape: RouteShape, route: string): string | undefined {
+  if (!shape.i18n) return undefined
+  const first = route.split('/')[1]
+  return shape.i18n.locales.some((l) => l.code === first && l.code !== shape.i18n!.defaultLocale) ? first : shape.i18n.defaultLocale
+}
+
+/** `/ja/guide` → `/guide` for a site with a `ja` locale. */
+export function stripLocale(shape: RouteShape, route: string): string {
+  const locale = routeLocale(shape, route)
+  if (!locale || locale === shape.i18n?.defaultLocale) return route
+  return normalizeRoute(route.slice(locale.length + 1))
+}
+
+/** Where the same page lives in another locale or version, else that locale's or version's home. */
+export function counterpart(pages: PageMeta[], shape: RouteShape, page: { key?: string; route: string; locale?: string; version?: string }, to: { locale?: string; version?: string | null }): string {
+  const key = page.key ?? page.route
+  const locale = to.locale ?? page.locale
+  const version = to.version === undefined ? page.version : (to.version ?? undefined)
+  const found = pages.find((p) => (p.key ?? p.route) === key && p.locale === locale && p.version === version && p.kind !== 'tag')
+  if (found) return found.route
+  // The nearest ancestor that exists there, down to that locale's home.
+  const parts = key.split('/').filter(Boolean)
+  while (parts.length) {
+    parts.pop()
+    const k = `/${parts.join('/')}`
+    const up = pages.find((p) => (p.key ?? p.route) === k && p.locale === locale && p.version === version)
+    if (up) return up.route
+  }
+  return buildRoute(shape, '/', locale, version)
+}
+
+const RELEASE_DATE = /\s*(?:[-–—·|,]\s*)?\(?(\d{4}-\d{2}-\d{2})\)?\s*$/
+
+/** A changelog heading split into its release name and date: `1.2.0 (2026-11-01)` → `{ title: '1.2.0', date: '2026-11-01' }`. */
+export function splitReleaseHeading(text: string): { title: string; date?: string } {
+  const m = text.match(RELEASE_DATE)
+  if (!m) return { title: text.trim() }
+  const title = text.slice(0, m.index).trim()
+  return title ? { title, date: m[1] } : { title: m[1], date: m[1] }
+}

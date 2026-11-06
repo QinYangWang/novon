@@ -30,6 +30,7 @@ import { PostList, TagList } from './posts.tsx'
 import { useLabels, useSite } from './site.tsx'
 import { packageCommands, withBase } from '../shared.ts'
 import { Diff, Field, ImageZoom, Img, Mermaid, Prompt, TypeTable } from './extras.tsx'
+import { ApiEndpoint, ApiMethod, Changelog, ChangelogEntry } from './reference.tsx'
 
 /* ---------- Callouts ---------- */
 
@@ -389,6 +390,10 @@ export const mdxComponents = {
   Prompt,
   ImageZoom,
   Mermaid,
+  ApiEndpoint,
+  ApiMethod,
+  Changelog,
+  ChangelogEntry,
 }
 
 export type MdxComponents = typeof mdxComponents

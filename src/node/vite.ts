@@ -10,7 +10,8 @@ import { scanSite } from './content.ts'
 import { mdxOptions } from './mdx.ts'
 import { collectRedirects } from './redirects.ts'
 import { transformSource } from './source.ts'
-import { bannerData } from './banner.ts'
+import { bannerData, inlineMarkdown } from './banner.ts'
+import { isMountedFile, mounts } from './mounts.ts'
 import type { FolderMeta, PageMeta, ResolvedConfig, SiteData } from '../types.ts'
 
 export const novonRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -32,11 +33,15 @@ export function siteData(config: ResolvedConfig, pages: PageMeta[], folders: Rec
     nav: config.nav,
     theme: { ...config.theme, override: undefined, css: undefined },
     layers: config.layers,
+    ...(config.i18n || config.versions ? { baseLayers: config.baseLayers } : {}),
     defaultLayout: config.layout,
     pages: pages.map(({ text: _text, head: _head, redirectFrom: _from, ...p }) => p),
     folders,
     ...(bannerData(config) ? { banner: bannerData(config) } : {}),
     webmcp: config.agents !== false && config.agents?.webmcp !== false,
+    ...(config.i18n ? { i18n: { ...config.i18n, locales: config.i18n.locales.map((l) => (l.banner ? { ...l, banner: inlineMarkdown(l.banner, config.base) } : l)) } } : {}),
+    ...(config.versions ? { versions: config.versions } : {}),
+    ...(config.feedback ? { feedback: config.feedback } : {}),
     search: plugins.includes('search'),
     rss: plugins.includes('rss'),
     rssPath: config.rss.path,
@@ -55,6 +60,7 @@ async function writeCssEntry(config: ResolvedConfig): Promise<string> {
     `@import ${JSON.stringify(join(novonRoot, 'src/styles/novon.css'))};`,
     `@source ${JSON.stringify(join(config.root, 'content'))};`,
   ]
+  for (const m of mounts(config)) if (m.external && existsSync(join(config.root, m.rel))) lines.push(`@source ${JSON.stringify(join(config.root, m.rel))};`)
   if (config.mdx?.math !== false) lines.unshift(`@import ${JSON.stringify(Bun.resolveSync('katex/dist/katex.min.css', novonRoot))};`)
   for (const extra of ['theme', 'components']) {
     if (existsSync(join(config.root, extra))) lines.push(`@source ${JSON.stringify(join(config.root, extra))};`)
@@ -73,7 +79,7 @@ function sitePlugin(config: ResolvedConfig, cssFile: string): Plugin {
     configureServer(s) {
       server = s
       const reload = (file: string) => {
-        if (!file.startsWith(join(config.root, 'content'))) return
+        if (!file.startsWith(join(config.root, 'content')) && !isMountedFile(config, file)) return
         const mod = s.moduleGraph.getModuleById(resolvedSite)
         if (mod) s.moduleGraph.invalidateModule(mod)
         s.ws.send({ type: 'full-reload' })
@@ -108,9 +114,11 @@ function sitePlugin(config: ResolvedConfig, cssFile: string): Plugin {
         overrides.push(`  ${slot}: ${name},`)
       }
       const components: string[] = []
-      for (const [name, file] of Object.entries(config.components ?? {})) {
+      for (const [name, entry] of Object.entries(config.components ?? {})) {
         const local = `Component_${name}`
-        imports.push(`import ${local} from ${JSON.stringify(resolve(config.root, file))}`)
+        // `./file.tsx#Name` takes a named export; a plain path the default one.
+        const [file, named] = entry.split('#')
+        imports.push(named ? `import { ${named} as ${local} } from ${JSON.stringify(resolve(config.root, file))}` : `import ${local} from ${JSON.stringify(resolve(config.root, file))}`)
         components.push(`  ${JSON.stringify(name)}: ${local},`)
       }
       if (server) {
@@ -127,7 +135,7 @@ function sitePlugin(config: ResolvedConfig, cssFile: string): Plugin {
     },
     handleHotUpdate(ctx) {
       // Frontmatter drives navigation, so a content edit refreshes the site index too.
-      if (/\.(mdx|md)$/.test(ctx.file) && ctx.file.startsWith(join(config.root, 'content'))) {
+      if (/\.(mdx|md)$/.test(ctx.file) && (ctx.file.startsWith(join(config.root, 'content')) || isMountedFile(config, ctx.file))) {
         const mod = ctx.server.moduleGraph.getModuleById(resolvedSite)
         if (mod) {
           ctx.server.moduleGraph.invalidateModule(mod)
@@ -146,7 +154,7 @@ function contentPlugin(config: ResolvedConfig): Plugin {
     enforce: 'pre',
     async transform(code, id) {
       const file = id.split('?')[0]
-      if (!/\.(mdx|md)$/.test(file) || !file.startsWith(content)) return null
+      if (!/\.(mdx|md)$/.test(file) || (!file.startsWith(content) && !isMountedFile(config, file))) return null
       const rel = file.slice(config.root.length + 1)
       const out = await transformSource(config, rel, code)
       for (const p of out.partials) this.addWatchFile(join(config.root, p))

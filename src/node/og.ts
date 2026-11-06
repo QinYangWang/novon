@@ -13,7 +13,7 @@ import { extname, join, resolve } from 'node:path'
 import { createElement } from 'react'
 import { novonRoot } from './vite.ts'
 import { OgImage as OgCard, OG_IMAGE_HEIGHT, OG_IMAGE_WIDTH, type OgImageProps } from '@/ui/og-image'
-import { withBase } from '../shared.ts'
+import { buildRoute, withBase } from '../shared.ts'
 import type { OgOptions, PageMeta, ResolvedConfig } from '../types.ts'
 
 export const OG_WIDTH = OG_IMAGE_WIDTH
@@ -50,11 +50,16 @@ export function ogFile(route: string): string {
 }
 
 /** The image a page shares: frontmatter `image`, the generated card, or none. */
+/** The route whose card a page uses: an untranslated fallback shares its original's. */
+export function cardRoute(config: ResolvedConfig, page: PageMeta): string {
+  return page.fallback ? buildRoute(config, page.key ?? page.route, config.i18n?.defaultLocale, page.version) : page.route
+}
+
 export function pageImage(config: ResolvedConfig, page: PageMeta | null): OgImage | null {
   if (!page || page.og === false) return null
   if (page.image) return { src: page.image, generated: false }
   if (!ogOptions(config).enabled) return null
-  return { src: `/${ogFile(page.route)}`, width: OG_WIDTH, height: OG_HEIGHT, generated: true }
+  return { src: `/${ogFile(cardRoute(config, page))}`, width: OG_WIDTH, height: OG_HEIGHT, generated: true }
 }
 
 /** Absolute URL when the site has a `url`, else a base path. */
@@ -219,7 +224,7 @@ export async function ogRenderer(config: ResolvedConfig): Promise<OgRenderer> {
 /** Renders every page's card into `outDir/og/`. Returns the routes that got one. */
 export async function generateOgImages(config: ResolvedConfig, pages: PageMeta[], outDir: string): Promise<Set<string>> {
   const done = new Set<string>()
-  const todo = pages.filter((p) => pageImage(config, p)?.generated)
+  const todo = pages.filter((p) => !p.fallback && pageImage(config, p)?.generated)
   if (!todo.length) return done
   let renderer: OgRenderer
   try {

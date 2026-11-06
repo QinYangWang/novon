@@ -1,17 +1,19 @@
 import matter from 'gray-matter'
-import { postsOf, withBase } from '../shared.ts'
+import { buildRoute, postsOf, withBase } from '../shared.ts'
 import type { BuildContext, NovonPlugin, PageMeta, ResolvedConfig } from '../types.ts'
 import { mdxToMarkdown } from './markdown.ts'
 import { pageSource } from './source.ts'
 import { pageEntries, type SearchEntry } from './search-index.ts'
 import { agents } from './agents.ts'
+import { changelogEntries, changelogFeedPath } from './changelog.ts'
+import { canonicalRoute, isListedCopy, localeOf, localePrefix, searchPath, slices, translations } from './i18n.ts'
 import { analytics } from './analytics.ts'
 
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const listed = (pages: PageMeta[]) => pages.filter((p) => !p.hidden && p.kind !== 'tag')
-/** Pages for crawlers and agents: listed and not `noindex`. */
-const indexable = (pages: PageMeta[]) => listed(pages).filter((p) => !p.noindex)
+const listed = (pages: PageMeta[], config?: ResolvedConfig) => pages.filter((p) => !p.hidden && p.kind !== 'tag' && !(config && isListedCopy(config, p)))
+/** Pages for crawlers and agents: listed, not `noindex`, not a fallback copy or an archived version. */
+const indexable = (pages: PageMeta[], config?: ResolvedConfig) => listed(pages, config).filter((p) => !p.noindex)
 
 export function absolute(config: ResolvedConfig, route: string): string {
   const path = withBase(config.base, route)
@@ -30,27 +32,53 @@ export function sectionOf(page: PageMeta, pages: PageMeta[]): string | undefined
 /** search.json: a page entry and an entry per heading section of every listed page, with their full text. */
 export async function searchIndex(config: ResolvedConfig, pages: PageMeta[]): Promise<SearchEntry[]> {
   const out: SearchEntry[] = []
-  for (const p of listed(pages).filter((p) => p.kind === 'page' && p.file)) {
+  for (const p of listed(pages, config).filter((p) => p.kind === 'page' && p.file)) {
     const { code } = await pageSource(config, p.file)
     out.push(...pageEntries(p, code, p.layout === 'blog' ? 'Posts' : sectionOf(p, pages)))
   }
   return out
 }
 
+/** search.json per locale and listed version: `/search.json`, `/ja/search.json`, `/v1/search.json`. */
 const search: NovonPlugin = {
   name: 'search',
   async buildEnd({ emit, pages, config }) {
-    await emit('search.json', JSON.stringify(await searchIndex(config, pages)))
+    for (const slice of slices(config, pages, { versions: true })) {
+      if (slice.prefix && !slice.pages.some((p) => p.kind === 'page' && !p.fallback)) continue
+      await emit(searchPath(slice.prefix).slice(1), JSON.stringify(await searchIndex(config, slice.pages)))
+    }
   },
 }
 
+function urlset(config: ResolvedConfig, list: PageMeta[], all: PageMeta[]): string {
+  const multi = !!config.i18n
+  const urls = list.map((p) => {
+    const alternates = multi
+      ? translations(all, p)
+          .filter((t) => !t.noindex && !t.hidden)
+          .map((t) => `<xhtml:link rel="alternate" hreflang="${xml(localeOf(config, t)?.lang ?? config.lang)}" href="${xml(absolute(config, t.route))}"/>`)
+          .join('')
+      : ''
+    return `  <url><loc>${xml(absolute(config, p.route))}</loc>${p.updated ? `<lastmod>${p.updated}</lastmod>` : ''}${alternates}</url>`
+  })
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${multi ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' : ''}>\n${urls.join('\n')}\n</urlset>\n`
+}
+
+/** sitemap.xml; with locales, a sitemap index of one `sitemap-<locale>.xml` per locale. */
 const sitemap: NovonPlugin = {
   name: 'sitemap',
   async buildEnd({ emit, pages, config }) {
-    const urls = indexable(pages)
-      .map((p) => `  <url><loc>${xml(absolute(config, p.route))}</loc>${p.updated ? `<lastmod>${p.updated}</lastmod>` : ''}</url>`)
-      .join('\n')
-    await emit('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
+    // Pages whose canonical is another page (an older version of a current one) stay out.
+    const list = indexable(pages, config).filter((p) => canonicalRoute(config, p, pages) === p.route)
+    if (config.i18n) {
+      const files: string[] = []
+      for (const slice of slices(config, list)) {
+        const file = `sitemap-${slice.locale!.code}.xml`
+        files.push(file)
+        await emit(file, urlset(config, slice.pages, pages))
+      }
+      await emit('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${files.map((f) => `  <sitemap><loc>${xml(absolute(config, `/${f}`))}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`)
+    } else await emit('sitemap.xml', urlset(config, list, pages))
     if (config.url) await emit('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${absolute(config, '/sitemap.xml')}\n`)
   },
 }
@@ -66,9 +94,56 @@ export function absoluteUrls(html: string, config: ResolvedConfig): string {
 
 const cdata = (s: string) => `<![CDATA[${s.replace(/]]>/g, ']]]]><![CDATA[>')}]]>`
 
+/** The feed path of a locale: `/rss.xml`, `/ja/rss.xml`. */
+export function feedPath(config: ResolvedConfig, locale?: string): string {
+  return `${localePrefix(config, locale)}${config.rss.path}`
+}
+
 const rss: NovonPlugin = {
   name: 'rss',
-  async buildEnd({ emit, pages, config, renderContent }) {
+  async buildEnd(ctx) {
+    const { emit, pages, config } = ctx
+    for (const slice of slices(config, pages)) {
+      const locale = slice.locale
+      await writeFeed(ctx, slice.pages.filter((p) => !p.fallback), feedPath(config, locale?.code), {
+        title: locale?.title ?? config.title,
+        description: locale?.description ?? config.description ?? config.title,
+        lang: locale?.lang ?? config.lang,
+        home: locale ? (slice.prefix || '/') : '/',
+      })
+    }
+    // A feed of each changelog page's releases, beside the page.
+    for (const page of pages.filter((p) => p.changelog && p.file && !p.fallback)) {
+      const entries = changelogEntries((await pageSource(config, page.file)).code, !page.file.endsWith('.md'))
+      if (!entries.length) continue
+      const locale = localeOf(config, page)
+      const items = entries.slice(0, 50).map((e) => {
+        const link = absolute(config, `${page.route}#${e.anchor}`)
+        return `    <item>
+      <title>${xml(e.title)}</title>
+      <link>${xml(link)}</link>
+      <guid>${xml(link)}</guid>${e.date ? `\n      <pubDate>${new Date(e.date).toUTCString()}</pubDate>` : ''}${e.text ? `\n      <description>${xml(e.text.slice(0, 600))}</description>` : ''}
+    </item>`
+      })
+      await emit(
+        changelogFeedPath(page.route).slice(1),
+        `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>${xml(`${page.title} · ${locale?.title ?? config.title}`)}</title>
+    <link>${xml(absolute(config, page.route))}</link>
+    <description>${xml(page.description ?? page.title)}</description>
+    <language>${xml(locale?.lang ?? config.lang)}</language>
+${items.join('\n')}
+  </channel>
+</rss>
+`,
+      )
+    }
+  },
+}
+
+async function writeFeed({ emit, config, renderContent }: BuildContext, pages: PageMeta[], path: string, channel: { title: string; description: string; lang: string; home: string }) {
     const layers = new Set(pages.filter((p) => p.layout === 'blog').map((p) => p.layer))
     const posts = [...layers].flatMap((l) => postsOf(pages, l)).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
     if (!posts.length) return
@@ -83,20 +158,19 @@ const rss: NovonPlugin = {
     </item>`)
     }
     await emit(
-      config.rss.path.slice(1),
+      path.slice(1),
       `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"${full ? ' xmlns:content="http://purl.org/rss/1.0/modules/content/"' : ''}>
   <channel>
-    <title>${xml(config.title)}</title>
-    <link>${xml(absolute(config, '/'))}</link>
-    <description>${xml(config.description ?? config.title)}</description>
-    <language>${xml(config.lang)}</language>
+    <title>${xml(channel.title)}</title>
+    <link>${xml(absolute(config, channel.home))}</link>
+    <description>${xml(channel.description)}</description>
+    <language>${xml(channel.lang)}</language>
 ${items.join('\n')}
   </channel>
 </rss>
 `,
     )
-  },
 }
 
 /** llms.txt, llms-full.txt and a plain Markdown copy of every page at `<route>.md`. */
@@ -105,15 +179,25 @@ const llms: NovonPlugin = {
   async buildEnd(ctx) {
     const markdown = await emitMarkdown(ctx)
     const { emit, pages, config } = ctx
-    const docs = indexable(pages).filter((p) => p.kind === 'page')
-    const lines = [`# ${config.title}`, '', config.description ? `> ${config.description}\n` : '']
-    for (const p of docs) {
-      lines.push(`- [${p.title}](${absolute(config, markdownPath(p.route))})${p.description ? `: ${p.description}` : ''}`)
+    for (const slice of slices(config, indexable(pages, config).filter((p) => p.kind === 'page'))) {
+      const docs = slice.pages.filter((p) => !p.version)
+      const dir = localePrefix(config, slice.locale?.code)
+      const title = slice.locale?.title ?? config.title
+      const description = slice.locale?.description ?? config.description
+      const lines = [`# ${title}`, '', description ? `> ${description}\n` : '']
+      for (const p of docs) {
+        lines.push(`- [${p.title}](${absolute(config, markdownPath(p.route))})${p.description ? `: ${p.description}` : ''}`)
+      }
+      // The current version's docs come first; listed older versions follow as their own section.
+      const versions = (config.versions?.list ?? []).filter((v) => !v.hidden && !v.archived)
+      const extra = dir ? [] : agentLinks(config)
+      if (extra.length) lines.push('', '## Optional', '', ...extra)
+      if (versions.length) lines.push('', `Older versions: ${versions.map((v) => `${v.label} (${absolute(config, buildRoute(config, '/', slice.locale?.code, v.id))})`).join(', ')}`)
+      const others = config.i18n && !dir ? config.i18n.locales.filter((l) => l.code !== config.i18n!.defaultLocale) : []
+      if (others.length) lines.push('', `Other languages: ${others.map((l) => `${l.label} (${absolute(config, `/${l.code}/llms.txt`)})`).join(', ')}`)
+      await emit(`${dir ? `${dir.slice(1)}/` : ''}llms.txt`, `${lines.join('\n')}\n`)
+      await emit(`${dir ? `${dir.slice(1)}/` : ''}llms-full.txt`, llmsFull({ ...config, title, description }, docs, markdown))
     }
-    const extra = agentLinks(config)
-    if (extra.length) lines.push('', '## Optional', '', ...extra)
-    await emit('llms.txt', `${lines.join('\n')}\n`)
-    await emit('llms-full.txt', llmsFull(config, docs, markdown))
   },
 }
 
@@ -154,7 +238,7 @@ export async function pageMarkdown(config: ResolvedConfig, page: PageMeta, pages
 async function emitMarkdown({ emit, pages, config, markdown }: BuildContext): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   for (const p of pages) {
-    if (!p.file) continue
+    if (!p.file || p.fallback) continue
     const md = markdown ? await markdown(p) : await pageMarkdown(config, p, pages)
     out.set(p.route, md)
     await emit(markdownPath(p.route).slice(1), md)

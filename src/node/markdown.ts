@@ -48,6 +48,11 @@ function attr(el: Jsx, name: string): string | true | undefined {
   if (a.value === null) return true
   if (typeof a.value === 'string') return a.value
   const v = a.value.value.trim()
+  if (v.startsWith('"')) {
+    try {
+      return JSON.parse(v) as string
+    } catch {}
+  }
   if (/^(['"`])[\s\S]*\1$/.test(v)) return v.slice(1, -1)
   if (/^-?\d+(\.\d+)?$/.test(v) || v === 'true' || v === 'false') return v
   return undefined
@@ -249,6 +254,17 @@ class Converter {
       }
       case 'Kbd':
         return [{ type: 'inlineCode', value: toString(el as never) } as Node]
+      case 'ApiEndpoint': {
+        const code = { type: 'inlineCode', value: `${(str(el, 'method') ?? '').toUpperCase()} ${str(el, 'path') ?? ''}`.trim() } as PhrasingContent
+        const server = str(el, 'server')
+        const extra = [...(server ? [text(' · '), { type: 'inlineCode', value: server } as PhrasingContent] : []), ...(attr(el, 'deprecated') ? [text(' (deprecated)')] : [])]
+        return block ? [paragraph([code, ...extra]) as Node] : [code as Node]
+      }
+      case 'ApiMethod':
+        return [{ type: 'inlineCode', value: (str(el, 'method') ?? '').toUpperCase() } as Node]
+      case 'Changelog':
+      case 'ChangelogEntry':
+        return this.children(el.children, block)
       case 'TagList':
       case 'Icon':
       case 'PackageInstall':

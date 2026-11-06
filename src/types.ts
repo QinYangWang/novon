@@ -184,7 +184,7 @@ export interface Config {
   /** Top navigation. */
   nav?: NavLink[]
   theme?: ThemeOptions
-  /** Components available in every MDX file without an import: name → file. */
+  /** Components available in every MDX file without an import: name → file (its default export), or `file#Name` for a named export. */
   components?: Record<string, string>
   plugins?: (BuiltinPlugin | NovonPlugin)[]
   mdx?: MdxOptions
@@ -210,6 +210,146 @@ export interface Config {
   agents?: AgentOptions | false
   /** Fail the build when the JavaScript or CSS a page loads first is larger, gzipped. Numbers are bytes; strings like `200 kB`. */
   budget?: { js?: number | string; css?: number | string }
+  /** More than one language: `content/<locale>/…` holds each translation; the default locale stays at the root. */
+  i18n?: I18nOptions
+  /** Frozen docs versions under `content/_versions/<id>`, served at `/<id>/…`. Made with `novon version <id>`. */
+  versions?: VersionsOptions
+  /** Content from elsewhere: another git repository, Markdown URLs, GitHub releases. Cached by `novon sync`. */
+  sources?: SourceOptions[]
+  /** API reference pages generated from OpenAPI 3 descriptions. */
+  openapi?: OpenApiOptions | OpenApiOptions[]
+  /** A "Was this helpful?" widget on pages. It only sends; you choose where. */
+  feedback?: FeedbackOptions | false
+}
+
+export interface LocaleOptions {
+  /** Name in the language switcher, e.g. `日本語`. */
+  label: string
+  /** BCP 47 tag for `<html lang>` and built-in strings. Default: the locale code. */
+  lang?: string
+  /** Text direction. Default `ltr`. */
+  dir?: 'ltr' | 'rtl'
+  /** Site title and description in this language. */
+  title?: string
+  description?: string
+  /** Top navigation in this language. Default: `nav`, each link pointed at its translation when there is one. */
+  nav?: NavLink[]
+  /** Replace single built-in strings in this language. */
+  labels?: Partial<Labels>
+  /** Banner text in this language. */
+  banner?: string
+}
+
+export interface I18nOptions {
+  /** The locale at the root of the site. Default `lang`. */
+  defaultLocale?: string
+  /** Locale code (the URL segment) → its name or options. Include the default locale. */
+  locales: Record<string, string | LocaleOptions>
+  /** Serve the default-locale page, marked as untranslated, where a translation is missing. Default true. */
+  fallback?: boolean
+}
+
+export interface ResolvedLocale extends LocaleOptions {
+  code: string
+  lang: string
+  dir: 'ltr' | 'rtl'
+}
+
+export interface ResolvedI18n {
+  defaultLocale: string
+  locales: ResolvedLocale[]
+  fallback: boolean
+}
+
+export interface VersionOption {
+  /** URL segment and folder name, e.g. `v1`. */
+  id: string
+  /** Name in the version switcher. Default: the id. */
+  label?: string
+  /** Not in the switcher, search, sitemap or llms.txt; pages still build. */
+  hidden?: boolean
+  /** Listed, but left out of search, sitemap and llms.txt, with an "archived" banner. */
+  archived?: boolean
+}
+
+export interface VersionsOptions {
+  /** Name of the current docs in the switcher. Default `Latest`. */
+  latest?: string
+  /** Older versions, newest first. */
+  list: (string | VersionOption)[]
+}
+
+export interface ResolvedVersions {
+  latest: string
+  list: (VersionOption & { label: string })[]
+}
+
+/** Where outside content comes from. Each source is mounted at `path`. */
+export type SourceOptions = GitSource | RemoteFilesSource | ReleasesSource
+
+interface SourceBase {
+  /** Cache folder name. Default: derived from the source. */
+  name?: string
+  /** URL prefix the pages are served under, e.g. `/sdk`. */
+  path: string
+}
+
+export interface GitSource extends SourceBase {
+  type: 'git'
+  /** Clone URL. */
+  repo: string
+  /** Branch, tag or commit. Default: the remote's default branch. */
+  ref?: string
+  /** Folder inside the repository holding the pages. Default: the root. */
+  dir?: string
+  /** "Edit this page" base for these pages, e.g. `https://github.com/acme/sdk/edit/main/docs`. */
+  editLink?: string
+}
+
+export interface RemoteFilesSource extends SourceBase {
+  type: 'files'
+  /** Page path (relative to `path`, without extension) → Markdown or MDX URL. */
+  files: Record<string, string>
+}
+
+export interface ReleasesSource extends SourceBase {
+  type: 'github-releases'
+  /** `owner/name`. */
+  repo: string
+  /** Page title. Default `Changelog`. */
+  title?: string
+  description?: string
+  /** Environment variable holding a token, for private repositories or rate limits. Default `GITHUB_TOKEN`. */
+  tokenEnv?: string
+  /** Newest releases to keep. Default 50. */
+  limit?: number
+  /** Include pre-releases. Default true. */
+  prereleases?: boolean
+}
+
+export interface OpenApiOptions {
+  /** An OpenAPI 3.0 or 3.1 file (JSON or YAML), relative to the site root, or a URL (cached by `novon sync`). */
+  spec: string
+  /** URL prefix for the reference, e.g. `/api`. */
+  path: string
+  /** Overview page title. Default: the description's `info.title`. */
+  title?: string
+  /** Code samples, in order. Default `['curl', 'javascript', 'python']`. */
+  samples?: ('curl' | 'javascript' | 'python' | 'go')[]
+  /** Base URL used in samples. Default: the first `servers` entry. */
+  server?: string
+}
+
+export interface FeedbackOptions {
+  /**
+   * Where a response goes. A URL template opens in a new tab with `{page}`, `{url}`, `{title}`,
+   * `{mood}`, `{message}` filled in (a new GitHub issue, a form). `post:` + URL sends JSON instead.
+   */
+  href?: string
+  /** Also send an analytics event with this name (Plausible, Umami, GA4). Default `feedback`. */
+  event?: string | false
+  /** Show it on docs pages, blog posts, or both. Default `docs`. */
+  on?: 'docs' | 'blog' | 'all'
 }
 
 export interface BannerOptions {
@@ -304,7 +444,7 @@ export interface TagOptions {
   lowercase?: boolean
 }
 
-export interface ResolvedConfig extends Config {
+export interface ResolvedConfig extends Omit<Config, 'i18n' | 'versions'> {
   base: string
   lang: string
   layout: LayoutKind
@@ -316,6 +456,10 @@ export interface ResolvedConfig extends Config {
   redirects: Record<string, string>
   variables: Record<string, string | number | boolean>
   root: string
+  /** The layers as written, before locales and versions added theirs. */
+  baseLayers: Layer[]
+  i18n?: ResolvedI18n
+  versions?: ResolvedVersions
 }
 
 export interface Frontmatter {
@@ -347,6 +491,10 @@ export interface Frontmatter {
   head?: HeadTag[]
   /** A short tag beside the sidebar link, e.g. `New`. */
   badge?: string
+  /** `changelog`: each `##` section is a release on a timeline, and the page gets a feed. */
+  layout?: 'changelog'
+  /** `false` hides the feedback widget on this page. */
+  feedback?: boolean
   [key: string]: unknown
 }
 
@@ -397,6 +545,20 @@ export interface PageMeta {
   headings?: Heading[]
   /** Extra data from plugins' `pageData`. */
   data?: Record<string, unknown>
+  /** Locale code, when the site has `i18n`. */
+  locale?: string
+  /** Version id for a frozen version; unset for the current docs. */
+  version?: string
+  /** The route without its locale and version segments: the same page in every language and version shares it. */
+  key?: string
+  /** A default-locale page served at a locale's route because it has no translation yet. */
+  fallback?: boolean
+  /** "Edit this page" URL when it is not `theme.editLink` + file; empty for none. */
+  editUrl?: string
+  /** Frontmatter `layout: changelog`. */
+  changelog?: boolean
+  /** Frontmatter `feedback: false`. */
+  feedback?: false
 }
 
 /** The runtime's view of the site, serialised into the client bundle. */
@@ -409,6 +571,8 @@ export interface SiteData {
   nav: NavLink[]
   theme: ResolvedConfig['theme']
   layers: Layer[]
+  /** Layers as written, before locales and versions added theirs. */
+  baseLayers?: Layer[]
   defaultLayout: LayoutKind
   pages: PageMeta[]
   search: boolean
@@ -423,4 +587,7 @@ export interface SiteData {
   banner?: { html: string; href?: string; dismissible: boolean; id: string }
   /** WebMCP tools are registered. */
   webmcp: boolean
+  i18n?: ResolvedI18n
+  versions?: ResolvedVersions
+  feedback?: FeedbackOptions
 }

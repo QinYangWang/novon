@@ -14,6 +14,11 @@ Usage
   novon preview [dir] [--port 4173]        serve dir/dist
   novon check [dir] [--json] [--strict] [--external]
                                            validate config, frontmatter, links and redirects
+  novon audit [dir] [--json] [--strict]    check the built site for search and sharing problems
+  novon version <id> [dir]                 freeze the current docs as version <id>
+  novon sync [dir]                         refresh outside sources and remote API descriptions
+  novon add <item…> [--dir dir] [--overwrite]
+                                           install components from the PaneUI registry
 
 A site is a novon.config.ts and a content/ folder of .mdx files.`
 
@@ -30,6 +35,8 @@ const { positionals, values } = parseArgs({
     strict: { type: 'boolean' },
     json: { type: 'boolean' },
     external: { type: 'boolean' },
+    dir: { type: 'string', short: 'd' },
+    overwrite: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
     version: { type: 'boolean', short: 'v' },
   },
@@ -55,7 +62,10 @@ async function main() {
     return
   }
 
-  const root = resolve(target ?? '.')
+  // `novon version <id> [dir]` and `novon add <item…>` take their argument before the site folder.
+  const takesArgument = command === 'version' || command === 'add'
+  const root = resolve((command === 'add' ? values.dir : takesArgument ? positionals[2] : target) ?? '.')
+  if (takesArgument && !target) throw new Error(`novon ${command} needs ${command === 'add' ? 'an item, e.g. novon add timeline' : 'an id, e.g. novon version v1'}`)
   process.chdir(root)
   const { loadConfig } = await import('../src/node/load-config.ts')
   const config = await loadConfig(root)
@@ -83,6 +93,43 @@ async function main() {
     else if (issues.length) console.log(`${formatIssues(issues)}\n\n${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`)
     else console.log('No problems found.')
     if (errors || (values.strict && warnings)) process.exit(1)
+    return
+  }
+  if (command === 'audit') {
+    const { audit, formatAudit } = await import('../src/node/audit.ts')
+    const { scanPages } = await import('../src/node/content.ts')
+    const issues = await audit(config, { pages: (await scanPages(config)).pages })
+    const errors = issues.filter((i) => i.severity === 'error').length
+    const warnings = issues.length - errors
+    if (values.json) console.log(JSON.stringify({ errors, warnings, issues }, null, 2))
+    else if (issues.length) console.log(`${formatAudit(issues)}\n\n${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`)
+    else console.log('No problems found.')
+    if (errors || (values.strict && warnings)) process.exit(1)
+    return
+  }
+  if (command === 'version') {
+    const { freezeVersion } = await import('../src/node/version.ts')
+    const r = await freezeVersion(config, target!)
+    console.log(`Froze ${r.files} file${r.files === 1 ? '' : 's'} into ${r.dir}`)
+    if (!r.configUpdated) console.log(`Add it to your config:\n\n  versions: { list: ['${target}'] },\n`)
+    return
+  }
+  if (command === 'sync') {
+    const { syncAll } = await import('../src/node/sources.ts')
+    const results = await syncAll(config)
+    if (!results.length) return console.log('Nothing to sync: no `sources` and no remote `openapi` descriptions.')
+    for (const r of results) console.log(`${r.ok ? '✓' : '\x1b[31m✗\x1b[0m'} ${r.name}  ${dim(r.message)}`)
+    if (results.some((r) => !r.ok)) process.exit(1)
+    return
+  }
+  if (command === 'add') {
+    const { addItems } = await import('../src/node/add.ts')
+    const r = await addItems(config, positionals.slice(1), { overwrite: values.overwrite })
+    for (const f of r.installed) console.log(`+ ${f}`)
+    if (r.shared.length) console.log(dim(`uses novon's ${r.shared.join(', ')}`))
+    const names = Object.keys(r.components)
+    if (names.length) console.log(r.configUpdated ? `Registered for MDX: ${names.map((n) => `<${n}>`).join(' ')}` : `Add to \`components\` in your config:\n${Object.entries(r.components).map(([n, f]) => `  ${n}: '${f}',`).join('\n')}`)
+    if (r.packages.length) console.log(`\nThese need npm packages novon does not have: ${r.packages.join(', ')}. Add a package.json and install them.`)
     return
   }
   if (command === 'preview') {

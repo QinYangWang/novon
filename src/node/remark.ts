@@ -11,7 +11,8 @@
 import type { Root, RootContent, Paragraph, Text, Code, Blockquote } from 'mdast'
 import { toString } from 'mdast-util-to-string'
 import { visit, SKIP } from 'unist-util-visit'
-import { packageCommands, type PackageCommandOptions } from '../shared.ts'
+import GithubSlugger from 'github-slugger'
+import { packageCommands, splitReleaseHeading, type PackageCommandOptions } from '../shared.ts'
 
 const CALLOUT_TYPES = new Set(['note', 'tip', 'info', 'warning', 'caution', 'danger'])
 const CALLOUT_ALIASES: Record<string, string> = { important: 'info', error: 'danger', success: 'tip', check: 'tip' }
@@ -207,5 +208,43 @@ export function remarkComponentSource() {
         }
       }
     })
+  }
+}
+
+const CHANGELOG_FRONTMATTER = /^(layout:\s*['"]?changelog['"]?|changelog:\s*true)\s*$/m
+
+/**
+ * On a `layout: changelog` page every `##` section becomes a `<ChangelogEntry>`
+ * on one `<Changelog>` timeline. A date at the end of the heading moves to the
+ * timeline; the heading keeps the anchor its full text gives.
+ */
+export function remarkChangelog() {
+  return (tree: Root) => {
+    const yaml = tree.children.find((n) => n.type === 'yaml') as { value: string } | undefined
+    if (!yaml || !CHANGELOG_FRONTMATTER.test(yaml.value)) return
+    const slugger = new GithubSlugger()
+    const before: RootContent[] = []
+    const entries: JsxElement[] = []
+    for (const node of tree.children) {
+      if (node.type === 'heading') {
+        const text = toString(node)
+        const id = slugger.slug(text)
+        if (node.depth === 2) {
+          const { title, date } = splitReleaseHeading(text)
+          if (date && title !== date) {
+            // The date shows on the timeline; the heading keeps its name and the anchor of its full text.
+            node.children = [{ type: 'text', value: title }]
+            node.data = { ...node.data, hProperties: { ...(node.data?.hProperties ?? {}), id } }
+          }
+          entries.push(jsx('ChangelogEntry', { version: title, date }, [node], node.position) as unknown as JsxElement)
+          continue
+        }
+      }
+      const last = entries.at(-1)
+      if (last && node.type !== 'mdxjsEsm' && node.type !== 'yaml') last.children.push(node)
+      else before.push(node)
+    }
+    if (!entries.length) return
+    tree.children = [...before, jsx('Changelog', {}, entries as unknown as RootContent[])]
   }
 }

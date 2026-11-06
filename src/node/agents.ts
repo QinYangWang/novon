@@ -7,6 +7,7 @@
  * - a discovery manifest at `/.well-known/ard.json` and `ai-catalog.json`, and an API catalog at `/.well-known/api-catalog` (need `url`)
  * - `<link>` tags pointing at them, and `_headers` rules for hosts that read them
  */
+import { isListedCopy } from './i18n.ts'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
@@ -39,7 +40,7 @@ export function pageJsonPath(route: string): string {
   return `/api/pages${route === '/' ? '/index' : route}.json`
 }
 
-const listed = (pages: PageMeta[]) => pages.filter((p) => p.kind === 'page' && !p.hidden && p.file)
+const listed = (pages: PageMeta[]) => pages.filter((p) => p.kind === 'page' && !p.hidden && p.file && !p.fallback)
 
 function pageEntry(config: ResolvedConfig, page: PageMeta, pages: PageMeta[]) {
   return {
@@ -287,7 +288,7 @@ export async function siteSkill(config: ResolvedConfig, pages: PageMeta[], folde
   for (const l of config.layers) layers.set(l.path, l.layout)
   for (const [path, layout] of layers) docs.push(...(layout === 'blog' ? postsOf(pages, path) : flatten(docsNav(pages, path, folders))))
   const seen = new Set<string>()
-  const shown = docs.filter((p) => !p.noindex && !seen.has(p.route) && seen.add(p.route))
+  const shown = docs.filter((p) => !p.noindex && !isListedCopy(config, p) && !(config.i18n && p.locale !== config.i18n.defaultLocale) && !p.version && !seen.has(p.route) && seen.add(p.route))
   for (const p of shown.slice(0, 200)) lines.push(`- [${p.title}](${absolute(config, markdownPath(p.route))})${p.description ? `: ${p.description}` : ''}`)
   if (shown.length > 200) lines.push('', `More pages are listed in ${absolute(config, '/llms.txt')}.`)
   return `${lines.join('\n')}\n`
@@ -398,7 +399,7 @@ export const agents: NovonPlugin = {
   head(page, { config }) {
     const tags: HeadTag[] = []
     const href = (p: string) => withBase(config.base, p)
-    if (page?.file && (config.plugins ?? []).includes('llms')) {
+    if (page?.file && !page.fallback && (config.plugins ?? []).includes('llms')) {
       tags.push(linkTag('alternate', href(markdownPath(page.route)), 'text/markdown'), linkTag('describedby', href('/llms.txt'), 'text/plain'))
     }
     if (config.url && on(config, 'discovery')) {

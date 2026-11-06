@@ -1,4 +1,6 @@
 import * as React from 'react'
+import { FallbackNotice, LanguageSwitcher } from '../i18n.tsx'
+import { PageFeedback } from '../feedback.tsx'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
 import { ScrollProgress } from '@/ui/scroll-progress'
@@ -61,6 +63,7 @@ function DefaultHeader() {
             )
           })}
           <Search compact />
+          <LanguageSwitcher />
           <span className="flex items-center max-sm:hidden">
             <SocialLinks />
           </span>
@@ -150,6 +153,7 @@ function Post({ page }: { page: PageMeta }) {
     <>
       <ScrollProgress className="top-14" label={t.readingProgress} />
       <Container className="flex flex-col gap-10 pt-10 pb-24 sm:pt-14">
+        <FallbackNotice page={page} />
         <PostHeader page={page} />
         <PostCover post={page} className="aspect-video rounded-2xl outline -outline-offset-1 outline-image-outline sm:aspect-[21/9]" />
         <div className="flex justify-between gap-12">
@@ -159,9 +163,10 @@ function Post({ page }: { page: PageMeta }) {
                 <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
               </div>
             )}
-              <article className="typeset typeset-reading">
+            <article className="typeset typeset-reading">
               <PageContent />
             </article>
+            <PageFeedback page={page} />
           </div>
           {toc && (
             <aside data-novon-chrome="" className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
@@ -189,12 +194,13 @@ function PostsIndex({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const posts = postsOf(site.pages, page.layer)
   const [latest] = posts
-  const description = page.description ?? (page.layer === '/' ? site.description : undefined)
+  const home = (page.key ?? page.layer) === '/'
+  const description = page.description ?? (home ? site.description : undefined)
   const t = useLabels()
   return (
     <Container className="flex flex-col gap-20 py-16 sm:py-24">
       <header className="flex max-w-2xl flex-col items-start gap-6">
-        {page.layer === '/' && !site.theme.logo && <AuthorAvatar name={site.title} size="xl" />}
+        {home && !site.theme.logo && <AuthorAvatar name={site.title} size="xl" />}
         <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
         {description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{description}</p>}
       </header>
@@ -242,6 +248,7 @@ function Page({ page }: { page: PageMeta }) {
   return (
     <Container className="py-10 sm:py-14">
       <div className="mx-auto flex max-w-reading flex-col gap-8">
+        <FallbackNotice page={page} />
         <header className="flex flex-col gap-3">
           <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance">{page.title}</h1>
           {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
@@ -249,6 +256,7 @@ function Page({ page }: { page: PageMeta }) {
         <article className="typeset typeset-reading">
           <PageContent />
         </article>
+        <PageFeedback page={page} />
       </div>
     </Container>
   )

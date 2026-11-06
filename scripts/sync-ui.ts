@@ -16,7 +16,7 @@ export const items = [
   'command-palette', 'breadcrumb', 'avatar', 'icon-chip', 'scroll-area', 'segmented-control', 'drawer',
   'code-block', 'kbd', 'separator', 'animated-sidebar', 'page-header', 'outline', 'cover-art',
   'sidebar-nav', 'simple-table', 'og-image', 'locale-provider', 'brand-icon', 'file-diff', 'command-copy',
-  'dialog',
+  'dialog', 'timeline', 'feedback-widget',
 ]
 
 if (import.meta.main) {

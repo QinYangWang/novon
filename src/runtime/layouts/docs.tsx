@@ -8,7 +8,9 @@ import { ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, EditIcon, MenuIcon } f
 import { Badge } from '@/ui/badge'
 import { formatDate } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
-import { Brand, Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
+import { Brand, Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton, editUrl } from '../chrome.tsx'
+import { FallbackNotice, LanguageSwitcher, VersionNotice, VersionSwitcher } from '../i18n.tsx'
+import { PageFeedback } from '../feedback.tsx'
 import { Banner } from '../extras.tsx'
 import { Icon } from '../icons.tsx'
 import { Link } from '../link.tsx'
@@ -34,8 +36,17 @@ function byGroup(items: NavItem[]): { group?: string; items: NavItem[] }[] {
   return out
 }
 
+/** Badge colours for HTTP methods, so generated API pages read like a reference. */
+const METHOD_BADGE: Record<string, 'success' | 'primary' | 'warning' | 'destructive'> = { GET: 'success', POST: 'primary', PUT: 'warning', PATCH: 'warning', DELETE: 'destructive' }
+
 function NavBadge({ text }: { text?: string }) {
-  return text ? <Badge size="sm" variant="primary">{text}</Badge> : null
+  if (!text) return null
+  const method = METHOD_BADGE[text]
+  return (
+    <Badge size="sm" variant={method ?? 'primary'} className={method && 'font-mono'}>
+      {text === 'DELETE' ? 'DEL' : text}
+    </Badge>
+  )
 }
 
 type Row = { item: NavItem; children: NavItem[] }
@@ -192,6 +203,7 @@ function DefaultHeader({ onOpenNav }: { onOpenNav: () => void }) {
         <div className="ms-auto flex items-center gap-1.5">
           <TopNav />
           <Search />
+          <LanguageSwitcher />
           <div className="flex items-center max-sm:hidden">
             <SocialLinks />
           </div>
@@ -249,7 +261,7 @@ function DocsHeader({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const section = sectionOf(useSections(), page.route)
   const t = useLabels()
-  const edit = site.theme.editLink && page.file ? `${site.theme.editLink.replace(/\/?$/, '/')}${page.file}` : undefined
+  const edit = editUrl(site, page)
   return (
     <PageHeader className="flex-col items-stretch gap-y-4">
       <PageHeaderContent className="gap-2">
@@ -299,6 +311,12 @@ export function DocsPage() {
   return (
     <div className="flex min-w-0 justify-center gap-12 px-5 py-10 sm:px-8 lg:px-12">
       <main className="flex w-full max-w-reading min-w-0 flex-col gap-10">
+        {(page.version || page.fallback) && (
+          <div className="-mb-4 flex flex-col gap-3">
+            <VersionNotice page={page} />
+            <FallbackNotice page={page} />
+          </div>
+        )}
         <DocsHeader page={page} />
         {toc && (
           <div data-novon-chrome="" className="sticky top-14 z-30 -my-4 bg-background py-2 xl:hidden">
@@ -308,6 +326,7 @@ export function DocsPage() {
         <article className="typeset typeset-docs">
           <PageContent />
         </article>
+        <PageFeedback page={page} />
         <footer data-novon-chrome="" className="border-t border-border pt-8">
           <Pager page={page} />
         </footer>
@@ -323,7 +342,7 @@ export function DocsPage() {
 
 export function DocsLayout() {
   const [navOpen, setNavOpen] = React.useState(false)
-  const { current } = useSite()
+  const { current, site } = useSite()
   const Header = useOverride('Header', DefaultHeader)
   const t = useLabels()
   React.useEffect(() => setNavOpen(false), [current.route])
@@ -333,6 +352,11 @@ export function DocsLayout() {
       <Header onOpenNav={() => setNavOpen(true)} />
       <div className="flex min-w-0 flex-1">
         <aside data-novon-chrome="" aria-label={t.documentation} className="sticky top-14 flex h-[calc(100dvh-3.5rem)] w-64 shrink-0 flex-col self-start border-e border-border max-lg:hidden">
+          {site.versions && (
+            <div className="shrink-0 px-3 pt-4">
+              <VersionSwitcher />
+            </div>
+          )}
           <Sidebar />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
@@ -346,10 +370,16 @@ export function DocsLayout() {
         <DrawerContent className="w-72">
           <DrawerTitle className="sr-only">{t.navigation}</DrawerTitle>
           <div className="flex min-h-0 flex-1 flex-col pt-8">
+            {site.versions && (
+              <div className="shrink-0 px-3">
+                <VersionSwitcher />
+              </div>
+            )}
             <Sidebar onNavigate={() => setNavOpen(false)} />
             <div className="flex shrink-0 items-center gap-1 border-t border-border px-3 py-2">
               <ThemeButton />
               <SocialLinks />
+              <LanguageSwitcher className="ms-auto" />
             </div>
           </div>
         </DrawerContent>

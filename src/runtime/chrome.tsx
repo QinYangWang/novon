@@ -29,7 +29,8 @@ import { resolveIcon } from './icons.tsx'
 import { useLabels, useOverride, useSite } from './site.tsx'
 import { fill } from '../labels.ts'
 import { loadSearchIndex, search, type SearchEntry } from './search.ts'
-import type { PageAction } from '../types.ts'
+import type { PageAction, PageMeta, SiteData } from '../types.ts'
+import { searchIndexPath } from './i18n.tsx'
 
 export function Brand({ className }: { className?: string }) {
   const { site } = useSite()
@@ -75,16 +76,18 @@ export function SocialLinks() {
 
 /** The search button and the command palette it opens (⌘K): pages and their heading sections, full text. */
 export function Search({ className, compact }: { className?: string; compact?: boolean }) {
-  const { site, navigate } = useSite()
+  const { site, navigate, current } = useSite()
   const [open, setOpen] = React.useState(false)
   const [entries, setEntries] = React.useState<SearchEntry[] | null>(null)
   const [query, setQuery] = React.useState('')
   const t = useLabels()
+  const indexPath = searchIndexPath(site, current.page, current.route)
 
+  React.useEffect(() => setEntries(null), [indexPath])
   React.useEffect(() => {
     if (!open) return setQuery('')
-    if (!entries) void loadSearchIndex(site.base).then(setEntries)
-  }, [open, entries, site.base])
+    if (!entries) void loadSearchIndex(site.base, indexPath).then(setEntries)
+  }, [open, entries, site.base, indexPath])
 
   const items = React.useMemo<CommandPaletteItem[]>(() => {
     const q = query.trim()
@@ -100,7 +103,7 @@ export function Search({ className, compact }: { className?: string; compact?: b
         onSelect: () => navigate(r.href),
       }))
     }
-    const pages = entries ? entries.filter((e) => !e.heading) : site.pages.filter((p) => p.kind === 'page' && !p.hidden).map((p) => ({ route: p.route, title: p.title, description: p.description, icon: p.icon, section: undefined as string | undefined }))
+    const pages = entries ? entries.filter((e) => !e.heading) : site.pages.filter((p) => p.kind === 'page' && !p.hidden && !p.fallback && p.locale === current.page?.locale && p.version === current.page?.version).map((p) => ({ route: p.route, title: p.title, description: p.description, icon: p.icon, section: undefined as string | undefined }))
     return pages.map((e) => ({
       id: e.route,
       label: e.title,
@@ -109,7 +112,7 @@ export function Search({ className, compact }: { className?: string; compact?: b
       icon: resolveIcon(e.icon),
       onSelect: () => navigate(e.route),
     }))
-  }, [entries, query, site.pages, navigate])
+  }, [entries, query, site.pages, navigate, current.page])
 
   if (!site.search) return null
   return (
@@ -140,6 +143,12 @@ export function Search({ className, compact }: { className?: string; compact?: b
   )
 }
 
+/** "Edit this page": a source's own edit link, else `theme.editLink` + the file; none for generated pages. */
+export function editUrl(site: SiteData, page: PageMeta): string | undefined {
+  if (page.editUrl !== undefined) return page.editUrl || undefined
+  return site.theme.editLink && page.file ? `${site.theme.editLink.replace(/\/?$/, '/')}${page.file}` : undefined
+}
+
 const DEFAULT_ACTIONS: PageAction[] = ['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity']
 
 /** Chat apps that take a prompt in the URL. */
@@ -165,7 +174,9 @@ export function PageActions() {
   const page = current.page
   const actions = site.theme.pageActions === false ? [] : (site.theme.pageActions ?? DEFAULT_ACTIONS)
   if (!page?.file || !actions.length) return null
-  const md = withBase(site.base, `${page.route === '/' ? '/index' : page.route}.md`)
+  // A fallback page has no Markdown copy of its own; the original's is the same text.
+  const mdRoute = page.fallback ? (site.pages.find((p) => p.file === page.file && !p.fallback)?.route ?? page.route) : page.route
+  const md = withBase(site.base, `${mdRoute === '/' ? '/index' : mdRoute}.md`)
   const abs = (path: string) => (site.url ? new URL(path, site.url).href : path)
   const values = { markdown: abs(md), url: abs(withBase(site.base, page.route)), prompt: fill(t.openInPrompt, { url: abs(md) }) }
   const copy = async () => {
@@ -192,9 +203,10 @@ export function PageActions() {
         </MenuItem>,
       )
     } else if (action === 'edit') {
-      if (!site.theme.editLink) continue
+      const edit = editUrl(site, page)
+      if (!edit) continue
       items.push(
-        <MenuItem key={i} render={external(`${site.theme.editLink.replace(/\/?$/, '/')}${page.file}`)}>
+        <MenuItem key={i} render={external(edit)}>
           <EditIcon /> {t.editPage}
         </MenuItem>,
       )

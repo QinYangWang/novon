@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { build as viteBuild, mergeConfig, type Manifest } from 'vite'
 import { scanSite } from './content.ts'
 import { renderDocument } from './html.ts'
-import { generateOgImages, pageImage } from './og.ts'
+import { cardRoute, generateOgImages, pageImage } from './og.ts'
 import { activePlugins, markdownCache } from './plugins.ts'
 import { checkBudget, measureAssets, type AssetSizes } from './budget.ts'
 import { check, formatIssues, summarize, type Issue } from './check.ts'
@@ -127,7 +127,7 @@ export async function build(config: ResolvedConfig, options: BuildOptions = {}):
   }
   function imageOf(page: PageMeta) {
     const image = pageImage(config, page)
-    return image && (!image.generated || cards.has(page.route)) ? image : null
+    return image && (!image.generated || cards.has(cardRoute(config, page))) ? image : null
   }
   const missing = await server.render(withBase(config.base, '/__novon_not_found__'))
   await writeFile(join(outDir, '404.html'), renderDocument({ config, page: null, title: missing.title, body: missing.html, head, scripts, extraHead: pluginHead(null) }))

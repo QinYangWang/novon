@@ -16,7 +16,7 @@ import {
 } from '@shikijs/transformers'
 import type { ShikiTransformer } from 'shiki'
 import type { ResolvedConfig } from '../types.ts'
-import { remarkCallouts, remarkComponentSource, remarkMermaid, remarkPackageInstall } from './remark.ts'
+import { remarkCallouts, remarkComponentSource, remarkMermaid, remarkChangelog, remarkPackageInstall } from './remark.ts'
 import { activePlugins } from './plugins.ts'
 
 /** Reads `title="…"` and bare flags like `lineNumbers` from a fence's meta string. */
@@ -100,6 +100,7 @@ export function mdxOptions(config: ResolvedConfig) {
       ...(math ? [[remarkMath, math]] : []),
       ...novonRemarkPlugins,
       ...(config.mdx?.mermaid === false ? [] : [remarkMermaid]),
+      remarkChangelog,
       ...plugins.flatMap((p) => p.remarkPlugins ?? []),
       ...(config.mdx?.remarkPlugins ?? []),
     ],

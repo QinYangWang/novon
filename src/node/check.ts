@@ -20,11 +20,12 @@ import { visit } from 'unist-util-visit'
 import type { Root } from 'mdast'
 import { scanPages } from './content.ts'
 import { loadMetas, listedNames } from './meta.ts'
+import { mountOf, mounts } from './mounts.ts'
 import { pageSource } from './source.ts'
 import { collectRedirects, isExternal } from './redirects.ts'
 import { markdownPath } from './plugins.ts'
 import { en } from '../labels.ts'
-import { normalizeRoute } from '../shared.ts'
+import { normalizeRoute, stripLocale } from '../shared.ts'
 import type { PageMeta, ResolvedConfig } from '../types.ts'
 
 export type Severity = 'error' | 'warning'
@@ -81,6 +82,14 @@ const headTag = S.object({
   tag: S.required(S.enum('meta', 'link', 'script', 'style', 'noscript')),
   attrs: S.record(S.union(S.string, S.boolean)),
   content: S.string,
+})
+
+const openapiSchema = S.object({
+  spec: S.required(S.string),
+  path: S.required(S.string),
+  title: S.string,
+  samples: S.array(S.enum('curl', 'javascript', 'python', 'go')),
+  server: S.string,
 })
 
 export const configSchema: Schema = S.object({
@@ -143,6 +152,41 @@ export const configSchema: Schema = S.object({
   }),
   agents: S.union(S.false, S.object({ skills: S.union(S.string, S.false), skill: S.boolean, discovery: S.boolean, api: S.boolean, webmcp: S.boolean })),
   budget: S.object({ js: S.union(S.number, S.string), css: S.union(S.number, S.string) }),
+  i18n: S.object({
+    defaultLocale: S.string,
+    locales: S.required(
+      S.record(
+        S.union(
+          S.string,
+          S.object({ label: S.required(S.string), lang: S.string, dir: S.enum('ltr', 'rtl'), title: S.string, description: S.string, nav: S.array(nav), labels: S.record(S.string, Object.keys(en)), banner: S.string }),
+        ),
+      ),
+    ),
+    fallback: S.boolean,
+  }),
+  versions: S.object({
+    latest: S.string,
+    list: S.required(S.array(S.union(S.string, S.object({ id: S.required(S.string), label: S.string, hidden: S.boolean, archived: S.boolean })))),
+  }),
+  sources: S.array(
+    S.object({
+      type: S.required(S.enum('git', 'files', 'github-releases')),
+      name: S.string,
+      path: S.required(S.string),
+      repo: S.string,
+      ref: S.string,
+      dir: S.string,
+      editLink: S.string,
+      files: S.record(S.string),
+      title: S.string,
+      description: S.string,
+      tokenEnv: S.string,
+      limit: S.number,
+      prereleases: S.boolean,
+    }),
+  ),
+  openapi: S.union(openapiSchema, S.array(openapiSchema)),
+  feedback: S.union(S.false, S.object({ href: S.string, event: S.union(S.string, S.false), on: S.enum('docs', 'blog', 'all') })),
 })
 
 const metaItem = S.object({ title: S.string, badge: S.string, icon: S.string, hidden: S.boolean })
@@ -167,6 +211,9 @@ export const frontmatterSchema: Schema = S.object(
     icon: S.string,
     date: S.date,
     updated: S.date,
+    layout: S.enum('changelog'),
+    changelog: S.boolean,
+    feedback: S.boolean,
     tags: S.array(S.union(S.string, S.number)),
     author: S.string,
     cover: S.union(S.string, S.false),
@@ -310,12 +357,13 @@ export function validate(value: unknown, s: Schema, path: string, out: Problem[]
 
 /* ---------- Config and frontmatter ---------- */
 
-const configFile = (root: string) =>
+export const configFile = (root: string) =>
   ['novon.config.ts', 'novon.config.mts', 'novon.config.js', 'novon.config.mjs'].find((f) => existsSync(join(root, f))) ?? 'novon.config.ts'
 
 /** Problems in the site config, as loaded. */
 export function checkConfig(config: ResolvedConfig): Issue[] {
-  const { root: _root, ...raw } = config
+  const { root: _root, baseLayers, i18n: _i18n, versions: _versions, ...resolved } = config
+  const raw = (config as { source?: unknown }).source ?? { ...resolved, layers: baseLayers ?? resolved.layers }
   const out: Problem[] = []
   validate(raw, configSchema, '', out)
   const file = configFile(config.root)
@@ -444,8 +492,9 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
 
   const byRoute = new Map(pages.map((p) => [p.route, p]))
   const parsed = new Map<string, Parsed>()
+  const list = mounts(config)
   for (const page of pages) {
-    if (!page.file) continue
+    if (!page.file || page.fallback) continue
     const expanded = await pageSource(config, page.file)
     const source = expanded.code
     for (const p of expanded.problems) issues.push({ severity: 'error', rule: 'content', file: page.file, line: p.line, message: p.message })
@@ -458,16 +507,19 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
     issues.push(...checkFrontmatter(page.file, source, data))
     const result = parsePage(page.file, source, config.mdx?.math !== false)
     issues.push(...result.issues)
-    parsed.set(page.route, result)
+    // Outside sources are checked for syntax only: their links point into their own repository.
+    if (!mountOf(config, page.file, list)?.external) parsed.set(page.route, result)
   }
 
   // Folder meta files.
   try {
     for (const m of await loadMetas(config)) {
+      if (m.inherited) continue
       const out: Problem[] = []
       validate(m.meta, metaSchema, '', out)
       for (const p of out) issues.push({ severity: p.severity, rule: 'meta', file: m.file, message: p.message })
-      const prefix = m.dir ? `/${m.dir}/` : '/'
+      const route = m.route ?? (m.dir ? `/${m.dir}` : '/')
+      const prefix = route === '/' ? '/' : `${route}/`
       const names = new Set(pages.filter((p) => p.route.startsWith(prefix) && p.route !== prefix.replace(/\/$/, '')).map((p) => p.route.slice(prefix.length).split('/')[0]))
       for (const name of [...listedNames(m.meta.pages), ...Object.keys(m.meta.items ?? {})]) {
         if (name !== '...' && !names.has(name)) issues.push({ severity: 'warning', rule: 'meta', file: m.file, message: `No page or folder "${name}" in ${m.dir || 'content'}` })
@@ -533,7 +585,7 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
         issues.push({ severity: 'warning', rule: 'link', ...at, message: `${url} redirects to ${redirects[target]}; link there directly` })
         continue
       }
-      if (generated.has(path) || path.startsWith('/og/') || path.startsWith('/api/') || path.startsWith('/.well-known/')) continue
+      if (generated.has(path) || generated.has(stripLocale(config, path)) || generated.has(path.replace(/^(\/[^/]+){1,2}(?=\/search\.json$)/, '')) || path.startsWith('/og/') || path.startsWith('/api/') || path.startsWith('/.well-known/')) continue
       if (path.endsWith('.md') && [...byRoute.values()].some((p) => p.file && markdownPath(p.route) === path)) continue
       if (publicFile(config, path)) continue
       if (base && (target === base || target.startsWith(`${base}/`))) {

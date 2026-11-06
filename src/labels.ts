@@ -68,6 +68,38 @@ export interface Labels {
   default: string
   description: string
   required: string
+  /** The language switcher's name. */
+  language: string
+  /** The version switcher's name. */
+  version: string
+  /** `{version}` */
+  outdatedVersion: string
+  /** `{version}` */
+  archivedVersion: string
+  viewLatest: string
+  /** `{language}`, `{original}` */
+  untranslated: string
+  /** The feedback button. */
+  feedback: string
+  feedbackTitle: string
+  feedbackPlaceholder: string
+  feedbackThanks: string
+  feedbackThanksText: string
+  releases: string
+  /** Link to a changelog's feed. */
+  subscribe: string
+  apiEndpoints: string
+  apiParameters: string
+  apiPathParameters: string
+  apiQueryParameters: string
+  apiHeaderParameters: string
+  apiCookieParameters: string
+  apiRequestBody: string
+  apiResponses: string
+  apiAuthentication: string
+  apiExamples: string
+  apiDeprecated: string
+  apiServers: string
 }
 
 export const en: Labels = {
@@ -125,6 +157,31 @@ export const en: Labels = {
   default: 'Default',
   description: 'Description',
   required: 'Required',
+  language: 'Language',
+  version: 'Version',
+  outdatedVersion: 'You are reading the docs for {version}.',
+  archivedVersion: '{version} is archived and no longer updated.',
+  viewLatest: 'Go to the latest version',
+  untranslated: 'This page is not translated into {language} yet; it is shown in {original}.',
+  feedback: 'Feedback',
+  feedbackTitle: 'Was this page helpful?',
+  feedbackPlaceholder: 'What could be better?',
+  feedbackThanks: 'Thanks for the feedback',
+  feedbackThanksText: 'It helps make these pages better.',
+  releases: 'Releases',
+  subscribe: 'Subscribe',
+  apiEndpoints: 'Endpoints',
+  apiParameters: 'Parameters',
+  apiPathParameters: 'Path parameters',
+  apiQueryParameters: 'Query parameters',
+  apiHeaderParameters: 'Headers',
+  apiCookieParameters: 'Cookies',
+  apiRequestBody: 'Request body',
+  apiResponses: 'Responses',
+  apiAuthentication: 'Authentication',
+  apiExamples: 'Examples',
+  apiDeprecated: 'Deprecated',
+  apiServers: 'Servers',
 }
 
 export const zhCN: Labels = {
@@ -182,9 +239,116 @@ export const zhCN: Labels = {
   default: '默认值',
   description: '说明',
   required: '必填',
+  language: '语言',
+  version: '版本',
+  outdatedVersion: '你正在阅读 {version} 版本的文档。',
+  archivedVersion: '{version} 已归档，不再更新。',
+  viewLatest: '查看最新版本',
+  untranslated: '此页尚未翻译成{language}，以下为{original}原文。',
+  feedback: '反馈',
+  feedbackTitle: '这页内容有帮助吗？',
+  feedbackPlaceholder: '有什么可以改进的？',
+  feedbackThanks: '感谢你的反馈',
+  feedbackThanksText: '这能帮助我们改进文档。',
+  releases: '版本记录',
+  subscribe: '订阅',
+  apiEndpoints: '接口',
+  apiParameters: '参数',
+  apiPathParameters: '路径参数',
+  apiQueryParameters: '查询参数',
+  apiHeaderParameters: '请求头',
+  apiCookieParameters: 'Cookie',
+  apiRequestBody: '请求体',
+  apiResponses: '响应',
+  apiAuthentication: '认证',
+  apiExamples: '示例',
+  apiDeprecated: '已弃用',
+  apiServers: '服务器',
 }
 
-export const builtinLabels: Record<string, Labels> = { en, 'zh-CN': zhCN }
+export const ja: Labels = {
+  onThisPage: 'このページ',
+  backToTop: 'トップへ戻る',
+  readingProgress: '読書の進捗',
+  search: '検索',
+  searchButton: '検索…',
+  searchPlaceholder: 'サイト内を検索…',
+  theme: 'テーマ',
+  email: 'メール',
+  mainNav: 'メイン',
+  openNavigation: 'ナビゲーションを開く',
+  navigation: 'ナビゲーション',
+  documentation: 'ドキュメント',
+  pagination: 'ページ送り',
+  previous: '前へ',
+  next: '次へ',
+  updated: '{date} 更新',
+  minRead: '{n} 分で読めます',
+  copyPage: 'ページをコピー',
+  copied: 'コピーしました',
+  morePageActions: 'その他の操作',
+  viewMarkdown: 'Markdown で表示',
+  editPage: 'このページを編集',
+  askAboutPage: 'このページについて質問',
+  openIn: '{name} で開く',
+  openInPrompt: '{url} を読んで、内容についての質問に答えてください。',
+  allPosts: 'すべての記事',
+  latest: '最新',
+  allWriting: 'すべての記事',
+  topics: 'トピック',
+  keepReading: '続けて読む',
+  aboutAuthor: '著者について',
+  follow: 'フォロー',
+  postCountOne: '{n} 件の記事',
+  postCount: '{n} 件の記事',
+  noPosts: 'まだ記事はありません。',
+  notFound: '見つかりません',
+  notFoundTitle: 'このページは存在しません',
+  notFoundText: '移動したか、リンクが間違っている可能性があります。',
+  goHome: 'ホームへ',
+  builtWith: '{novon} で作成',
+  video: '動画',
+  downloadPdf: 'PDF をダウンロード',
+  dismissBanner: '閉じる',
+  zoomImage: '画像を拡大',
+  closeImage: '画像を閉じる',
+  prompt: 'プロンプト',
+  copyPrompt: 'プロンプトをコピー',
+  diagram: '図',
+  diagramError: 'この図は描画できませんでした。',
+  property: 'プロパティ',
+  type: '型',
+  default: 'デフォルト',
+  description: '説明',
+  required: '必須',
+  language: '言語',
+  version: 'バージョン',
+  outdatedVersion: '{version} のドキュメントを表示しています。',
+  archivedVersion: '{version} はアーカイブされており、更新されません。',
+  viewLatest: '最新版を見る',
+  untranslated: 'このページはまだ{language}に翻訳されていません。{original}で表示しています。',
+  feedback: 'フィードバック',
+  feedbackTitle: 'このページは役に立ちましたか？',
+  feedbackPlaceholder: '改善できる点はありますか？',
+  feedbackThanks: 'フィードバックありがとうございます',
+  feedbackThanksText: 'ページの改善に役立てます。',
+  releases: 'リリース',
+  subscribe: '購読',
+  apiEndpoints: 'エンドポイント',
+  apiParameters: 'パラメーター',
+  apiPathParameters: 'パスパラメーター',
+  apiQueryParameters: 'クエリパラメーター',
+  apiHeaderParameters: 'ヘッダー',
+  apiCookieParameters: 'Cookie',
+  apiRequestBody: 'リクエストボディ',
+  apiResponses: 'レスポンス',
+  apiAuthentication: '認証',
+  apiExamples: '例',
+  apiDeprecated: '非推奨',
+  apiServers: 'サーバー',
+}
+
+export const builtinLabels: Record<string, Labels> = { en, 'zh-CN': zhCN, ja }
 
 /** The set for a language tag: exact match, then the language alone (`zh`, `zh-Hans`, `zh-TW` → `zh-CN`), then English. */
 export function labelsFor(lang: string, overrides?: Partial<Labels>): Labels {

@@ -2,6 +2,9 @@ import type { HeadTag, PageMeta, ResolvedConfig } from '../types.ts'
 import { withBase } from '../shared.ts'
 import { imageUrl, type OgImage } from './og.ts'
 import { bannerData } from './banner.ts'
+import { canonicalRoute, langOf, localeOf, translations } from './i18n.ts'
+import { feedPath } from './plugins.ts'
+import { changelogFeedPath } from './changelog.ts'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -63,7 +66,7 @@ export function structuredData(config: ResolvedConfig, page: PageMeta | null, pa
     ...(siteUrl ? { '@id': `${siteUrl}#website`, url: siteUrl } : {}),
     name: config.title,
     ...(config.description ? { description: config.description } : {}),
-    inLanguage: config.lang,
+    inLanguage: langOf(config, page),
   }
   const graph: Record<string, unknown>[] = [website]
   if (page && page.kind === 'page' && page.route !== '/') {
@@ -75,7 +78,7 @@ export function structuredData(config: ResolvedConfig, page: PageMeta | null, pa
       ...(abs(page.route) ? { '@id': abs(page.route), url: abs(page.route), mainEntityOfPage: abs(page.route) } : {}),
       headline: page.title,
       ...(page.description ? { description: page.description } : {}),
-      inLanguage: config.lang,
+      inLanguage: langOf(config, page),
       ...(page.date ? { datePublished: page.date } : {}),
       ...(page.updated ? { dateModified: page.updated } : {}),
       ...(author ? { author } : {}),
@@ -103,9 +106,26 @@ export function bannerScript(config: ResolvedConfig): string {
   return `<script>try{if(localStorage.getItem('novon:banner')===${JSON.stringify(banner.id)})document.documentElement.setAttribute('data-banner-closed','')}catch(e){}</script>`
 }
 
+/** `<link rel="alternate" hreflang>` for each translation of a page, and `x-default` for the default locale's. */
+export function hreflangLinks(config: ResolvedConfig, page: PageMeta | null, pages: PageMeta[]): string[] {
+  if (!config.i18n || !page || page.fallback) return []
+  const list = translations(pages, page).filter((p) => !p.noindex)
+  if (list.length < 2) return []
+  const href = (route: string) => (config.url ? new URL(withBase(config.base, route), config.url).href : withBase(config.base, route))
+  const out = list.map((p) => `<link rel="alternate" hreflang="${esc(langOf(config, p))}" href="${esc(href(p.route))}">`)
+  const fallback = list.find((p) => p.locale === config.i18n!.defaultLocale)
+  if (fallback) out.push(`<link rel="alternate" hreflang="x-default" href="${esc(href(fallback.route))}">`)
+  return out
+}
+
 export function renderDocument({ config, page, title, body, head = '', scripts, image, pages = [], extraHead = [] }: DocumentParts): string {
-  const description = page?.description ?? config.description ?? ''
-  const canonical = config.url && page ? new URL(withBase(config.base, page.route), config.url).href : ''
+  const locale = localeOf(config, page)
+  const siteTitle = locale?.title ?? config.title
+  const description = page?.description ?? locale?.description ?? config.description ?? ''
+  const canonical = config.url && page ? new URL(withBase(config.base, canonicalRoute(config, page, pages)), config.url).href : ''
+  const lang = langOf(config, page)
+  const feed = feedPath(config, page?.locale)
+  const hasBlog = config.layout === 'blog' || config.layers.some((l) => l.layout === 'blog')
   const favicon = config.theme.favicon ? withBase(config.base, config.theme.favicon) : ''
   const style = config.theme.radius ? ` style="--radius:${esc(config.theme.radius)}"` : ''
   const ogTitle = page?.title ?? config.title
@@ -116,7 +136,7 @@ export function renderDocument({ config, page, title, body, head = '', scripts, 
     `<title>${esc(title)}</title>`,
     description && `<meta name="description" content="${esc(description)}">`,
     `<meta property="og:title" content="${esc(page?.title ?? config.title)}">`,
-    `<meta property="og:site_name" content="${esc(config.title)}">`,
+    `<meta property="og:site_name" content="${esc(siteTitle)}">`,
     description && `<meta property="og:description" content="${esc(description)}">`,
     `<meta property="og:type" content="${page?.layout === 'blog' && page.date ? 'article' : 'website'}">`,
     canonical && `<link rel="canonical" href="${canonical}">`,
@@ -131,14 +151,17 @@ export function renderDocument({ config, page, title, body, head = '', scripts, 
     img && `<meta name="twitter:image" content="${esc(img)}">`,
     page?.noindex && `<meta name="robots" content="noindex">`,
     favicon && `<link rel="icon" href="${favicon}">`,
-    (config.plugins ?? []).includes('rss') && (config.layout === 'blog' || config.layers.some((l) => l.layout === 'blog')) && `<link rel="alternate" type="application/rss+xml" title="${esc(config.title)}" href="${withBase(config.base, config.rss.path)}">`,
+    (config.plugins ?? []).includes('rss') && hasBlog && `<link rel="alternate" type="application/rss+xml" title="${esc(siteTitle)}" href="${withBase(config.base, feed)}">`,
+    (config.plugins ?? []).includes('rss') && page?.changelog && `<link rel="alternate" type="application/rss+xml" title="${esc(page.title)}" href="${withBase(config.base, changelogFeedPath(page.route))}">`,
+    ...hreflangLinks(config, page, pages),
+    page?.version && config.versions?.list.find((v) => v.id === page.version && (v.hidden || v.archived)) && !page.noindex && `<meta name="robots" content="noindex">`,
     `<script>${themeScript}</script>`,
     bannerScript(config),
     page && `<script type="application/ld+json">${JSON.stringify(structuredData(config, page, pages, img || undefined)).replace(/</g, '\\u003c')}</script>`,
     ...[...extraHead, ...(config.head ?? []), ...(page?.head ?? [])].map(headTag),
   ].filter(Boolean)
   return `<!doctype html>
-<html lang="${esc(config.lang)}" data-accent="${config.theme.accent}"${style}>
+<html lang="${esc(lang)}"${locale?.dir === 'rtl' ? ' dir="rtl"' : ''} data-accent="${config.theme.accent}"${style}>
 <head>
 ${meta.join('\n')}
 ${head}

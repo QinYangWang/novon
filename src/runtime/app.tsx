@@ -10,6 +10,7 @@ import { SiteContext, layoutOf, loadRoute, type Loaded, type Loaders, type SiteC
 import { DocsLayout } from './layouts/docs.tsx'
 import { BlogLayout } from './layouts/blog.tsx'
 import { PageContent } from './chrome.tsx'
+import { currentLocale, localizeSite } from './i18n.tsx'
 
 export interface AppProps {
   site: SiteData
@@ -29,7 +30,8 @@ function scrollAfterNavigation(hash: string) {
   window.scrollTo(0, 0)
 }
 
-export function pageTitle(site: SiteData, loaded: Loaded): string {
+export function pageTitle(original: SiteData, loaded: Loaded): string {
+  const site = localizeSite(original, loaded.page, loaded.route)
   if (!loaded.page) return `${labelsFor(site.lang, site.theme.labels).notFound} · ${site.title}`
   return loaded.page.route === '/' ? site.title : `${loaded.page.title} · ${site.title}`
 }
@@ -64,9 +66,12 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
     return () => window.removeEventListener('popstate', onPop)
   }, [show, site.base])
 
+  // Everything below reads the site in the current page's language.
+  const view = React.useMemo(() => localizeSite(site, current.page, current.route), [site, current.page, current.route])
+
   const value = React.useMemo<SiteContextValue>(
     () => ({
-      site,
+      site: view,
       loaders,
       overrides,
       components,
@@ -84,14 +89,22 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
         if (page) void loaders[page.route]?.()
       },
     }),
-    [site, loaders, overrides, components, current, show],
+    [site, view, loaders, overrides, components, current, show],
   )
 
   // The library localizes its own strings from `lang`; only a site's `theme.labels` overrides go in.
+  // A language the library has no strings for (Japanese) takes novon's own for the ones novon knows.
   const localeLabels = React.useMemo(() => {
-    const o = site.theme.labels ?? {}
+    const o = /^(en|zh)\b/i.test(view.lang) ? (view.theme.labels ?? {}) : labelsFor(view.lang, view.theme.labels)
     return { onThisPage: o.onThisPage, backToTop: o.backToTop }
-  }, [site.theme.labels])
+  }, [view.lang, view.theme.labels])
+  React.useEffect(() => {
+    // In-place navigation between locales keeps <html lang> and dir in step.
+    document.documentElement.lang = view.lang
+    const dir = currentLocale(site, current.page, current.route)?.dir
+    if (dir === 'rtl') document.documentElement.dir = 'rtl'
+    else document.documentElement.removeAttribute('dir')
+  }, [view.lang, site, current.page, current.route])
 
   const layout = current.page?.layout ?? layoutOf(site, current.route).layout
   const Layout = layout === 'blog' ? BlogLayout : DocsLayout
@@ -99,7 +112,7 @@ export function App({ site, loaders, overrides, components, initial, contentOnly
   return (
     <SiteContext.Provider value={value}>
       <MDXProvider components={{ ...mdxComponents, ...components }}>
-        <LocaleProvider locale={site.lang} labels={localeLabels}>
+        <LocaleProvider locale={view.lang} labels={localeLabels}>
           <TooltipProvider>
             {contentOnly ? <PageContent /> : <Layout />}
           </TooltipProvider>
