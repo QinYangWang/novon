@@ -27,7 +27,7 @@ import { Icon } from './icons.tsx'
 import { Link, isInternal } from './link.tsx'
 import { PostList, TagList } from './posts.tsx'
 import { useLabels, useSite } from './site.tsx'
-import { withBase } from '../shared.ts'
+import { packageCommands, withBase } from '../shared.ts'
 
 /* ---------- Callouts ---------- */
 
@@ -179,13 +179,24 @@ export function AccordionGroup({ children }: { children?: React.ReactNode }) {
 
 /* ---------- Code ---------- */
 
-type PreProps = React.ComponentProps<'pre'> & { 'data-title'?: string; 'data-language'?: string }
+type PreProps = React.ComponentProps<'pre'> & {
+  'data-title'?: string
+  'data-language'?: string
+  'data-line-numbers'?: string
+  'data-wrap'?: string
+}
 
-/** Highlighted code from a fence, with its title and a copy button. */
-export function Pre({ 'data-title': title, 'data-language': language, ...props }: PreProps) {
+/** The code block props a fence's <pre> carries, and the rest for the <pre> itself. */
+function fenceProps({ 'data-title': title, 'data-language': language, 'data-line-numbers': numbers, 'data-wrap': wrap, ...pre }: PreProps) {
+  return { block: { title, language, lineNumbers: numbers !== undefined, wrap: wrap !== undefined }, pre }
+}
+
+/** Highlighted code from a fence, with its title, line numbers and a copy button. */
+export function Pre(props: PreProps) {
+  const { block, pre } = fenceProps(props)
   return (
-    <CodeBlock title={title} language={language} className="not-typeset my-6">
-      <pre {...props} />
+    <CodeBlock {...block} className="not-typeset my-6">
+      <pre {...pre} />
     </CodeBlock>
   )
 }
@@ -205,13 +216,50 @@ export function CodeGroup({ storageKey, children }: { storageKey?: string; child
   return (
     <CodeGroupRoot storageKey={storageKey} className="not-typeset my-6">
       {blocks.map((b, i) => {
-        const { 'data-title': title, 'data-language': language, ...props } = b.props
+        const { block, pre } = fenceProps(b.props)
         return (
-          <CodeBlock key={i} title={title} language={language}>
-            <pre {...props} />
+          <CodeBlock key={i} {...block}>
+            <pre {...pre} />
           </CodeBlock>
         )
       })}
+    </CodeGroupRoot>
+  )
+}
+
+export interface PackageInstallProps {
+  /** Space-separated packages to add; without it the command installs dependencies. */
+  packages?: string
+  dev?: boolean
+  global?: boolean
+  /** A package.json script to run. */
+  run?: string
+  /** A package binary to run without installing. */
+  exec?: string
+  /** A starter for `create`. */
+  create?: string
+  /** Managers to show, e.g. `"pnpm bun"`. */
+  managers?: string
+}
+
+/**
+ * The same command for npm, pnpm, yarn and bun, as tabs that remember the
+ * reader's pick. Written with literal props in MDX it is highlighted at build
+ * time; this fallback renders plain code.
+ */
+export function PackageInstall({ managers, ...props }: PackageInstallProps) {
+  const commands = packageCommands({ ...props, managers: managers?.split(/[\s,]+/).filter(Boolean) })
+  return (
+    <CodeGroupRoot storageKey="novon:package-manager" className="not-typeset my-6">
+      {commands.map(({ manager, command }) => (
+        <CodeBlock key={manager} title={manager} language="sh">
+          <pre>
+            <code>
+              <span className="line">{command}</span>
+            </code>
+          </pre>
+        </CodeBlock>
+      ))}
     </CodeGroupRoot>
   )
 }
@@ -319,6 +367,7 @@ export const mdxComponents = {
   Accordion,
   AccordionGroup,
   CodeGroup,
+  PackageInstall,
   Term,
   Frame,
   YouTube,

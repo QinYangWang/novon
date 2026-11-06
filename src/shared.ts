@@ -62,3 +62,45 @@ export function formatDate(value: string | undefined, lang = 'en'): string {
   if (Number.isNaN(d.getTime())) return value
   return d.toLocaleDateString(lang, { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun'
+
+export const packageManagers: PackageManager[] = ['npm', 'pnpm', 'yarn', 'bun']
+
+export interface PackageCommandOptions {
+  /** Space-separated packages to add. Without it (and without run, exec, create) the command installs dependencies. */
+  packages?: string
+  dev?: boolean
+  global?: boolean
+  /** A package.json script, e.g. `build` or `dev --port 3000`. */
+  run?: string
+  /** A package binary to run without installing, e.g. `novon new site`. */
+  exec?: string
+  /** A starter for `<manager> create`, e.g. `vite@latest my-app`. */
+  create?: string
+  /** Which managers to show, in order. Default npm, pnpm, yarn, bun. */
+  managers?: string[]
+}
+
+/** The same command for each package manager. */
+export function packageCommands(o: PackageCommandOptions): { manager: PackageManager; command: string }[] {
+  const managers = (o.managers?.length ? o.managers : packageManagers).filter((m): m is PackageManager => (packageManagers as string[]).includes(m))
+  return managers.map((manager) => ({ manager, command: packageCommand(manager, o) }))
+}
+
+function packageCommand(pm: PackageManager, o: PackageCommandOptions): string {
+  if (o.run) {
+    const [script, ...args] = o.run.trim().split(/\s+/)
+    const rest = args.length ? ` ${args.join(' ')}` : ''
+    if (pm === 'npm') return `npm run ${script}${rest ? ` --${rest}` : ''}`
+    if (pm === 'bun') return `bun run ${script}${rest}`
+    return `${pm} ${script}${rest}`
+  }
+  if (o.exec) return { npm: 'npx', pnpm: 'pnpm dlx', yarn: 'yarn dlx', bun: 'bunx' }[pm] + ` ${o.exec.trim()}`
+  if (o.create) return `${pm} create ${o.create.trim()}`
+  const pkgs = o.packages?.trim()
+  if (!pkgs) return { npm: 'npm install', pnpm: 'pnpm install', yarn: 'yarn', bun: 'bun install' }[pm]
+  if (o.global) return { npm: `npm install -g ${pkgs}`, pnpm: `pnpm add -g ${pkgs}`, yarn: `yarn global add ${pkgs}`, bun: `bun add -g ${pkgs}` }[pm]
+  const dev = o.dev ? ' -D' : ''
+  return pm === 'npm' ? `npm install${dev} ${pkgs}` : `${pm} add${dev} ${pkgs}`
+}
