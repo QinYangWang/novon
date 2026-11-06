@@ -24,23 +24,6 @@
   }
 }
 
-/* A banner the reader closed stays hidden from the first paint. */
-[data-banner-closed] [data-novon-banner] {
-  display: none;
-}
-
-/* Display math scrolls sideways instead of overflowing the column. */
-@layer components {
-  .typeset .katex-display {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-block: 0.25rem;
-  }
-  .typeset .katex {
-    font-size: 1.1em;
-  }
-}
-
 /* Printing (and "Download PDF"): the page's content only, every block whole. */
 @media print {
   @page {

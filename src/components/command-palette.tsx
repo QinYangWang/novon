@@ -15,6 +15,10 @@ type CommandPaletteItem = {
   group?: string
   /** Secondary line shown after the label. */
   description?: string
+  /** Second line under the label, e.g. a search snippet. */
+  excerpt?: string
+  /** `[start, end)` string ranges of `excerpt` to mark as matches. */
+  highlight?: readonly (readonly [number, number])[]
   /** Extra words that should match, e.g. synonyms. */
   keywords?: string[]
   /** Keys shown as hint chips, e.g. ["⌘", "N"]. */
@@ -25,6 +29,12 @@ type CommandPaletteItem = {
 }
 
 type Match = { item: CommandPaletteItem; score: number; indices: number[] }
+
+/**
+ * `false` keeps every item in the given order. A function scores one item for the query:
+ * higher sorts first, `null` hides it.
+ */
+type CommandPaletteFilter = false | ((query: string, item: CommandPaletteItem) => number | null)
 
 const isBoundary = (t: string, i: number) => i === 0 || /[\s\-_/.:]/.test(t[i - 1])
 
@@ -100,6 +110,12 @@ function matchItem(query: string, item: CommandPaletteItem): Match | null {
 
 type CommandPaletteProps = {
   items: CommandPaletteItem[]
+  /** Controlled search text. The palette leaves it alone on open; clear it yourself. */
+  query?: string
+  /** Called on every edit of the search text. */
+  onQueryChange?: (query: string) => void
+  /** Replaces the built-in fuzzy match. `false` shows the items as given. */
+  filter?: CommandPaletteFilter
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -118,6 +134,9 @@ type CommandPaletteProps = {
 
 function CommandPalette({
   items,
+  query: queryProp,
+  onQueryChange,
+  filter,
   open: openProp,
   defaultOpen = false,
   onOpenChange,
@@ -143,7 +162,12 @@ function CommandPalette({
     [openProp, onOpenChange]
   )
 
-  const [query, setQuery] = React.useState("")
+  const [queryState, setQueryState] = React.useState("")
+  const query = queryProp ?? queryState
+  const setQuery = (next: string) => {
+    if (queryProp === undefined) setQueryState(next)
+    onQueryChange?.(next)
+  }
   const [active, setActive] = React.useState(0)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
@@ -162,20 +186,27 @@ function CommandPalette({
     return () => window.removeEventListener("keydown", onKey)
   }, [hotkey, open, setOpen])
 
-  // Fresh search on every open.
+  // Fresh search on every open (uncontrolled only).
+  const controlled = queryProp !== undefined
   React.useEffect(() => {
     if (open) {
-      setQuery("")
+      if (!controlled) setQueryState("")
       setActive(0)
     }
-  }, [open])
+  }, [open, controlled])
 
   const groups = React.useMemo(() => {
     const q = query.trim()
+    const score = (item: CommandPaletteItem): Match | null => {
+      if (filter === false) return { item, score: 0, indices: [] }
+      if (!filter) return matchItem(q, item)
+      const s = filter(q, item)
+      return s === null ? null : { item, score: s, indices: [] }
+    }
     const matches = items
-      .map((item, order) => ({ m: matchItem(q, item), order }))
+      .map((item, order) => ({ m: score(item), order }))
       .filter((x): x is { m: Match; order: number } => x.m !== null)
-    if (q) matches.sort((a, b) => b.m.score - a.m.score || a.order - b.order)
+    if (q && filter !== false) matches.sort((a, b) => b.m.score - a.m.score || a.order - b.order)
     const map = new Map<string, Match[]>()
     for (const { m } of matches) {
       const key = m.item.group ?? l10n.labelResults
@@ -183,7 +214,7 @@ function CommandPalette({
     }
     // With a query, groups follow their best hit; without one, their first appearance.
     return Array.from(map, ([heading, list]) => ({ heading, list }))
-  }, [items, query])
+  }, [items, query, filter, l10n.labelResults])
 
   const rows = React.useMemo(() => groups.flatMap((g) => g.list), [groups])
   const enabledIndexes = React.useMemo(
@@ -191,9 +222,12 @@ function CommandPalette({
     [rows]
   )
 
+  // Back to the first row when the query or the rows change, not on every new `items` array.
+  const rowsKey = rows.map((r) => (r.item.disabled ? "" : r.item.id)).join("\u0000")
+  const firstEnabled = enabledIndexes[0] ?? -1
   React.useEffect(() => {
-    setActive(enabledIndexes[0] ?? -1)
-  }, [query, enabledIndexes])
+    setActive(firstEnabled)
+  }, [query, rowsKey, firstEnabled])
 
   React.useEffect(() => {
     if (!open || active < 0) return
@@ -326,7 +360,8 @@ function CommandPalette({
                             onPointerMove={() => !item.disabled && active !== i && setActive(i)}
                             onPointerDown={(e) => e.preventDefault()}
                             onClick={() => choose(match)}
-                            className="relative flex h-8 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-ui select-none aria-disabled:opacity-45"
+                            data-excerpt={item.excerpt ? "" : undefined}
+                            className="relative flex h-8 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-ui select-none aria-disabled:opacity-45 data-excerpt:h-auto data-excerpt:items-start data-excerpt:py-1.5"
                           >
                             {isActive && (
                               <motion.span
@@ -342,20 +377,28 @@ function CommandPalette({
                               <Icon
                                 className={cn(
                                   "relative size-4 shrink-0 transition-colors",
+                                  item.excerpt && "mt-0.5",
                                   isActive ? "text-foreground" : "text-muted-foreground"
                                 )}
                               />
                             )}
-                            <span className="relative flex min-w-0 flex-1 items-baseline gap-2">
-                              <span className="truncate">
-                                <Highlight text={item.label} indices={match.indices} />
+                            <span className="relative flex min-w-0 flex-1 flex-col gap-0.5">
+                              <span className="flex min-w-0 items-baseline gap-2">
+                                <span className="truncate">
+                                  <Highlight text={item.label} indices={match.indices} />
+                                </span>
+                                {item.description && (
+                                  <span className="truncate text-ui-sm text-muted-foreground">{item.description}</span>
+                                )}
                               </span>
-                              {item.description && (
-                                <span className="truncate text-ui-sm text-muted-foreground">{item.description}</span>
+                              {item.excerpt && (
+                                <span data-slot="command-palette-excerpt" className="truncate text-ui-sm text-muted-foreground">
+                                  <Ranges text={item.excerpt} ranges={item.highlight} />
+                                </span>
                               )}
                             </span>
                             {item.shortcut && (
-                              <span className="relative flex shrink-0 items-center gap-1">
+                              <span className={cn("relative flex shrink-0 items-center gap-1", item.excerpt && "mt-px")}>
                                 {item.shortcut.map((key) => (
                                   <kbd
                                     key={key}
@@ -411,6 +454,34 @@ function Highlight({ text, indices }: { text: string; indices: number[] }) {
   )
 }
 
+/** Marks `[start, end)` ranges of `text`; overlapping or unsorted ranges are merged. */
+function Ranges({ text, ranges }: { text: string; ranges?: CommandPaletteItem["highlight"] }) {
+  if (!ranges?.length) return <>{text}</>
+  const spans = ranges
+    .map(([a, b]) => [Math.max(0, Math.min(a, b)), Math.min(text.length, Math.max(a, b))] as const)
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0])
+  const merged: [number, number][] = []
+  for (const [a, b] of spans) {
+    const last = merged[merged.length - 1]
+    if (last && a <= last[1]) last[1] = Math.max(last[1], b)
+    else merged.push([a, b])
+  }
+  const out: React.ReactNode[] = []
+  let at = 0
+  for (const [a, b] of merged) {
+    if (a > at) out.push(text.slice(at, a))
+    out.push(
+      <mark key={a} className="rounded-2xs bg-primary-subtle text-foreground">
+        {text.slice(a, b)}
+      </mark>
+    )
+    at = b
+  }
+  if (at < text.length) out.push(text.slice(at))
+  return <>{out}</>
+}
+
 function FooterHint({ keys, children }: { keys: string[]; children: React.ReactNode }) {
   return (
     <span className="flex items-center gap-1.5">
@@ -428,4 +499,4 @@ function FooterHint({ keys, children }: { keys: string[]; children: React.ReactN
 }
 
 export { CommandPalette, fuzzyMatch }
-export type { CommandPaletteItem, CommandPaletteProps }
+export type { CommandPaletteFilter, CommandPaletteItem, CommandPaletteProps }

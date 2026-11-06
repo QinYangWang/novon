@@ -61,7 +61,8 @@ async function writeCssEntry(config: ResolvedConfig): Promise<string> {
     `@source ${JSON.stringify(join(config.root, 'content'))};`,
   ]
   for (const m of mounts(config)) if (m.external && existsSync(join(config.root, m.rel))) lines.push(`@source ${JSON.stringify(join(config.root, m.rel))};`)
-  if (config.mdx?.math !== false) lines.unshift(`@import ${JSON.stringify(Bun.resolveSync('katex/dist/katex.min.css', novonRoot))};`)
+  // The math stylesheet sits in the base layer, so typeset's math sizes and spacing win over it.
+  if (config.mdx?.math !== false) lines.splice(1, 0, `@import ${JSON.stringify(Bun.resolveSync('katex/dist/katex.min.css', novonRoot))} layer(base);`)
   for (const extra of ['theme', 'components']) {
     if (existsSync(join(config.root, extra))) lines.push(`@source ${JSON.stringify(join(config.root, extra))};`)
   }

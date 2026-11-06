@@ -171,3 +171,6 @@ export function splitReleaseHeading(text: string): { title: string; date?: strin
   const title = text.slice(0, m.index).trim()
   return title ? { title, date: m[1] } : { title: m[1], date: m[1] }
 }
+
+/** The localStorage key that remembers a closed banner; a new id shows the banner again. */
+export const bannerKey = (id: string) => `novon:banner:${id}`

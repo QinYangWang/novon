@@ -16,7 +16,7 @@ import { inlineMarkdown } from '../src/node/banner.ts'
 import { readSkills, skillName, tar } from '../src/node/agents.ts'
 import { agentsMd, scaffold } from '../src/node/new.ts'
 import { docsNav, flatten } from '../src/runtime/nav.ts'
-import { excerpt, search, tokenize, type SearchEntry } from '../src/runtime/search.ts'
+import { excerpt, highlights, search, tokenize, type SearchEntry } from '../src/runtime/search.ts'
 import { toUnifiedDiff } from '../src/runtime/extras.tsx'
 import { siteTools } from '../src/runtime/webmcp.ts'
 import { labelsFor } from '../src/labels.ts'
@@ -128,6 +128,9 @@ describe('search', () => {
   })
   test('excerpts centre on the match', () => {
     expect(excerpt('a '.repeat(200) + 'needle here', ['needle'], 40)).toStartWith('…')
+    expect(highlights('Find the Needle, then needles', ['needle'])).toEqual([[9, 15], [22, 28]])
+    expect(highlights('abcd', ['ab', 'bc'])).toEqual([[0, 3]])
+    expect(search([{ route: '/a', title: 'A', text: 'x '.repeat(100) + 'sitemap files' }], 'sitemap')[0].highlight).toEqual([[expect.any(Number), expect.any(Number)]])
   })
   test('sections are split at ## and ### with rendered ids', () => {
     const { intro, sections } = pageSections('Intro **text**.\n\n## Install\n\nRun it.\n\n### Again\n\n#### Deep\n\nMore.\n\n## Install\n\nTwice.\n')
@@ -376,7 +379,7 @@ const x = 1
     expect(html).toContain('data-domain="example.com"')
     expect(html).toContain('data-novon-banner')
     expect(html).toContain('Hello <strong>there</strong>')
-    expect(html).toContain(`localStorage.getItem('novon:banner')==="b1"`)
+    expect(html).toContain('["novon:banner:b1"]')
     expect(await read('count.txt')).toBe('4')
   })
   test('budgets stop the build', async () => {

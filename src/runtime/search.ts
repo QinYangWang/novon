@@ -31,6 +31,8 @@ export interface SearchResult {
   score: number
   /** A short piece of text around the first match. */
   excerpt: string
+  /** `[start, end)` ranges of the query terms in `excerpt`. */
+  highlight: [number, number][]
 }
 
 const CJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/
@@ -92,9 +94,33 @@ function hit(field: string, term: string): number {
 export function excerpt(text: string, terms: string[], size = 160): string {
   const lower = normalize(text)
   const at = terms.map((t) => lower.indexOf(t)).filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? 0
-  const start = Math.max(0, at - Math.floor(size / 3))
+  // A short lead-in keeps the match visible when the line is cut to one row.
+  let start = Math.max(0, at - 24)
+  if (start > 0) {
+    const space = text.indexOf(' ', start)
+    if (space >= 0 && space < at) start = space + 1
+  }
   const piece = text.slice(start, start + size).trim()
   return `${start > 0 ? '…' : ''}${piece}${start + size < text.length ? '…' : ''}`
+}
+
+/** Where the terms occur in `text`, as merged `[start, end)` ranges. */
+export function highlights(text: string, terms: string[]): [number, number][] {
+  const lower = text.toLowerCase()
+  const found: [number, number][] = []
+  for (const term of terms) {
+    const t = term.toLowerCase()
+    if (!t) continue
+    for (let i = lower.indexOf(t); i >= 0; i = lower.indexOf(t, i + t.length)) found.push([i, i + t.length])
+  }
+  found.sort((a, b) => a[0] - b[0])
+  const out: [number, number][] = []
+  for (const r of found) {
+    const last = out.at(-1)
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1])
+    else out.push([r[0], r[1]])
+  }
+  return out
 }
 
 /**
@@ -129,7 +155,8 @@ export function search(entries: SearchEntry[], query: string, limit = 20): Searc
     // A page entry outranks its own sections when the page title is what matched.
     if (!p.entry.heading) score += 0.5
     const href = p.entry.anchor ? `${p.entry.route}#${p.entry.anchor}` : p.entry.route
-    results.push({ entry: p.entry, href, score, excerpt: excerpt(p.entry.text || p.entry.description || '', terms) })
+    const piece = excerpt(p.entry.text || p.entry.description || '', terms)
+    results.push({ entry: p.entry, href, score, excerpt: piece, highlight: highlights(piece, terms) })
   }
   return results.sort((a, b) => b.score - a.score || a.href.localeCompare(b.href)).slice(0, limit)
 }

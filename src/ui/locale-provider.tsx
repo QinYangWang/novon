@@ -565,6 +565,15 @@ type LocaleLabels = {
   feature: string
   included: string
   notIncluded: string
+  /* Image zoom, banner and diagram */
+  enlargeImage: (alt?: string) => string
+  zoomIn: string
+  zoomOut: string
+  announcement: string
+  dismissAnnouncement: string
+  diagram: string
+  openDiagram: string
+  diagramError: string
   /* Page navigation */
   onThisPage: string
   backToTop: string
@@ -1251,6 +1260,14 @@ const en: LocaleLabels = {
   feature: "Feature",
   included: "Included",
   notIncluded: "Not included",
+  enlargeImage: (alt) => (alt ? `Enlarge image: ${alt}` : "Enlarge image"),
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
+  announcement: "Announcement",
+  dismissAnnouncement: "Dismiss announcement",
+  diagram: "Diagram",
+  openDiagram: "Open diagram full screen",
+  diagramError: "Couldn't draw this diagram.",
   onThisPage: "On this page",
   backToTop: "Back to top",
   toggleSection: "Toggle section",
@@ -1926,6 +1943,14 @@ const zhCN: LocaleLabels = {
   feature: "功能",
   included: "包含",
   notIncluded: "不包含",
+  enlargeImage: (alt) => (alt ? `查看大图：${alt}` : "查看大图"),
+  zoomIn: "放大",
+  zoomOut: "缩小",
+  announcement: "公告",
+  dismissAnnouncement: "关闭公告",
+  diagram: "示意图",
+  openDiagram: "全屏查看示意图",
+  diagramError: "无法绘制此示意图。",
   onThisPage: "本页目录",
   backToTop: "回到顶部",
   toggleSection: "展开或收起分组",

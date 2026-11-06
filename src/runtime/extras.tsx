@@ -5,13 +5,13 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/ui/badge'
-import { CodeCopyButton } from '@/ui/code-block'
-import { CommandCopy } from '@/ui/command-copy'
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/ui/dialog'
+import { Banner as PaneBanner } from '@/ui/banner'
+import { CommandCopy, PromptCopy } from '@/ui/command-copy'
+import { Diagram, type DiagramTheme } from '@/ui/diagram'
+import { ImageZoom as PaneImageZoom } from '@/ui/image-zoom'
 import { FileDiff } from '@/ui/file-diff'
 import { SimpleTable, SimpleTableBody, SimpleTableCell, SimpleTableHead, SimpleTableHeader, SimpleTableRow } from '@/ui/simple-table'
-import { XIcon } from '@/components/icons'
-import { withBase } from '../shared.ts'
+import { bannerKey, withBase } from '../shared.ts'
 import { useLabels, useSite } from './site.tsx'
 
 /* ---------- TypeTable ---------- */
@@ -140,44 +140,24 @@ export function Prompt({ text, title, children }: PromptProps) {
   if (value && !value.includes('\n') && value.length <= 120 && !title) {
     return <CommandCopy command={value} prompt={null} label={t.copyPrompt} className="not-typeset my-6" data-novon="prompt" />
   }
-  return (
-    <div data-novon="prompt" className="not-typeset my-6 overflow-hidden rounded-xl bg-code shadow-raised">
-      <div className="flex h-10 items-center gap-2 border-b border-border ps-4 pe-1.5">
-        <span className="min-w-0 flex-1 truncate text-ui-sm font-medium text-muted-foreground">{title ?? t.prompt}</span>
-        <CodeCopyButton value={value} label={t.copyPrompt} />
-      </div>
-      <div className="typeset px-4 py-3 text-ui [&>:first-child]:mt-0 [&>:last-child]:mb-0">{children ?? <p className="whitespace-pre-wrap">{value}</p>}</div>
-    </div>
-  )
+  return <PromptCopy text={value} title={title ?? t.prompt} label={t.copyPrompt} className="not-typeset my-6" data-novon="prompt" />
 }
 
 /* ---------- Images ---------- */
 
-export interface ImageZoomProps extends React.ComponentProps<'img'> {
+export interface ImageZoomProps extends Omit<React.ComponentProps<'img'>, 'children'> {
   /** A larger file to show when zoomed. Default `src`. */
   zoomSrc?: string
+  caption?: React.ReactNode
+  maxZoom?: number
+  children?: React.ReactNode
 }
 
-/** An image that opens full size on click. */
+/** An image that opens full size on click, then zooms and pans. */
 export function ImageZoom({ src, zoomSrc, alt = '', className, ...props }: ImageZoomProps) {
-  const t = useLabels()
   const { site } = useSite()
   const resolve = (s?: string) => (s && s.startsWith('/') && !s.startsWith('//') ? withBase(site.base, s) : s)
-  return (
-    <Dialog>
-      <DialogTrigger
-        data-novon="image-zoom"
-        aria-label={alt ? `${t.zoomImage}: ${alt}` : t.zoomImage}
-        className="inline cursor-zoom-in rounded-lg border-0 bg-transparent p-0 align-top outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-      >
-        <img src={resolve(src)} alt={alt} loading="lazy" decoding="async" className={cn('my-0', className)} {...props} />
-      </DialogTrigger>
-      <DialogContent showClose={false} className="w-auto max-w-[min(96vw,100rem)] items-center gap-0 bg-transparent p-0 shadow-none">
-        <DialogTitle className="sr-only">{alt || t.zoomImage}</DialogTitle>
-        <img src={resolve(zoomSrc ?? src)} alt={alt} className="max-h-[90dvh] w-auto max-w-full rounded-xl object-contain shadow-xl" />
-      </DialogContent>
-    </Dialog>
-  )
+  return <PaneImageZoom data-novon="image-zoom" src={resolve(src)} zoomSrc={resolve(zoomSrc)} alt={alt} loading="lazy" decoding="async" className={cn('my-0', className)} {...props} />
 }
 
 /** Markdown images: zoomable unless `theme.imageZoom` is false. */
@@ -192,50 +172,17 @@ export function Img(props: React.ComponentProps<'img'>) {
 
 /* ---------- Diagrams ---------- */
 
-function useDark(): boolean {
-  return React.useSyncExternalStore(
-    (onChange) => {
-      const observer = new MutationObserver(onChange)
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-      return () => observer.disconnect()
-    },
-    () => document.documentElement.classList.contains('dark'),
-    () => false,
-  )
-}
-
-function computed(name: string): string {
-  const probe = document.createElement('span')
-  probe.style.color = `var(${name})`
-  document.body.append(probe)
-  const value = getComputedStyle(probe).color
-  probe.remove()
-  return value
-}
-
-/**
- * A theme token as `#rrggbb`, which the diagram renderer can read: tokens may be
- * in any CSS colour space and translucent, so it is painted over the page colour.
- */
-function tokenColor(name: string): string {
-  const value = computed(name)
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = 1
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) return value
-  ctx.fillStyle = computed('--background')
-  ctx.fillRect(0, 0, 1, 1)
-  ctx.fillStyle = value
-  ctx.fillRect(0, 0, 1, 1)
-  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
-  return `#${[r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')}`
-}
-
 let mermaidQueue: Promise<unknown> = Promise.resolve()
 
-async function drawMermaid(id: string, chart: string, dark: boolean): Promise<string> {
+let mermaidId = 0
+
+/** Draws `mermaid` diagram text as SVG in the theme's colours (hex, from the diagram frame). */
+async function drawMermaid(chart: string, theme: DiagramTheme): Promise<string> {
+  const c = (name: string) => theme.colors[name]
+  const id = `novon-mermaid-${++mermaidId}`
+  const dark = theme.dark
   const { default: mermaid } = await import('mermaid')
-  const font = getComputedStyle(document.body).fontFamily
+  const font = theme.fontFamily
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
@@ -245,29 +192,29 @@ async function drawMermaid(id: string, chart: string, dark: boolean): Promise<st
       darkMode: dark,
       fontFamily: font,
       fontSize: '14px',
-      background: tokenColor('--background'),
-      primaryColor: tokenColor('--card'),
-      primaryTextColor: tokenColor('--foreground'),
-      primaryBorderColor: tokenColor('--border'),
-      secondaryColor: tokenColor('--muted'),
-      tertiaryColor: tokenColor('--secondary'),
-      lineColor: tokenColor('--muted-foreground'),
-      textColor: tokenColor('--foreground'),
-      mainBkg: tokenColor('--card'),
-      nodeBorder: tokenColor('--border'),
-      clusterBkg: tokenColor('--muted'),
-      clusterBorder: tokenColor('--border'),
-      noteBkgColor: tokenColor('--secondary'),
-      noteTextColor: tokenColor('--foreground'),
-      noteBorderColor: tokenColor('--border'),
-      edgeLabelBackground: tokenColor('--background'),
-      actorBkg: tokenColor('--card'),
-      actorBorder: tokenColor('--border'),
-      actorTextColor: tokenColor('--foreground'),
-      signalColor: tokenColor('--muted-foreground'),
-      signalTextColor: tokenColor('--foreground'),
-      labelBoxBkgColor: tokenColor('--card'),
-      labelTextColor: tokenColor('--foreground'),
+      background: c('background'),
+      primaryColor: c('card'),
+      primaryTextColor: c('foreground'),
+      primaryBorderColor: c('border'),
+      secondaryColor: c('muted'),
+      tertiaryColor: c('secondary'),
+      lineColor: c('muted-foreground'),
+      textColor: c('foreground'),
+      mainBkg: c('card'),
+      nodeBorder: c('border'),
+      clusterBkg: c('muted'),
+      clusterBorder: c('border'),
+      noteBkgColor: c('secondary'),
+      noteTextColor: c('foreground'),
+      noteBorderColor: c('border'),
+      edgeLabelBackground: c('background'),
+      actorBkg: c('card'),
+      actorBorder: c('border'),
+      actorTextColor: c('foreground'),
+      signalColor: c('muted-foreground'),
+      signalTextColor: c('foreground'),
+      labelBoxBkgColor: c('card'),
+      labelTextColor: c('foreground'),
     },
   })
   // One diagram at a time: the renderer keeps global state.
@@ -278,49 +225,7 @@ async function drawMermaid(id: string, chart: string, dark: boolean): Promise<st
 
 /** A diagram from `mermaid` diagram text, drawn in the browser in the page's colours; a ```` ```mermaid ```` fence becomes one. */
 export function Mermaid({ chart, caption }: { chart: string; caption?: React.ReactNode }) {
-  const t = useLabels()
-  const dark = useDark()
-  const id = `novon-mermaid-${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`
-  const [state, setState] = React.useState<{ svg?: string; error?: string }>({})
-  React.useEffect(() => {
-    if (import.meta.env.SSR) return
-    let alive = true
-    drawMermaid(id, chart, dark).then(
-      (svg) => alive && setState({ svg }),
-      (error: unknown) => alive && setState({ error: error instanceof Error ? error.message : String(error) }),
-    )
-    return () => {
-      alive = false
-    }
-  }, [id, chart, dark])
-  const body = state.svg ? (
-    <div className="flex justify-center [&_svg]:h-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: state.svg }} />
-  ) : state.error ? (
-    <div className="flex flex-col gap-2">
-      <p className="my-0 text-ui-sm text-destructive-text">{t.diagramError}</p>
-      <pre className="my-0 overflow-x-auto font-mono text-ui-xs text-muted-foreground">{chart}</pre>
-    </div>
-  ) : (
-    <div aria-busy className="h-40 animate-pulse rounded-lg bg-muted" />
-  )
-  const figure = (
-    <figure data-novon="mermaid" aria-label={t.diagram} className="not-typeset my-6 overflow-x-auto rounded-xl bg-card p-4 shadow-raised">
-      {body}
-      {caption && <figcaption className="mt-3 text-center text-ui-sm text-muted-foreground">{caption}</figcaption>}
-    </figure>
-  )
-  if (!state.svg) return figure
-  return (
-    <Dialog>
-      <DialogTrigger render={<div role="button" tabIndex={0} aria-label={t.zoomImage} className="cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/50" />}>
-        {figure}
-      </DialogTrigger>
-      <DialogContent className="h-[90dvh] w-[96vw] max-w-none overflow-auto p-6">
-        <DialogTitle className="sr-only">{t.diagram}</DialogTitle>
-        <div className="flex min-h-full items-center justify-center [&_svg]:h-auto [&_svg]:max-h-[80dvh] [&_svg]:w-full [&_svg]:max-w-none" dangerouslySetInnerHTML={{ __html: state.svg }} />
-      </DialogContent>
-    </Dialog>
-  )
+  return <Diagram data-novon="mermaid" source={chart} render={drawMermaid} caption={caption} className="not-typeset my-6" />
 }
 
 /* ---------- Banner ---------- */
@@ -328,37 +233,19 @@ export function Mermaid({ chart, caption }: { chart: string; caption?: React.Rea
 /** The site banner from config `banner`, above the header. A closed banner stays closed until its text or id changes. */
 export function Banner() {
   const { site } = useSite()
-  const t = useLabels()
   const banner = site.banner
-  const [closed, setClosed] = React.useState(false)
-  if (!banner || closed) return null
-  const close = () => {
-    try {
-      localStorage.setItem('novon:banner', banner.id)
-    } catch {}
-    document.documentElement.setAttribute('data-banner-closed', '')
-    setClosed(true)
-  }
-  const text = <span className="[&_a]:underline [&_a]:underline-offset-2 [&_code]:font-mono" dangerouslySetInnerHTML={{ __html: banner.html }} />
+  if (!banner) return null
+  const text = <span dangerouslySetInnerHTML={{ __html: banner.html }} />
+  const href = banner.href && (/^[a-z][a-z0-9+.-]*:/i.test(banner.href) ? banner.href : withBase(site.base, banner.href))
   return (
-    <div data-novon-banner="" className="relative flex min-h-10 items-center justify-center gap-2 bg-primary px-10 py-2 text-center text-ui-sm text-primary-foreground print:hidden">
-      {banner.href ? (
-        <a href={/^[a-z][a-z0-9+.-]*:/i.test(banner.href) ? banner.href : withBase(site.base, banner.href)} className="outline-none hover:underline focus-visible:underline">
-          {text}
-        </a>
-      ) : (
-        text
-      )}
-      {banner.dismissible && (
-        <button
-          type="button"
-          onClick={close}
-          aria-label={t.dismissBanner}
-          className="absolute end-2 top-1/2 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded-control text-primary-foreground/80 outline-none hover:bg-primary-foreground/10 hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-primary-foreground/60"
-        >
-          <XIcon className="size-4" />
-        </button>
-      )}
-    </div>
+    <PaneBanner
+      data-novon-banner=""
+      data-novon-chrome=""
+      href={href || undefined}
+      storageKey={banner.dismissible ? bannerKey(banner.id) : undefined}
+      dismissible={banner.dismissible}
+    >
+      {text}
+    </PaneBanner>
   )
 }

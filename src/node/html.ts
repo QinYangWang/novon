@@ -1,7 +1,8 @@
 import type { HeadTag, PageMeta, ResolvedConfig } from '../types.ts'
-import { withBase } from '../shared.ts'
+import { bannerKey, withBase } from '../shared.ts'
 import { imageUrl, type OgImage } from './og.ts'
 import { bannerData } from './banner.ts'
+import { bannerScript as headBannerScript } from '@/ui/banner'
 import { canonicalRoute, langOf, localeOf, translations } from './i18n.ts'
 import { feedPath } from './plugins.ts'
 import { changelogFeedPath } from './changelog.ts'
@@ -103,7 +104,7 @@ export function structuredData(config: ResolvedConfig, page: PageMeta | null, pa
 export function bannerScript(config: ResolvedConfig): string {
   const banner = bannerData(config)
   if (!banner?.dismissible) return ''
-  return `<script>try{if(localStorage.getItem('novon:banner')===${JSON.stringify(banner.id)})document.documentElement.setAttribute('data-banner-closed','')}catch(e){}</script>`
+  return `<script>${headBannerScript(bannerKey(banner.id))}</script>`
 }
 
 /** `<link rel="alternate" hreflang>` for each translation of a page, and `x-default` for the default locale's. */

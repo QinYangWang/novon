@@ -92,14 +92,14 @@ export function Search({ className, compact }: { className?: string; compact?: b
   const items = React.useMemo<CommandPaletteItem[]>(() => {
     const q = query.trim()
     if (q && entries) {
-      // Ranked here; the query as a keyword keeps every result in the palette's own filter.
+      // Ranked here: the palette shows the results in this order, unfiltered.
       return search(entries, q, 30).map((r) => ({
         id: r.href,
         label: r.entry.heading ?? r.entry.title,
-        description: r.entry.heading ? r.entry.title : r.entry.description,
+        description: r.entry.heading ? r.entry.title : undefined,
+        ...(r.excerpt ? { excerpt: r.excerpt, highlight: r.highlight } : {}),
         group: r.entry.section,
         icon: r.entry.heading ? CornerDownRightIcon : resolveIcon(r.entry.icon),
-        keywords: [q],
         onSelect: () => navigate(r.href),
       }))
     }
@@ -135,10 +135,15 @@ export function Search({ className, compact }: { className?: string; compact?: b
           <Kbd className="ms-auto max-sm:hidden">⌘K</Kbd>
         </Button>
       )}
-      {/* The palette's input reports each keystroke here (React events bubble out of its portal). */}
-      <span className="contents" onChange={(e) => setQuery((e.target as HTMLInputElement).value ?? '')}>
-        <CommandPalette items={items} open={open} onOpenChange={setOpen} placeholder={t.searchPlaceholder} />
-      </span>
+      <CommandPalette
+        items={items}
+        query={query}
+        onQueryChange={setQuery}
+        filter={query.trim() && entries ? false : undefined}
+        open={open}
+        onOpenChange={setOpen}
+        placeholder={t.searchPlaceholder}
+      />
     </>
   )
 }

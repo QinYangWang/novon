@@ -768,19 +768,22 @@
 }
 
 @utility scroll-fade-y {
-  @supports (animation-timeline: scroll()) {
     mask-image: linear-gradient(to bottom, transparent, #000 var(--scroll-fade-top, 0px), #000 calc(100% - var(--scroll-fade-bottom, 0px)), transparent);
-    animation: scroll-fade-top linear both, scroll-fade-bottom linear both;
+    animation: var(--scroll-fade-y-animation, none);
     animation-timeline: scroll(self), scroll(self);
-    animation-range: 0 2px, calc(100% - 2px) 100%;
-    }
+    animation-range: 0 2px, calc(100% - 2px) 100%
 }
 
 @utility scroll-fade-x {
-  @supports (animation-timeline: scroll()) {
     mask-image: linear-gradient(to right, transparent, #000 var(--scroll-fade-start, 0px), #000 calc(100% - var(--scroll-fade-end, 0px)), transparent);
-    animation: scroll-fade-start linear both, scroll-fade-end linear both;
+    animation: var(--scroll-fade-x-animation, none);
     animation-timeline: scroll(self inline), scroll(self inline);
-    animation-range: 0 2px, calc(100% - 2px) 100%;
+    animation-range: 0 2px, calc(100% - 2px) 100%
+}
+
+@supports (animation-timeline: scroll()) {
+  :root {
+    --scroll-fade-y-animation: scroll-fade-top linear both, scroll-fade-bottom linear both;
+    --scroll-fade-x-animation: scroll-fade-start linear both, scroll-fade-end linear both;
     }
 }

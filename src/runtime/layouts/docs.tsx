@@ -125,6 +125,7 @@ function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
           key={page.route}
           level="group"
           label={page.label}
+          badge={page.badge ? <NavBadge text={page.badge} /> : undefined}
           icon={page.icon ? <Icon name={page.icon} /> : undefined}
           labelRender={link(page.route)}
           active={isCurrent(page.route)}
@@ -144,16 +145,8 @@ function DefaultSidebar({ onNavigate }: { onNavigate?: () => void }) {
           return (
             <SidebarNavSection
               key={s.label}
-              label={
-                s.badge ? (
-                  <span className="flex items-center gap-2">
-                    {s.label}
-                    <NavBadge text={s.badge} />
-                  </span>
-                ) : (
-                  s.label
-                )
-              }
+              label={s.label}
+              badge={s.badge ? <NavBadge text={s.badge} /> : undefined}
               icon={s.icon ? <Icon name={s.icon} /> : undefined}
               labelRender={s.route ? link(s.route) : undefined}
               active={isCurrent(s.route)}
@@ -369,9 +362,10 @@ export function DocsLayout() {
       <Drawer side="left" open={navOpen} onOpenChange={setNavOpen}>
         <DrawerContent className="w-72">
           <DrawerTitle className="sr-only">{t.navigation}</DrawerTitle>
-          <div className="flex min-h-0 flex-1 flex-col pt-8">
+          <div className={cn('flex min-h-0 flex-1 flex-col', site.versions ? 'pt-4' : 'pt-8')}>
             {site.versions && (
-              <div className="shrink-0 px-3">
+              // Beside the drawer's close button, on its row.
+              <div className="shrink-0 ps-3 pe-14">
                 <VersionSwitcher />
               </div>
             )}

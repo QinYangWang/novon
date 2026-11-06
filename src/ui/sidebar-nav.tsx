@@ -45,6 +45,21 @@ import { useLocale } from "@/ui/locale-provider"
 const iconInsetScope =
   "[&:has(>[data-slot=sidebar-nav-list]>[data-slot=sidebar-nav-item]>*>[data-slot=sidebar-nav-link-icon])]:[--sidebar-nav-inset:1.5rem] [&:has(>[data-slot=sidebar-nav-section]>[data-slot=sidebar-nav-section-label]_[data-slot=sidebar-nav-section-icon])]:[--sidebar-nav-inset:1.5rem]"
 const insetStart = "ps-[calc(0.5rem+var(--sidebar-nav-inset,0px))] pe-2"
+// A trailing badge sits 6px inside its row: concentric with it at large radii, its own token below that.
+// A style that sets --control-radius-sm (pill badges) keeps its value.
+const badgeRadius =
+  "[&>[data-slot=badge]]:rounded-[var(--control-radius-sm,min(var(--radius-control-sm),max(calc(var(--radius-md)-0.375rem),0.25rem)))]"
+
+/** A trailing badge pushed to the row's end edge. */
+function trailingBadge(badge: React.ReactNode) {
+  if (badge === undefined || badge === null || badge === false) return null
+  return (
+    <>
+      <span aria-hidden className="ms-auto" />
+      {badge}
+    </>
+  )
+}
 
 const sidebarNavVariants = cva("group/sidebar-nav flex min-h-0 flex-1 flex-col", {
   variants: { variant: { default: "", fill: "bg-shell" } },
@@ -128,6 +143,8 @@ type SidebarNavSectionProps = Omit<CollapsiblePrimitive.Root.Props, "children"> 
   label: React.ReactNode
   /** Muted count after the label. */
   count?: number
+  /** Trailing content on the label row, such as a "New" badge. */
+  badge?: React.ReactNode
   /**
    * `section`: a top-level heading; `group`: a folder-like heading inside a section;
    * `label`: a small muted caption over flat rows (never folds).
@@ -151,14 +168,23 @@ type SidebarNavSectionProps = Omit<CollapsiblePrimitive.Root.Props, "children"> 
 /** A labelled, collapsible block of rows. Open by default; control it with `open` / `onOpenChange` to persist it. */
 function SidebarNavSection(props: SidebarNavSectionProps) {
   if (props.level !== "label") return <SidebarNavFoldSection {...props} />
-  const { label, count, className, children } = props
+  const { label, count, badge, className, children } = props
   return (
-    <div data-slot="sidebar-nav-section" data-level="label" className={cn("flex flex-col gap-px", className)}>
-      <div data-slot="sidebar-nav-section-label" className={cn("flex h-7 items-center gap-1.5 text-ui-sm text-muted-foreground", insetStart)}>
+    // between rows a caption opens a new group, so it takes 8px more above it (none between sections)
+    <div
+      data-slot="sidebar-nav-section"
+      data-level="label"
+      className={cn("flex flex-col gap-px not-first:mt-[var(--sidebar-nav-caption-space,0px)]", className)}
+    >
+      <div
+        data-slot="sidebar-nav-section-label"
+        className={cn("flex h-7 items-center gap-1.5 text-ui-sm font-medium text-muted-foreground", insetStart, badgeRadius)}
+      >
         <span className="truncate">{label}</span>
-        {count !== undefined && <span className="text-ui-xs text-muted-foreground/80 tabular-nums">{count}</span>}
+        {count !== undefined && <span className="text-ui-xs font-normal text-muted-foreground/80 tabular-nums">{count}</span>}
+        {trailingBadge(badge)}
       </div>
-      <div className={cn("flex flex-col gap-px", iconInsetScope)}>{children}</div>
+      <div className={cn("flex flex-col gap-px [--sidebar-nav-caption-space:0.5rem]", iconInsetScope)}>{children}</div>
     </div>
   )
 }
@@ -166,6 +192,7 @@ function SidebarNavSection(props: SidebarNavSectionProps) {
 function SidebarNavFoldSection({
   label,
   count,
+  badge,
   level = "section",
   collapsible = true,
   defaultOpen = true,
@@ -181,7 +208,11 @@ function SidebarNavFoldSection({
   const { labels } = useLocale()
   const isLink = href !== undefined || labelRender !== undefined
   const isGroup = level === "group"
-  const labelClass = isGroup ? "h-7 text-ui font-medium text-foreground" : "h-7 text-ui font-semibold text-foreground icon-bold"
+  const labelClass = cn(
+    isGroup ? "h-7 text-ui font-medium text-foreground" : "h-7 text-ui font-semibold text-foreground icon-bold",
+    badgeRadius
+  )
+  const badgeEl = trailingBadge(badge)
   // a group starts with its chevron slot (16px), so the label sits where an icon row's text does
   const pad = isGroup ? "gap-1.5 ps-2 pe-2" : icon ? "gap-2 px-2" : cn("gap-1.5", insetStart)
   const iconEl = (hover: string) =>
@@ -238,6 +269,7 @@ function SidebarNavFoldSection({
           {iconEl("group-hover/nav:text-foreground group-aria-[current=page]/nav:text-foreground")}
           <span className="truncate">{label}</span>
           {countEl}
+          {badgeEl}
         </>
       ),
     },
@@ -285,7 +317,8 @@ function SidebarNavFoldSection({
         {iconEl("group-hover/trigger:text-foreground")}
         <span className="truncate">{label}</span>
         {countEl}
-        {!isGroup && <span className="ms-auto flex">{chevron}</span>}
+        {badgeEl}
+        {!isGroup && <span className={cn("flex", !badgeEl && "ms-auto")}>{chevron}</span>}
       </CollapsiblePrimitive.Trigger>
     )
   } else {
@@ -295,6 +328,7 @@ function SidebarNavFoldSection({
         {iconEl("")}
         <span className="truncate">{label}</span>
         {countEl}
+        {badgeEl}
       </div>
     )
   }
@@ -326,7 +360,7 @@ function SidebarNavFoldSection({
           // the guide: runs down from the chevron's centre beside the group's own rows
           <span aria-hidden data-slot="sidebar-nav-guide" className="pointer-events-none absolute inset-y-0.5 start-0 w-px bg-border" />
         )}
-        <div className={cn("flex flex-col gap-px", iconInsetScope)}>{children}</div>
+        <div className={cn("flex flex-col gap-px [--sidebar-nav-caption-space:0.5rem]", iconInsetScope)}>{children}</div>
       </CollapsiblePrimitive.Panel>
     </CollapsiblePrimitive.Root>
   )
@@ -364,9 +398,7 @@ function SidebarNavLink({ active = false, badge, icon, className, children, rend
           "aria-[current=page]:bg-secondary aria-[current=page]:font-medium aria-[current=page]:text-foreground",
           // fill indicator: taller rows, a stronger fill on the band, no gutter bar
           "group-data-[indicator=fill]/sidebar-nav:h-8 group-data-[indicator=fill]/sidebar-nav:hover:bg-foreground/5 group-data-[indicator=fill]/sidebar-nav:aria-[current=page]:bg-foreground/7",
-          // A trailing badge sits 6px inside the row: concentric with it at large radii, its own token below that.
-          // A style that sets --control-radius-sm (pill badges) keeps its value.
-          "[&>[data-slot=badge]]:rounded-[var(--control-radius-sm,min(var(--radius-control-sm),max(calc(var(--radius-md)-0.375rem),0.25rem)))]",
+          badgeRadius,
           className
         ),
         children: (

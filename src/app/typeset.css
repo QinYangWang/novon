@@ -394,13 +394,25 @@
       color: var(--typeset-muted);
     }
 
-    /* Math. */
-    :where(math[display="block"])& {
+    /* Math. Native MathML, and the HTML a math renderer emits (.katex inline,
+       .katex-display for a block). Load the renderer's own stylesheet in a lower
+       layer, e.g. `@import "…" layer(base);`, so these sizes and margins win. */
+    :where(math[display="block"], .katex-display)& {
       margin-block-start: var(--typeset-flow-block);
       margin-block-end: 0;
       overflow-x: auto;
       overflow-y: hidden;
       padding-block: 0.25em;
+    }
+    /* A wide formula scrolls inside the block; keep the gutter so the edge glyphs aren't clipped. */
+    :where(.katex-display)& {
+      display: block;
+      padding-inline: 0.125em;
+    }
+    /* The math face reads small beside body text at 1em and large at the renderer's 1.21em. */
+    :where(.katex)& {
+      font-size: 1.1em;
+      color: inherit;
     }
 
     /* Media. */
@@ -485,12 +497,12 @@
     /* Text after a wide block (code, table, figure, a component) gets the same
        wider space back, so the block sits evenly between paragraphs. Headings keep their own. */
     :where(
-        :is(pre, figure, table, .typeset-scroll, math[display="block"], [data-slot], .not-typeset, [data-not-typeset])
+        :is(pre, figure, table, .typeset-scroll, math[display="block"], .katex-display, [data-slot], .not-typeset, [data-not-typeset])
           + :is(p, ul, ol, dl, blockquote, details, img, video)
       )& {
       margin-block-start: var(--typeset-flow-block);
     }
-    :where(:is(h1, h2, h3, h4, h5, h6) + :is(pre, figure, table, .typeset-scroll, img, video, math[display="block"]))& {
+    :where(:is(h1, h2, h3, h4, h5, h6) + :is(pre, figure, table, .typeset-scroll, img, video, math[display="block"], .katex-display))& {
       margin-block-start: 0.75em;
     }
 
@@ -503,7 +515,7 @@
     }
 
     @media print {
-      :where(pre, table, blockquote, figure)& {
+      :where(pre, table, blockquote, figure, .katex-display)& {
         break-inside: avoid;
       }
       :where(h1, h2, h3, h4)& {

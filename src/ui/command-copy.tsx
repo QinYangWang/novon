@@ -11,7 +11,7 @@ import { useLocale } from "@/ui/locale-provider"
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@/ui/tabs"
 
 /*
- * One shell command on a bar with a copy button. The command scrolls sideways when it does not
+ * One shell command on a bar with a copy button (`PromptCopy` below is the multi-line text version). The command scrolls sideways when it does not
  * fit; the prompt glyph is decoration and never ends up in the copy. `lg` is the round hero bar
  * with a solid round button; `default` is a quieter bar for docs and settings.
  */
@@ -235,4 +235,69 @@ function CommandGroup({
   )
 }
 
-export { CommandCopy, CommandGroup, commandCopyVariants, type CommandCopyProps, type CommandGroupItem, type CommandGroupProps }
+type PromptCopyProps = Omit<React.ComponentProps<"div">, "children" | "title"> & {
+  /** The prompt, exactly as it is copied. Line breaks are kept. */
+  text: string
+  /** Shown on the title bar, such as "Prompt" or what the prompt does. */
+  title?: React.ReactNode
+  /** Accessible name of the copy button. Defaults to the locale's "Copy prompt". */
+  label?: string
+  /** Called after the text reaches the clipboard. */
+  onCopy?: (text: string) => void
+}
+
+/**
+ * Multi-line text to copy, such as a prompt for an agent: a title bar with the copy button and the
+ * text under it, wrapped in the reading face. The button sits 6px in, concentric with the frame.
+ */
+function PromptCopy({ text, title, label, onCopy, className, ...props }: PromptCopyProps) {
+  const { labels } = useLocale()
+  const { copied, copy } = useCopied()
+  return (
+    <div
+      data-slot="prompt-copy"
+      className={cn("frame-xl frame-inset-1.5 overflow-hidden bg-code text-ui text-card-foreground shadow-raised", className)}
+      {...props}
+    >
+      <div data-slot="prompt-copy-header" className="flex h-10 items-center gap-2 border-b border-border/60 ps-3 pe-1.5">
+        <div data-slot="prompt-copy-title" className="min-w-0 flex-1 truncate text-ui-sm font-medium text-muted-foreground">
+          {title}
+        </div>
+        <Button
+          data-slot="prompt-copy-button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copied ? labels.copied : (label ?? labels.copyPrompt)}
+          onClick={async () => {
+            if (await copy(text)) onCopy?.(text)
+          }}
+          className="rounded-inner text-muted-foreground hover:text-foreground"
+        >
+          <ActionSwapBlurIcon value={copied ? "copied" : "copy"}>
+            {copied ? <CheckIcon size={16} className="opacity-100" /> : <CopyIcon size={16} className="opacity-100" />}
+          </ActionSwapBlurIcon>
+        </Button>
+        <span className="sr-only" aria-live="polite">
+          {copied ? labels.copied : ""}
+        </span>
+      </div>
+      <div
+        data-slot="prompt-copy-text"
+        className="px-3 py-2.5 text-start leading-relaxed text-pretty break-words whitespace-pre-wrap"
+      >
+        {text}
+      </div>
+    </div>
+  )
+}
+
+export {
+  CommandCopy,
+  CommandGroup,
+  PromptCopy,
+  commandCopyVariants,
+  type CommandCopyProps,
+  type CommandGroupItem,
+  type CommandGroupProps,
+  type PromptCopyProps,
+}

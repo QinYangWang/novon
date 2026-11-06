@@ -2,8 +2,13 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { LocaleText } from "@/ui/locale-provider"
-import { ShaderBackground, type ShaderVariant } from "@/ui/shader-background"
+import type { ShaderVariant } from "@/ui/shader-background"
 import { meshGradient, seedPalette } from "@/lib/seed-palette"
+
+/* The shader runtime loads only when a cover actually draws one, so css and image covers ship none of it. */
+const ShaderBackground = React.lazy(() =>
+  import("@/ui/shader-background").then((m) => ({ default: m.ShaderBackground })),
+)
 
 /*
  * Cover artwork: an image URL, or a shader in a custom or random palette. A seed (a post slug)
@@ -17,6 +22,8 @@ import { meshGradient, seedPalette } from "@/lib/seed-palette"
  *
  * `renderer="css"` draws a still frame of the mesh gradient with CSS radial gradients in the same
  * seeded palette: no WebGL context, no client code, so a grid of dozens of tiles stays cheap.
+ * The shader code is loaded on demand; until it arrives the cover shows the same still frame
+ * (or the muted surface when no palette or seed is set), in the same box.
  */
 
 const tint = (amount: number) => `color-mix(in oklch, var(--primary), var(--background) ${amount}%)`
@@ -62,13 +69,19 @@ function CoverArt({ seed, image, palette, shader = "mesh-gradient", renderer = "
       ) : v === "gradient" ? (
         <CoverGradient colors={Array.isArray(palette) && palette.length > 0 ? palette : palette === "random" || seed !== undefined ? seedPalette(layout) : THEME_PALETTE} seed={layout} />
       ) : (
-        <ShaderBackground
-          aria-hidden
-          variant={shader}
-          colors={palette ?? (seed !== undefined ? "random" : undefined)}
-          seed={seed}
-          className="absolute inset-0"
-        />
+        <React.Suspense
+          fallback={Array.isArray(palette) && palette.length > 0 ? <CoverGradient colors={palette} seed={layout} />
+            : seed !== undefined ? <CoverGradient colors={seedPalette(layout)} seed={layout} />
+            : null}
+        >
+          <ShaderBackground
+            aria-hidden
+            variant={shader}
+            colors={palette ?? (seed !== undefined ? "random" : undefined)}
+            seed={seed}
+            className="absolute inset-0"
+          />
+        </React.Suspense>
       )}
     </div>
   )
