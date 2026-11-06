@@ -13,10 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # commit dates for "last updated"
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun test
+      - run: for site in docs templates/docs templates/blog; do bun bin/novon.ts check "$site" --strict; done
       - run: bun run build:docs
       - run: bun run build:templates
       - uses: actions/upload-pages-artifact@v3
