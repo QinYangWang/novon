@@ -1,0 +1,86 @@
+---
+title: For agents
+description: Static files that let coding agents and AI tools read your site.
+icon: Bot
+---
+
+Everything here is a static file the build writes. Nothing needs a server.
+
+| File | What it is |
+| --- | --- |
+| `llms.txt`, `llms-full.txt`, `<page>.md` | every page as Markdown (the `llms` plugin) |
+| `api/pages.json` | every page: title, description, section, dates, its Markdown and JSON URLs |
+| `api/pages/<route>.json` | one page with its headings and Markdown; `index.json` for the home page |
+| `api/navigation.json` | the top navigation and each sidebar, as a tree |
+| `openapi.json` | an OpenAPI 3.1 description of the files above |
+| `skill.md` | a generated agent skill for the site |
+| `.well-known/agent-skills/index.json` | the skills the site publishes |
+| `.well-known/ard.json`, `ai-catalog.json` | a discovery manifest listing all of it |
+| `.well-known/api-catalog` | an API catalog (RFC 9727) pointing at `openapi.json` |
+
+`skill.md` and the `.well-known` manifests need `url`, since they carry
+absolute links. Each page's `<head>` links its Markdown, `llms.txt` and the
+manifests; `_headers` adds the same links to the home page's response on hosts
+that read it.
+
+```ts title="novon.config.ts"
+agents: {
+  skills: './skills',  // folder of skills to publish; default 'skills' when it exists
+  skill: true,         // generate skill.md
+  discovery: true,     // .well-known manifests
+  api: true,           // api/*.json and openapi.json
+  webmcp: true,        // tools for an agent in the reader's browser
+},
+```
+
+`agents: false` turns all of it off. A file you put in `public/` at the same
+path wins over the generated one.
+
+## Agent skills
+
+A skill is a folder with a `SKILL.md` that an agent loads when a task needs it.
+Put yours in `skills/`:
+
+<FileTree defaultExpanded={['skills', 'skills/deploy']}>
+  <Folder name="skills">
+    <Folder name="deploy">
+      <File name="SKILL.md" />
+      <File name="check.sh" />
+    </Folder>
+  </Folder>
+</FileTree>
+
+```md title="skills/deploy/SKILL.md"
+---
+name: deploy
+description: Deploy an Acme site to Cloudflare Pages.
+---
+
+Run `novon build`, then upload `dist/`.
+```
+
+`name` must match the folder name. A skill that is a lone `SKILL.md` is
+published as that file; one with more files as a `.tar.gz`. The index lists
+each with its SHA-256 digest. A skill with a bad `name` or `description` is
+skipped with a warning.
+
+## The site skill
+
+`skill.md` tells an agent how to read your docs: the Markdown URLs, `llms.txt`,
+the JSON files, and a map of the pages in sidebar order. It is rebuilt with the
+site and named after the title (`Acme Docs` → `acme-docs`). A skill of your own
+with that name replaces it in the index.
+
+## WebMCP
+
+In browsers that support [WebMCP](https://webmachinelearning.github.io/webmcp/),
+every page offers an agent in the browser three read-only tools:
+
+<TypeTable>
+  <Field name="search_documentation" type="{ query, limit? }">Search results with title, heading, URL at the heading and an excerpt.</Field>
+  <Field name="get_page" type="{ route }">A page as Markdown.</Field>
+  <Field name="list_pages" type="{}">Every page with its title, description and URL.</Field>
+</TypeTable>
+
+They read `search.json` and the `.md` files, load nothing until the browser
+supports the API, and never leave the site. `agents.webmcp: false` turns them off.

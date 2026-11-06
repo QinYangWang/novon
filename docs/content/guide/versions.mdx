@@ -1,0 +1,53 @@
+---
+title: Versions
+description: Freeze the docs for a release and keep older versions online.
+icon: History
+---
+
+```bash
+novon version v1
+```
+
+This copies the docs into `content/_versions/v1` and adds `v1` to `versions` in
+the config. Partials and `{{variables}}` are written out, so the copy keeps
+today's values, and relative imports are rewritten for the deeper folder. Keep
+editing `content/` for the next release.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  versions: {
+    latest: 'v2',
+    list: ['v1', { id: 'v0', label: '0.x', archived: true }],
+  },
+})
+```
+
+Versions are served after the docs layer's path: `/v1/guide/setup`. Blog posts
+are not versioned.
+
+## Options
+
+<TypeTable>
+  <Field name="latest" type="string" default="'Latest'">Name of the current docs in the switcher.</Field>
+  <Field name="list" type="(string | VersionOption)[]" required>Older versions, newest first.</Field>
+</TypeTable>
+
+A version is an id or an object:
+
+<TypeTable>
+  <Field name="id" type="string" required>URL segment and folder name.</Field>
+  <Field name="label" type="string" default="the id">Name in the switcher.</Field>
+  <Field name="hidden" type="boolean">Not in the switcher; pages still build.</Field>
+  <Field name="archived" type="boolean">Listed, with an "archived" note instead of "older version".</Field>
+</TypeTable>
+
+## How older versions behave
+
+- The docs header shows a version switcher; it keeps you on the same page when
+  it exists in the other version.
+- Pages of an older version say so and link to the latest docs.
+- Their canonical link points at the current page with the same path.
+- Hidden and archived versions are left out of search, the sitemap and
+  `llms.txt`, and are marked `noindex`.
+
+Try it: [v0 of these docs](/v0) is archived.

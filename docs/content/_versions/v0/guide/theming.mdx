@@ -1,0 +1,56 @@
+---
+title: Theming
+description: Accent, radius, your own styles and components.
+icon: Palette
+order: 5
+---
+
+## Accent and radius
+
+`theme.accent` picks one of six presets; `theme.radius` sets the base corner
+radius every component derives from. Dark mode follows the system until the
+reader picks one.
+
+## Stylesheets
+
+Files in `theme.css` load after novon's, so they win. Utility classes work in
+MDX, custom components and overrides.
+
+```css title="styles/extra.css"
+:root { --radius: 0.5rem; }
+```
+
+## Components
+
+A component file imports from `novon`, which exposes the writing components,
+the site hooks and the whole component library.
+
+```tsx title="components/Pricing.tsx"
+import { Button, Card, CardContent } from 'novon'
+
+export default function Pricing() {
+  return (
+    <Card>
+      <CardContent>
+        <Button>Start free</Button>
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+Register it under `components` and use `<Pricing />` in any page.
+
+## Overrides
+
+`theme.override` swaps a built-in part for your own file. Slots: `Header`,
+`Footer`, `Sidebar`, `NotFound`, `PostHeader`.
+
+```tsx title="theme/Footer.tsx"
+import { useSite } from 'novon'
+
+export default function Footer() {
+  const { site } = useSite()
+  return <footer className="px-10 py-6 text-ui-sm text-muted-foreground">{site.title}</footer>
+}
+```

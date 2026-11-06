@@ -1,0 +1,38 @@
+---
+title: Components
+description: Install more components from the PaneUI registry and use them in MDX.
+icon: Shapes
+---
+
+novon's built-in components come from the [PaneUI](https://paneui.dev)
+registry. Add any other item from it to your site:
+
+```bash
+novon add timeline
+novon add @paneui/stat-card @paneui/kanban --dir my-docs
+```
+
+`novon add` writes the item's files into the site's `components/` folder
+(`--dir` names the site when it is not the current folder), points their
+imports at the parts novon already ships, and registers each exported component
+in the config:
+
+```ts title="novon.config.ts"
+components: {
+  Timeline: './components/ui/timeline.tsx#Timeline',
+  TimelineItem: './components/ui/timeline.tsx#TimelineItem',
+},
+```
+
+Then use them in any page without an import. A file that already exists with
+different content stops the command unless you pass `--overwrite`. If an item needs an npm package novon does not have,
+the command says so; the site then needs a `package.json` with it.
+
+## Your own components
+
+Register any file under `components`. A plain path uses the default export;
+`file#Name` uses a named one.
+
+```ts
+components: { Chart: './components/chart.tsx', Badge: './components/ui.tsx#Badge' },
+```

@@ -1,0 +1,41 @@
+---
+title: API reference
+description: Pages for every operation in an OpenAPI 3 description.
+icon: Braces
+---
+
+Point `openapi` at an OpenAPI 3.0 or 3.1 file, in JSON or YAML:
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  openapi: { spec: 'api/petstore.yaml', path: '/api' },
+})
+```
+
+novon writes an overview page and one page per operation under `path`, grouped
+by tag in the sidebar with a method badge on each. See the
+[Petstore reference](/reference) built from this site's demo file.
+
+## Options
+
+<TypeTable>
+  <Field name="spec" type="string" required>File relative to the site root, or a URL (cached by `novon sync`).</Field>
+  <Field name="path" type="string" required>URL prefix for the reference.</Field>
+  <Field name="title" type="string" default="info.title">Overview page title.</Field>
+  <Field name="samples" type="('curl' | 'javascript' | 'python' | 'go')[]" default="['curl', 'javascript', 'python']">Code samples, in order.</Field>
+  <Field name="server" type="string" default="first servers entry">Base URL in samples.</Field>
+</TypeTable>
+
+Pass an array for more than one API.
+
+## An operation page
+
+- Method and path, summary and description.
+- Authentication from `security`.
+- Path, query, header and cookie parameters, and the request body, as tables
+  with nested fields.
+- Code samples with an example body built from the schema.
+- Each response with its schema and an example.
+
+The pages are plain MDX under the hood, so they are in `.md` output, search and
+`llms.txt`. There is no in-page request runner: novon builds static files only.

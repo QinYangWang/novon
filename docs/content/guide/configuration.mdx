@@ -36,7 +36,7 @@ export default defineConfig({
     lastUpdated: true,            // see Content › Last updated
     imageZoom: true,              // Markdown images open full size on click
   },
-  components: { Pricing: './components/Pricing.tsx' },
+  components: { Pricing: './components/Pricing.tsx', Badge: './components/ui.tsx#Badge' },
   plugins: ['search', 'sitemap', 'rss', 'llms'],
   rss: { path: '/feed', full: true },     // default '/rss.xml', summaries only
   tags: { path: '/tag', lowercase: false }, // default '/tags', lowercase
@@ -48,6 +48,11 @@ export default defineConfig({
   analytics: { plausible: { domain: 'acme.dev' } }, // see Analytics
   agents: { skills: './skills' }, // see For agents
   budget: { js: '320 kB', css: '60 kB' }, // see Budgets
+  i18n: { locales: { en: 'English', ja: '日本語' } }, // see Languages
+  versions: { list: ['v1'] },     // see Versions; made by `novon version`
+  sources: [{ type: 'git', repo: 'https://github.com/acme/sdk.git', dir: 'docs', path: '/sdk' }], // see Sources
+  openapi: { spec: 'openapi.yaml', path: '/api' }, // see API reference
+  feedback: { href: 'https://github.com/acme/site/issues/new?body={message}' }, // see Feedback
   mdx: {
     highlight: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: false,           // number every code block
@@ -62,8 +67,9 @@ export default defineConfig({
 ## Language
 
 `lang` sets `<html lang>`, date formats and the words the layouts print.
-English and Simplified Chinese ship built in; any `zh` tag uses Chinese, other
-languages use English. Replace single strings with `theme.labels`:
+English, Japanese and Simplified Chinese ship built in; any `zh` tag uses
+Chinese, other languages use English. For a site in more than one language, see
+[Languages](/guide/languages). Replace single strings with `theme.labels`:
 
 ```ts
 lang: 'zh-CN',
@@ -201,6 +207,15 @@ Each page carries structured data: the site, the page as a technical article
 
 `novon build` validates the config, frontmatter, links and redirects, and
 prints what it finds. See [Checking](/guide/checking).
+
+## Commands
+
+| Command | Does |
+| --- | --- |
+| `novon version <id>` | Freezes the docs as a version; see [Versions](/guide/versions) |
+| `novon sync` | Refreshes outside sources and remote API files; see [Sources](/guide/sources) |
+| `novon add <item…>` | Installs registry components; see [Components](/guide/components) |
+| `novon audit` | Checks the built site for search problems; see [Checking](/guide/checking#audit-the-built-site) |
 
 ## Plugins
 

@@ -1,0 +1,53 @@
+---
+title: Plugins
+description: Hooks into the build, the content and the page head.
+icon: Plug
+---
+
+A plugin is an object with a `name` and any of the hooks below. List it in
+`plugins` after the built-in ones you keep.
+
+```ts title="novon.config.ts"
+import { defineConfig, definePlugin } from 'novon/config'
+
+const humans = definePlugin({
+  name: 'humans',
+  routes: ({ pages }) => ({ 'humans.txt': `${pages.length} pages, written by people.\n` }),
+})
+
+export default defineConfig({
+  title: 'Acme',
+  plugins: ['search', 'sitemap', 'rss', 'llms', humans],
+})
+```
+
+## Hooks
+
+<TypeTable>
+  <Field name="config" type="(config) => config | void">Change the resolved config when it loads.</Field>
+  <Field name="buildStart" type="({ config }) => void">Before a build.</Field>
+  <Field name="transformContent" type="(source, { config, file }) => string | void">A page's source, after partials and variables, before it is compiled, indexed, checked or written as Markdown.</Field>
+  <Field name="pageData" type="(page, { config, file, frontmatter }) => page | void">A page's data after its frontmatter is read: set `label`, `badge`, `hidden`, or your own keys under `data`.</Field>
+  <Field name="head" type="(page, { config, pages }) => HeadTag[]">Extra `<head>` elements per page; `page` is null on the 404 page.</Field>
+  <Field name="routes" type="({ config, pages, folders, markdown }) => Record<path, string | Uint8Array>">Files the site serves: `novon dev` answers them and the build writes them. A file in `public/` wins.</Field>
+  <Field name="remarkPlugins" type="any[]">Markdown plugins for every page, after novon's own.</Field>
+  <Field name="rehypePlugins" type="any[]">HTML plugins for every page.</Field>
+  <Field name="buildEnd" type="({ outDir, config, pages, emit, renderContent, markdown }) => void">After every page is written; `emit` writes a file.</Field>
+</TypeTable>
+
+Hooks run in the order plugins are listed. Async hooks are awaited.
+
+## Built in
+
+`search`, `sitemap`, `rss` and `llms` are plugins too, named by string. The
+[agent files](/guide/agents) and [analytics](/guide/configuration#analytics)
+are plugins switched by their own config keys.
+
+```ts
+const banner = definePlugin({
+  name: 'draft-banner',
+  pageData: (page, { frontmatter }) => (frontmatter.wip ? { ...page, badge: 'WIP' } : page),
+  transformContent: (source) => source.replaceAll('ACME_VERSION', '2.1'),
+  head: () => [{ tag: 'meta', attrs: { name: 'generator', content: 'novon' } }],
+})
+```

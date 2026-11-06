@@ -1,0 +1,59 @@
+---
+title: はじめる
+description: 空のフォルダーから公開まで。
+icon: Bolt
+order: 1
+---
+
+novon は [Bun](https://bun.sh) 1.2 以降で動きます。
+
+<Steps>
+  <Step title="インストール">
+    ```bash
+    bun add -g novon@{{version}}
+    ```
+  </Step>
+  <Step title="サイトを作る">
+    ```bash
+    novon new my-docs                  # ドキュメント
+    novon new my-blog --template blog  # ブログ
+    novon new --yes                    # 今のフォルダーに、質問なしで
+    ```
+    すでにファイルがあるフォルダー（README のあるリポジトリなど）では、`novon new` は
+    テンプレートのファイルを横に追加し、既存のファイルには触れません。新しいサイトには
+    コーディングエージェント向けの `AGENTS.md` が付きます。
+  </Step>
+  <Step title="プレビュー">
+    ```bash
+    cd my-docs
+    novon dev
+    ```
+    保存するとページが再読み込みされます。新しいファイルはサイドバーに現れます。
+  </Step>
+  <Step title="ビルド">
+    ```bash
+    novon build    # dist/ に書き出す
+    novon preview  # dist/ をローカルで配信する
+    ```
+  </Step>
+</Steps>
+
+## サイトの構成
+
+```text
+my-docs/
+├── novon.config.ts
+├── content/
+│   ├── index.mdx            → /
+│   ├── getting-started.mdx  → /getting-started
+│   ├── ja/
+│   │   └── index.mdx        → /ja/
+│   └── guide/
+│       ├── index.mdx        → /guide
+│       └── writing.mdx      → /guide/writing
+└── public/                  出力のルートにコピー
+```
+
+`content/` 内のフォルダーはサイドバーのセクションになります。フォルダーの `index.mdx` が
+セクション名になり、そのラベルはそのページにリンクします。翻訳は `content/<言語>/` に置きます。
+詳しくは[言語](/guide/languages)を参照してください。

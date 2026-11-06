@@ -1,0 +1,36 @@
+---
+title: novon
+label: Introduction
+description: MDX in, static site out.
+icon: Home
+order: 0
+---
+
+novon turns a folder of MDX into a docs site or a blog. A site is one config
+file and `content/`. No `package.json`, no build scripts, no theme to maintain.
+
+```bash
+bun add -g novon
+novon new my-docs
+cd my-docs && novon dev
+```
+
+<CardGroup cols={2}>
+  <Card title="Getting started" icon="Bolt" href="/getting-started">
+    From an empty folder to a deployed site.
+  </Card>
+  <Card title="Writing" icon="Edit" href="/guide/writing">
+    Everything MDX gets without an import.
+  </Card>
+  <Card title="Layouts" icon="Columns2" href="/guide/layouts">
+    Docs and blog in one site.
+  </Card>
+  <Card title="Configuration" icon="Settings" href="/guide/configuration">
+    Every option in novon.config.ts.
+  </Card>
+</CardGroup>
+
+## The name
+
+`novon` is the cat ฅ^•ﻌ•^ฅ written in letters: two paws, two eyes and a nose.
+That only works in lowercase, so the name is always `novon`.

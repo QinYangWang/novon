@@ -1,0 +1,36 @@
+---
+title: novon
+label: はじめに
+description: MDX から静的サイトへ。
+icon: Home
+order: 0
+---
+
+novon は MDX のフォルダーをドキュメントサイトやブログに変えます。サイトは設定ファイル
+1 つと `content/` だけ。`package.json` もビルドスクリプトも、保守するテーマも要りません。
+
+```bash
+bun add -g novon
+novon new my-docs
+cd my-docs && novon dev
+```
+
+<CardGroup cols={2}>
+  <Card title="はじめる" icon="Bolt" href="/getting-started">
+    空のフォルダーから公開まで。
+  </Card>
+  <Card title="書く" icon="Edit" href="/guide/writing">
+    import なしで MDX に使えるもの。
+  </Card>
+  <Card title="レイアウト" icon="Columns2" href="/guide/layouts">
+    ドキュメントとブログを 1 つのサイトに。
+  </Card>
+  <Card title="設定" icon="Settings" href="/guide/configuration">
+    novon.config.ts のすべてのオプション。
+  </Card>
+</CardGroup>
+
+## 名前について
+
+`novon` は猫 ฅ^•ﻌ•^ฅ を文字で書いたものです。2 本の前足、2 つの目、そして鼻。
+小文字でしか成り立たないので、名前はいつも `novon` です。

@@ -1,0 +1,76 @@
+---
+title: Languages
+description: Translate a site into more than one language, each served under its own prefix.
+icon: Globe
+---
+
+Add `i18n` to the config. The default locale stays at the root; every other
+locale gets a folder under `content/` and a URL prefix.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  title: 'Acme',
+  i18n: {
+    defaultLocale: 'en',
+    locales: {
+      en: 'English',
+      ja: { label: '日本語', title: 'Acme', description: 'Acme のドキュメント' },
+      ar: { label: 'العربية', dir: 'rtl' },
+    },
+  },
+})
+```
+
+```text
+content/
+├── index.mdx          → /
+├── guide/setup.mdx    → /guide/setup
+└── ja/
+    ├── index.mdx      → /ja/
+    └── guide/setup.mdx → /ja/guide/setup
+```
+
+## Locale options
+
+A locale is a label or an object:
+
+<TypeTable>
+  <Field name="label" type="string" required>Name in the language switcher.</Field>
+  <Field name="lang" type="string" default="the code">BCP 47 tag for `<html lang>` and built-in strings.</Field>
+  <Field name="dir" type="'ltr' | 'rtl'" default="'ltr'">Text direction.</Field>
+  <Field name="title" type="string">Site title in this language.</Field>
+  <Field name="description" type="string">Site description in this language.</Field>
+  <Field name="nav" type="NavLink[]" default="nav, localized">Top navigation in this language.</Field>
+  <Field name="labels" type="Partial<Labels>">Replace single built-in strings.</Field>
+  <Field name="banner" type="string">Banner text in this language.</Field>
+</TypeTable>
+
+Built-in strings come in English, Japanese and Simplified Chinese; other
+languages use English unless `labels` replaces them.
+
+## Links and navigation
+
+Write links as if every page were in the default locale: `/guide/setup` in a
+Japanese page goes to `/ja/guide/setup`. The sidebar and `_meta` files of each
+locale folder are its own, so a translation can order or group pages
+differently.
+
+The docs and blog headers show a language switcher. It opens the same page in
+the other language, or the nearest page above it that exists.
+
+## Missing translations
+
+With `fallback` on (the default), a page that has no translation is still
+served at the locale's route, in the original language, with a note saying so.
+Such a page points its canonical link at the original and stays out of that
+locale's search, sitemap and `llms.txt`. Set `fallback: false` to leave those
+routes out.
+
+## What each locale gets
+
+- `<html lang dir>`, `hreflang` links for every translation plus `x-default`.
+- Its own `search.json`, `llms.txt`, `llms-full.txt` and feed under its prefix.
+- `sitemap-<locale>.xml`, listed in a `sitemap.xml` index.
+
+A site with only `lang` (for example `lang: 'zh-CN'`) has one language and none
+of the above.

@@ -1,0 +1,42 @@
+---
+title: Sources
+description: Pull pages from another repository, from URLs or from GitHub releases.
+icon: GitBranch
+---
+
+`sources` mounts content that lives somewhere else. Each source is served under
+its `path` and joins the sidebar, search and `llms.txt` like your own pages.
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  sources: [
+    { type: 'git', repo: 'https://github.com/acme/sdk.git', ref: 'main', dir: 'docs', path: '/sdk',
+      editLink: 'https://github.com/acme/sdk/edit/main/docs' },
+    { type: 'files', path: '/legal', files: { terms: 'https://acme.dev/terms.md' } },
+    { type: 'github-releases', repo: 'acme/sdk', path: '/sdk/changelog', limit: 20 },
+  ],
+})
+```
+
+## Types
+
+<TypeTable>
+  <Field name="git" type="source">A shallow clone of `repo` at `ref`; only `dir` is mounted. `editLink` sets "Edit this page" for its pages.</Field>
+  <Field name="files" type="source">`files` maps a page path to a Markdown or MDX URL.</Field>
+  <Field name="github-releases" type="source">One changelog page from the releases of `repo`. Options: `title`, `description`, `limit` (50), `prereleases` (true), `tokenEnv` (`GITHUB_TOKEN`).</Field>
+</TypeTable>
+
+Every source also takes `name`, the cache folder name.
+
+## Cache
+
+Sources are cached in `.novon/sources/`. A build reads the cache, so it works
+offline once the cache exists; a source with no cache yet is fetched on first
+use. Refresh every source (and remote OpenAPI files) with:
+
+```bash
+novon sync
+```
+
+`novon check` checks outside pages for syntax only: their links are not yours
+to fix.

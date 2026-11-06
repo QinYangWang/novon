@@ -28,9 +28,31 @@ novon check --external # also request every external link
 
 It exits with 1 when there are errors, or any issue with `--strict`.
 
+Outside [sources](/guide/sources) are checked for syntax only.
+
 `novon build` runs the same checks, without external links, and prints the
 results as warnings. `novon build --strict` stops instead.
 
 ```yaml title=".github/workflows/check.yml"
 - run: bunx novon check --strict
 ```
+
+## Audit the built site
+
+```bash
+novon build && novon audit   # --json, --strict
+```
+
+`novon audit` reads `dist/` the way a crawler does and reports what hurts search
+and sharing:
+
+| Check | Severity |
+| --- | --- |
+| Missing `<title>`, or a missing share image file | error |
+| Links and sitemap entries to pages not in the build | error |
+| Titles and descriptions that are missing, too long, too short or repeated | warning |
+| No `lang`, no canonical link (with `url` set), no or several `<h1>`, skipped heading levels | warning |
+| Images without `alt`, or larger than 500 kB | warning |
+| Pages missing from the sitemap; no `sitemap.xml` or `robots.txt` | warning |
+
+It exits with 1 on errors, or on any issue with `--strict`.

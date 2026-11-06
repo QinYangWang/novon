@@ -1,0 +1,34 @@
+---
+title: Templates
+description: Start from a docs site or a blog.
+icon: Shapes
+order: 1.5
+---
+
+`novon new` copies a template into a new folder. Both demos below are the
+templates as scaffolded, with no changes.
+
+<TemplateCard name="docs" title="Docs">
+  For product and project documentation.
+</TemplateCard>
+
+```bash
+novon new my-docs
+cd my-docs
+novon dev
+```
+
+<TemplateCard name="blog" title="Blog">
+  For a personal site or a team's writing.
+</TemplateCard>
+
+```bash
+novon new my-blog --template blog
+cd my-blog
+novon dev
+```
+
+## Mix them
+
+A docs site can mount a blog under a path, and the other way round. See
+[Layouts](/guide/layouts).

@@ -51,3 +51,23 @@ cover: /covers/plain-text.svg
 ```
 
 See both on the [Templates](/templates) page.
+
+## Changelog
+
+`layout: changelog` in a page's frontmatter turns each `##` heading into a
+release on a timeline. Put the date after the version, `## 1.2.0 (2026-11-01)`
+or `## 1.2.0 · 2026-11-01`. The page gets a feed at `<route>/rss.xml`. See
+[this site's changelog](/changelog).
+
+```mdx
+---
+title: Changelog
+layout: changelog
+---
+
+## 1.1.0 (2026-11-01)
+
+- Added versions.
+```
+
+A changelog can also come from GitHub releases; see [Sources](/guide/sources).

@@ -1,0 +1,42 @@
+---
+title: Deploying
+description: dist/ is a plain static site.
+icon: Cloud
+order: 7
+---
+
+`novon build` writes `dist/`. Every page is a prerendered `index.html`, so any
+static host works.
+
+| Host | Build command | Output |
+| --- | --- | --- |
+| Cloudflare Pages | `bunx novon build` | `dist` |
+| Vercel | `bunx novon build` | `dist` |
+| GitHub Pages | see below | `dist` |
+
+On a sub-path (GitHub Pages project sites), set `base: '/repo/'`.
+
+Cloudflare Pages and Netlify read the `_redirects` and `_headers` files the
+build writes; on other hosts the forwarding pages at each old path do the job,
+and `<link>` tags in each page stand in for the headers.
+
+Discovery files belong at the root of the domain. With a `base`, the build
+still writes `.well-known/` inside `dist/`; copy it to the root of the host, or
+set `agents.discovery: false` when another site owns the domain.
+
+```yaml title=".github/workflows/pages.yml"
+on: { push: { branches: [main] } }
+permissions: { pages: write, id-token: write }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # commit dates for "last updated"
+      - uses: oven-sh/setup-bun@v2
+      - run: bunx novon build
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: dist }
+      - uses: actions/deploy-pages@v4
+```
