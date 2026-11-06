@@ -59,7 +59,7 @@ describe('zh-CN blog with flat files, a custom feed and tag paths', async () => 
     expect(existsSync(join(dir, 'dist/first/index.html'))).toBe(false)
   })
   test('preview serves /x and /x/ from x.html', async () => {
-    const server = preview(await loadConfig(dir), 0)
+    const server = await preview(await loadConfig(dir), 0)
     try {
       for (const path of ['/first', '/first/', '/tag/Docker']) {
         // Straight to the handler: no network or proxy in the way.
