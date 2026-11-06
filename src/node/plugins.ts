@@ -3,10 +3,13 @@ import { join } from 'node:path'
 import matter from 'gray-matter'
 import { postsOf, withBase } from '../shared.ts'
 import type { BuildContext, NovonPlugin, PageMeta, ResolvedConfig } from '../types.ts'
+import { mdxToMarkdown } from './markdown.ts'
 
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const listed = (pages: PageMeta[]) => pages.filter((p) => !p.hidden && p.kind !== 'tag')
+/** Pages for crawlers and agents: listed and not `noindex`. */
+const indexable = (pages: PageMeta[]) => listed(pages).filter((p) => !p.noindex)
 
 function absolute(config: ResolvedConfig, route: string): string {
   const path = withBase(config.base, route)
@@ -47,7 +50,7 @@ const search: NovonPlugin = {
 const sitemap: NovonPlugin = {
   name: 'sitemap',
   async buildEnd({ emit, pages, config }) {
-    const urls = listed(pages)
+    const urls = indexable(pages)
       .map((p) => `  <url><loc>${xml(absolute(config, p.route))}</loc>${p.updated ? `<lastmod>${p.updated}</lastmod>` : ''}</url>`)
       .join('\n')
     await emit('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
@@ -99,32 +102,49 @@ ${items.join('\n')}
   },
 }
 
-/** llms.txt plus a raw Markdown copy of every page at `<route>.md`. */
+/** llms.txt, llms-full.txt and a plain Markdown copy of every page at `<route>.md`. */
 const llms: NovonPlugin = {
   name: 'llms',
   async buildEnd(ctx) {
-    await emitMarkdown(ctx)
+    const markdown = await emitMarkdown(ctx)
     const { emit, pages, config } = ctx
+    const docs = indexable(pages).filter((p) => p.kind === 'page')
     const lines = [`# ${config.title}`, '', config.description ? `> ${config.description}\n` : '']
-    for (const p of listed(pages).filter((p) => p.kind === 'page')) {
+    for (const p of docs) {
       lines.push(`- [${p.title}](${absolute(config, markdownPath(p.route))})${p.description ? `: ${p.description}` : ''}`)
     }
     await emit('llms.txt', `${lines.join('\n')}\n`)
+    await emit('llms-full.txt', llmsFull(config, docs, markdown))
   },
+}
+
+/** Every indexable page's Markdown in one file, each headed by its URL. */
+export function llmsFull(config: ResolvedConfig, pages: PageMeta[], markdown: Map<string, string>): string {
+  const head = [`# ${config.title}`, config.description ? `\n> ${config.description}` : ''].join('\n')
+  const parts = pages.filter((p) => markdown.has(p.route)).map((p) => `Source: ${absolute(config, p.route)}\n\n${markdown.get(p.route)!.trim()}`)
+  return `${[head, ...parts].join('\n\n---\n\n')}\n`
 }
 
 export function markdownPath(route: string): string {
   return `${route === '/' ? '/index' : route}.md`
 }
 
-export async function pageMarkdown(config: ResolvedConfig, page: PageMeta): Promise<string> {
+/** A page as plain Markdown: title, description, then the body with components written out. */
+export async function pageMarkdown(config: ResolvedConfig, page: PageMeta, pages?: PageMeta[]): Promise<string> {
   const { content } = matter(await readFile(join(config.root, page.file), 'utf8'))
-  const body = content.replace(/^(import|export)\s.*$\n?/gm, '').trim()
+  const body = mdxToMarkdown(content, { page, pages, mdx: !page.file.endsWith('.md'), link: (r) => absolute(config, markdownPath(r)) })
   return `# ${page.title}\n\n${page.description ? `${page.description}\n\n` : ''}${body}\n`
 }
 
-async function emitMarkdown({ emit, pages, config }: BuildContext) {
-  for (const p of pages) if (p.file) await emit(markdownPath(p.route).slice(1), await pageMarkdown(config, p))
+async function emitMarkdown({ emit, pages, config }: BuildContext): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  for (const p of pages) {
+    if (!p.file) continue
+    const md = await pageMarkdown(config, p, pages)
+    out.set(p.route, md)
+    await emit(markdownPath(p.route).slice(1), md)
+  }
+  return out
 }
 
 export const builtinPlugins: Record<string, NovonPlugin> = { search, sitemap, rss, llms }
