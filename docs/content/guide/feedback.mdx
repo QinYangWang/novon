@@ -17,7 +17,7 @@ the answer goes where you say:
 
 <TypeTable>
   <Field name="href" type="string">A URL opened in a new tab with `{page}`, `{url}`, `{title}`, `{mood}` and `{message}` filled in, or `post:` + a URL to send JSON there.</Field>
-  <Field name="event" type="string | false" default="'feedback'">Analytics event sent with the page and mood (Plausible, Umami, GA4).</Field>
+  <Field name="event" type="string | false" default="'feedback'">Analytics event sent with the page and mood to every configured provider that takes events.</Field>
   <Field name="on" type="'docs' | 'blog' | 'all'" default="'docs'">Where the widget shows.</Field>
 </TypeTable>
 

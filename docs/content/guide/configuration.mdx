@@ -32,7 +32,7 @@ export default defineConfig({
     labels: { onThisPage: 'Contents' },
     css: ['./styles/extra.css'],
     override: { Footer: './theme/Footer.tsx' },
-    pageActions: ['copy', 'markdown', 'pdf', 'edit', 'chatgpt', 'claude', 'perplexity'],
+    pageActions: ['copy', 'markdown', 'pdf', 'listen', 'edit', 'chatgpt', 'claude', 'perplexity'],
     lastUpdated: true,            // see Content › Last updated
     imageZoom: true,              // Markdown images open full size on click
   },
@@ -46,11 +46,12 @@ export default defineConfig({
   variables: { version: '2.1' },  // {{version}} in pages; see Writing
   banner: 'Version 2 is out',     // see Banner
   analytics: { plausible: { domain: 'acme.dev' } }, // see Analytics
+  consent: { policy: '/privacy' }, // ask before analytics; see Analytics
   agents: { skills: './skills' }, // see For agents
   budget: { js: '320 kB', css: '60 kB' }, // see Budgets
   i18n: { locales: { en: 'English', ja: '日本語' } }, // see Languages
   versions: { list: ['v1'] },     // see Versions; made by `novon version`
-  sources: [{ type: 'git', repo: 'https://github.com/acme/sdk.git', dir: 'docs', path: '/sdk' }], // see Sources
+  sources: [{ type: 'git', repo: 'https://github.com/acme/sdk.git', dir: 'docs', path: '/sdk' }], // see Sources (also notion, http, defineSource)
   openapi: { spec: 'openapi.yaml', path: '/api' }, // see API reference
   asyncapi: { spec: 'events.yaml', path: '/events' }, // event API reference
   graphql: { schema: 'schema.graphql', path: '/graphql' }, // GraphQL reference
@@ -142,6 +143,7 @@ theme: {
     'copy',          // copy the page as Markdown
     'markdown',      // open <page>.md
     'pdf',           // print, or save as PDF
+    'listen',        // read the page aloud
     'edit',          // needs theme.editLink
     'chatgpt', 'claude', 'perplexity',
     { label: 'Ask Acme AI', href: 'https://ai.acme.dev/?q={prompt}' },
@@ -152,6 +154,11 @@ theme: {
 In `href`, `{prompt}` is "Read … and answer questions about it" with the
 page's Markdown URL, `{markdown}` that URL and `{url}` the page itself. Blog
 posts show the menu only when `pageActions` is set.
+
+"Listen" reads the page aloud with the browser's own speech, block by block,
+marking the block being read. A bar at the bottom pauses or stops it; Escape or
+leaving the page stops it too. Browsers without speech synthesis don't show the
+action.
 
 "Download PDF" opens the print dialog. The print stylesheet keeps only the
 page's content: no header, sidebars, outline or banner, code blocks unclipped,
@@ -176,18 +183,8 @@ banner again to readers who closed it.
 
 ## Analytics
 
-```ts
-analytics: {
-  plausible: { domain: 'acme.dev' },         // src for a self-hosted script
-  umami: { websiteId: '…', src: 'https://umami.acme.dev/script.js' },
-  ga4: 'G-XXXXXXX',
-  cloudflare: 'token',                       // Cloudflare Web Analytics
-  custom: 'https://stats.acme.dev/script.js', // or head elements
-},
-```
-
-Each adds its script to every page. Moving between pages without a reload
-counts as a page view: the scripts follow the browser history.
+`analytics` adds a provider's script to every page, and `consent` asks the
+reader first. See [Analytics](/guide/analytics).
 
 ## Budgets
 
@@ -217,6 +214,7 @@ prints what it finds. See [Checking](/guide/checking).
 | `novon version <id>` | Freezes the docs as a version; see [Versions](/guide/versions) |
 | `novon sync` | Refreshes outside sources and remote API files; see [Sources](/guide/sources) |
 | `novon add <item…>` | Installs registry components; see [Components](/guide/components) |
+| `novon export epub\|pdf` | Writes the docs as one book; see [Export](/guide/export) |
 | `novon audit` | Checks the built site for search problems; see [Checking](/guide/checking#audit-the-built-site) |
 
 ## Plugins

@@ -1,0 +1,57 @@
+---
+title: Analytics
+description: Page views with the provider you pick, and a consent banner when you need one.
+icon: Eye
+---
+
+```ts title="novon.config.ts"
+export default defineConfig({
+  analytics: {
+    plausible: { domain: 'acme.dev' },          // src for a self-hosted script
+    umami: { websiteId: '…', src: 'https://umami.acme.dev/script.js' },
+    ga4: 'G-XXXXXXX',
+    cloudflare: 'token',                        // Cloudflare Web Analytics
+    posthog: { key: 'phc_…' },                  // host: 'https://eu.i.posthog.com'
+    fathom: 'ABCDEFGH',                         // or { site, src } for a custom domain
+    simpleAnalytics: true,                      // or { src, hostname }
+    matomo: { url: 'https://acme.matomo.cloud', siteId: 1 },
+    custom: 'https://stats.acme.dev/script.js', // or head elements
+  },
+})
+```
+
+Each provider adds its script to every page. Moving between pages without a
+reload counts as a page view: the scripts follow the browser history (novon
+reports it to Matomo itself).
+
+The [feedback widget](/guide/feedback) sends its event to every provider that
+takes custom events.
+
+## Consent
+
+```ts
+consent: true,
+// or
+consent: {
+  text: 'We count visits to improve these pages.', // inline Markdown
+  policy: '/privacy',                             // a link in the banner
+  version: 2,                                     // change it to ask again
+},
+```
+
+With `consent`, the analytics scripts are written inert and run only after the
+reader allows them. A banner at the bottom asks once; the answer is kept in the
+browser under `novon:consent:<version>`. `consent` does nothing without
+`analytics`.
+
+Scripts on the page can read and change the choice:
+
+```js
+window.novonConsent.get()    // 'granted', 'denied' or null
+window.novonConsent.allow()
+window.novonConsent.deny()   // reloads the page if analytics had started
+window.novonConsent.reset()  // shows the banner again
+```
+
+`novon:consent` fires on `window` after each change. A button of your own that
+calls `novonConsent.reset()` lets readers change their mind.

@@ -1,6 +1,6 @@
 ---
 title: Sources
-description: Pull pages from another repository, from URLs or from GitHub releases.
+description: Pull pages from another repository, URLs, GitHub releases, Notion, any JSON API or a loader of your own.
 icon: GitBranch
 ---
 
@@ -14,6 +14,8 @@ export default defineConfig({
       editLink: 'https://github.com/acme/sdk/edit/main/docs' },
     { type: 'files', path: '/legal', files: { terms: 'https://acme.dev/terms.md' } },
     { type: 'github-releases', repo: 'acme/sdk', path: '/sdk/changelog', limit: 20 },
+    { type: 'notion', path: '/handbook', database: 'https://www.notion.so/acme/…' },
+    { type: 'http', path: '/blog', url: 'https://cms.acme.dev/posts.json', items: 'data' },
   ],
 })
 ```
@@ -24,9 +26,75 @@ export default defineConfig({
   <Field name="git" type="source">A shallow clone of `repo` at `ref`; only `dir` is mounted. `editLink` sets "Edit this page" for its pages.</Field>
   <Field name="files" type="source">`files` maps a page path to a Markdown or MDX URL.</Field>
   <Field name="github-releases" type="source">One changelog page from the releases of `repo`. Options: `title`, `description`, `limit` (50), `prereleases` (true), `tokenEnv` (`GITHUB_TOKEN`).</Field>
+
+  <Field name="notion" type="source">`pages` (IDs or URLs; the first is the index) and/or a `database` (each row a page). Reads the token from `NOTION_TOKEN`, or the variable `tokenEnv` names.</Field>
+  <Field name="http" type="source">JSON from `url`. `items` is the dot path to the array; `map` turns an item into a page. Options: `headers`, `tokenEnv` (sent as a bearer token).</Field>
+  <Field name="custom" type="source">A loader of your own, made with `defineSource`.</Field>
 </TypeTable>
 
 Every source also takes `name`, the cache folder name.
+
+## Notion
+
+Create an internal integration, share the pages or database with it, and put
+its token in `NOTION_TOKEN`. Headings, paragraphs, lists, to-dos, quotes,
+callouts, code, tables, images, bookmarks and equations become Markdown. A
+database row's title names its page unless it has a `Slug` property; `Date`,
+`Tags`, `Description` and `Order` become frontmatter. Images uploaded to Notion
+use links that expire after an hour, so sync right before each build or use
+external images.
+
+## HTTP
+
+`map` takes field names (dot paths) or a function:
+
+```ts
+{ type: 'http', path: '/blog', url: 'https://cms.acme.dev/posts.json', items: 'data.posts',
+  map: { path: 'slug', title: 'title', content: 'body', description: 'excerpt', date: 'publishedAt' } }
+// or
+{ type: 'http', path: '/blog', url: '…', map: (post) => ({ path: post.slug, title: post.title, content: post.markdown }) }
+```
+
+The default map is `{ path: 'slug', title: 'title', content: 'content' }`.
+Items without a path or content are skipped.
+
+## Your own source
+
+`defineSource` takes a `kind`, a `path` and a `load` function that returns
+pages: `{ path, title, description, content, format, frontmatter }`. `content`
+is Markdown (`format: 'mdx'` allows components); `path` is relative to the
+source's `path`, and `index` is its first page. `load` gets `{ config, fetch, env }`.
+
+```ts title="novon.config.ts"
+import { defineConfig, defineSource } from 'novon/config'
+
+const sanity = defineSource({
+  kind: 'sanity',
+  path: '/guides',
+  async load({ fetch, env }) {
+    const query = encodeURIComponent('*[_type == "guide"]{ title, "slug": slug.current, body }')
+    const res = await fetch(`https://${env.SANITY_PROJECT}.api.sanity.io/v2025-01-01/data/query/production?query=${query}`)
+    const { result } = await res.json()
+    return result.map((g) => ({ path: g.slug, title: g.title, content: g.body }))
+  },
+})
+
+const contentful = defineSource({
+  kind: 'contentful',
+  path: '/articles',
+  async load({ fetch, env }) {
+    const res = await fetch(`https://cdn.contentful.com/spaces/${env.CONTENTFUL_SPACE}/entries?content_type=article`, {
+      headers: { authorization: `Bearer ${env.CONTENTFUL_TOKEN}` },
+    })
+    const { items } = await res.json()
+    return items.map((e) => ({ path: e.fields.slug, title: e.fields.title, content: e.fields.body }))
+  },
+})
+
+export default defineConfig({ sources: [sanity, contentful] })
+```
+
+Here `body` is a Markdown field; convert rich-text fields to Markdown in `load`.
 
 ## Cache
 

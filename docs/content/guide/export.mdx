@@ -1,0 +1,34 @@
+---
+title: Export
+description: The docs as an EPUB book or a PDF.
+icon: Download
+order: 8
+---
+
+```bash
+novon export epub
+novon export pdf --out dist/acme.pdf
+novon export epub --locale ja
+```
+
+`novon export` builds the site, then takes every docs page in sidebar order
+(a blog without docs: its posts, oldest first). Hidden, archived and older
+version pages are left out. With [languages](/guide/languages), `--locale`
+picks one; the default is the default locale. The file is named after the site
+title unless `--out` says otherwise.
+
+## EPUB
+
+An EPUB 3 book: a chapter per page, a table of contents, and the site's local
+images inside the book. Links between pages point at their chapters; other
+links go to the site at `url`.
+
+## PDF
+
+novon writes one `.print.html` with every page and the site's styles, then
+prints it with Chromium. It looks for `chromium`, `google-chrome` or `chrome`
+on `PATH`; set `NOVON_CHROME` to a browser binary to choose one. Without one,
+it keeps the `.print.html`: open it in a browser and print to PDF.
+
+For one page, the "Download PDF" [page action](/guide/configuration#page-actions)
+prints it from the browser.
