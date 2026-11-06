@@ -13,7 +13,9 @@ import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GitSource, ReleasesSource, RemoteFilesSource, ResolvedConfig, SourceOptions } from '../types.ts'
 import { SOURCES_DIR, sourceName } from './mounts.ts'
-import { fetchSpec, specList } from './openapi.ts'
+import { asyncapiCachePath, asyncapiList } from './asyncapi.ts'
+import { graphqlCachePath, graphqlList } from './graphql.ts'
+import { fetchSpec, fetchTo, specList } from './openapi.ts'
 
 export interface SyncResult {
   name: string
@@ -127,7 +129,7 @@ export async function syncSource(config: ResolvedConfig, s: SourceOptions): Prom
   throw new Error(`Unknown source type "${(s as { type: string }).type}"`)
 }
 
-/** Refreshes every source and every OpenAPI description given as a URL. */
+/** Refreshes every source and every API description (OpenAPI, AsyncAPI, GraphQL) given as a URL. */
 export async function syncAll(config: ResolvedConfig): Promise<SyncResult[]> {
   const out: SyncResult[] = []
   for (const s of config.sources ?? []) {
@@ -143,6 +145,18 @@ export async function syncAll(config: ResolvedConfig): Promise<SyncResult[]> {
       out.push({ name: spec.path, type: 'openapi', ok: true, message: spec.spec })
     } catch (error) {
       out.push({ name: spec.path, type: 'openapi', ok: false, message: `${spec.spec}: ${(error as Error).message}` })
+    }
+  }
+  const described = [
+    ...asyncapiList(config).map((s) => ({ type: 'asyncapi', path: s.path, url: s.spec, cache: asyncapiCachePath(config, s) })),
+    ...graphqlList(config).map((s) => ({ type: 'graphql', path: s.path, url: s.schema, cache: graphqlCachePath(config, s) })),
+  ]
+  for (const d of described.filter((x) => /^https?:\/\//.test(x.url))) {
+    try {
+      await fetchTo(d.url, d.cache)
+      out.push({ name: d.path, type: d.type, ok: true, message: d.url })
+    } catch (error) {
+      out.push({ name: d.path, type: d.type, ok: false, message: `${d.url}: ${(error as Error).message}` })
     }
   }
   return out

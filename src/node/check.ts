@@ -92,6 +92,9 @@ const openapiSchema = S.object({
   server: S.string,
 })
 
+const asyncapiSchema = S.object({ spec: S.required(S.string), path: S.required(S.string), title: S.string })
+const graphqlSchema = S.object({ schema: S.required(S.string), path: S.required(S.string), title: S.string, endpoint: S.string })
+
 export const configSchema: Schema = S.object({
   title: S.required(S.string),
   description: S.string,
@@ -186,6 +189,8 @@ export const configSchema: Schema = S.object({
     }),
   ),
   openapi: S.union(openapiSchema, S.array(openapiSchema)),
+  asyncapi: S.union(asyncapiSchema, S.array(asyncapiSchema)),
+  graphql: S.union(graphqlSchema, S.array(graphqlSchema)),
   feedback: S.union(S.false, S.object({ href: S.string, event: S.union(S.string, S.false), on: S.enum('docs', 'blog', 'all') })),
 })
 

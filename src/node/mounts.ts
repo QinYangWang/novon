@@ -40,6 +40,16 @@ export function openapiName(spec: { path: string }): string {
   return `openapi${spec.path.replace(/[^\w.-]+/g, '-')}`.replace(/-+$/g, '')
 }
 
+export function asyncapiName(spec: { path: string }): string {
+  return `asyncapi${spec.path.replace(/[^\w.-]+/g, '-')}`.replace(/-+$/g, '')
+}
+
+export function graphqlName(spec: { path: string }): string {
+  return `graphql${spec.path.replace(/[^\w.-]+/g, '-')}`.replace(/-+$/g, '')
+}
+
+const list = <T>(v: T | T[] | undefined): T[] => (v ? (Array.isArray(v) ? v : [v]) : [])
+
 export function mounts(config: ResolvedConfig): Mount[] {
   const out: Mount[] = [{ rel: 'content', prefix: '/', locales: true }]
   for (const v of config.versions?.list ?? []) {
@@ -53,6 +63,8 @@ export function mounts(config: ResolvedConfig): Mount[] {
   }
   const specs = config.openapi ? (Array.isArray(config.openapi) ? config.openapi : [config.openapi]) : []
   for (const spec of specs) out.push({ rel: `${GENERATED_DIR}/${openapiName(spec)}`, prefix: normalizeRoute(spec.path), locales: false, external: true })
+  for (const spec of list(config.asyncapi)) out.push({ rel: `${GENERATED_DIR}/${asyncapiName(spec)}`, prefix: normalizeRoute(spec.path), locales: false, external: true })
+  for (const spec of list(config.graphql)) out.push({ rel: `${GENERATED_DIR}/${graphqlName(spec)}`, prefix: normalizeRoute(spec.path), locales: false, external: true })
   return out
 }
 

@@ -218,8 +218,32 @@ export interface Config {
   sources?: SourceOptions[]
   /** API reference pages generated from OpenAPI 3 descriptions. */
   openapi?: OpenApiOptions | OpenApiOptions[]
+  /** Event API reference pages generated from AsyncAPI 2 or 3 descriptions. */
+  asyncapi?: AsyncApiOptions | AsyncApiOptions[]
+  /** GraphQL reference pages generated from a schema (SDL) or an introspection result. */
+  graphql?: GraphqlOptions | GraphqlOptions[]
   /** A "Was this helpful?" widget on pages. It only sends; you choose where. */
   feedback?: FeedbackOptions | false
+}
+
+export interface AsyncApiOptions {
+  /** An AsyncAPI 2.x or 3.x file (JSON or YAML), relative to the site root, or a URL (cached by `novon sync`). */
+  spec: string
+  /** URL prefix for the reference, e.g. `/events`. */
+  path: string
+  /** Overview page title. Default: the description's `info.title`. */
+  title?: string
+}
+
+export interface GraphqlOptions {
+  /** A schema file (`.graphql`, SDL) or an introspection result (`.json`), relative to the site root, or a URL (cached by `novon sync`). */
+  schema: string
+  /** URL prefix for the reference, e.g. `/graphql`. */
+  path: string
+  /** Overview page title. Default `GraphQL API`. */
+  title?: string
+  /** The endpoint shown on the overview page and in examples. */
+  endpoint?: string
 }
 
 export interface LocaleOptions {
