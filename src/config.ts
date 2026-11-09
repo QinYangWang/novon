@@ -94,10 +94,16 @@ export function resolveConfig(config: Config, root: string): ResolvedConfig {
   const versions = resolveVersions(config)
   const lang = i18n ? (i18n.locales.find((l) => l.code === i18n.defaultLocale)?.lang ?? config.lang ?? 'en') : (config.lang ?? 'en')
   const { i18n: _i18n, versions: _versions, ...rest } = config
+  // Where the site is served is a deploy-time fact: a GitHub Pages project site lives at
+  // `/<repo>/`, a preview gets its own host. `NOVON_BASE` and `NOVON_URL` override the config
+  // so one checkout can be built for each, and an empty value leaves the config alone.
+  const envBase = process.env.NOVON_BASE?.trim()
+  const envUrl = process.env.NOVON_URL?.trim()
   const resolved: ResolvedConfig = {
     ...rest,
+    ...(envUrl ? { url: envUrl } : {}),
     root,
-    base: normalizeBase(config.base),
+    base: normalizeBase(envBase || config.base),
     lang,
     layout,
     baseLayers,
