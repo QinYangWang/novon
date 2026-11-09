@@ -14,8 +14,6 @@ static host works.
 | Vercel | `bunx novon build` | `dist` |
 | GitHub Pages | see below | `dist` |
 
-On a sub-path (GitHub Pages project sites), set `base: '/repo/'`.
-
 Cloudflare Pages and Netlify read the `_redirects` and `_headers` files the
 build writes; on other hosts the forwarding pages at each old path do the job,
 and `<link>` tags in each page stand in for the headers.
@@ -24,19 +22,45 @@ Discovery files belong at the root of the domain. With a `base`, the build
 still writes `.well-known/` inside `dist/`; copy it to the root of the host, or
 set `agents.discovery: false` when another site owns the domain.
 
+## GitHub Pages
+
+Pages needs no build settings: turn it on once under Settings → Pages → Source
+**GitHub Actions**, then let the repository call novon's workflow. It checks out
+the site and novon, installs novon, builds, and publishes the artifact.
+
 ```yaml title=".github/workflows/pages.yml"
-on: { push: { branches: [main] } }
-permissions: { pages: write, id-token: write }
+on: { push: { branches: [main] }, workflow_dispatch: }
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: false }
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: github-pages
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 } # commit dates for "last updated"
-      - uses: oven-sh/setup-bun@v2
-      - run: bunx novon build
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
-      - uses: actions/deploy-pages@v4
+  pages:
+    uses: QinYangWang/novon/.github/workflows/pages.yml@main
+    with:
+      base: /my-site/
+      url: https://me.github.io/my-site/
 ```
+
+A project site lives under the repository name, hence `base` and `url` above. On
+a `<owner>.github.io` repository drop `base` and use `https://<owner>.github.io/`.
+`novon new` writes this file with both derived from the repository.
+
+| Input | Default | |
+| --- | --- | --- |
+| `site-dir` | `.` | folder holding the site |
+| `novon-repo` | `QinYangWang/novon` | build with a fork |
+| `novon-ref` | `main` | branch, tag or commit to build with |
+| `bun-version` | latest | |
+| `build-command` | `bun "$NOVON/bin/novon.ts" build` | run in `site-dir` with `$NOVON` set, so `./build.sh` works |
+| `base` | config | sub-path, e.g. `/my-site/` |
+| `url` | config | absolute URL for canonical links, feeds and the sitemap |
+| `cname` | none | writes a `CNAME` file; leave `base` empty for a custom domain |
+| `artifact-path` | `dist` | built folder to publish |
+
+`base` and `url` arrive as `NOVON_BASE` and `NOVON_URL`, which override the
+config, so one checkout builds for a custom domain and for a project sub-path
+without editing `novon.config.ts`.
+
+Clean URLs need no work: with `trailingSlash: false` the build writes
+`page.html`, and Pages serves that file at `/page`. On Pages there is no
+`_redirects`, so move old paths into `redirectFrom` in frontmatter or `redirects`
+in the config; both build forwarding pages.
