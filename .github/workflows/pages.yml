@@ -1,0 +1,129 @@
+name: pages
+
+# Build a novon site and deploy it to GitHub Pages.
+#
+# Reusable: run it from a site repository, which keeps its own workflow file short.
+#
+#   # .github/workflows/pages.yml in the site repo
+#   on: { push: { branches: [main] }, workflow_dispatch: }
+#   permissions: { contents: read, pages: write, id-token: write }
+#   concurrency: { group: pages, cancel-in-progress: false }
+#   jobs:
+#     pages:
+#       uses: QinYangWang/novon/.github/workflows/pages.yml@main
+#       with:
+#         base: /my-site/                          # empty when the site owns the domain root
+#         url: https://me.github.io/my-site/
+#
+# One-time setup in the repository: Settings → Pages → Source "GitHub Actions".
+#
+# `novon build` already writes `page.html` for `trailingSlash: false` sites, and GitHub Pages
+# serves that file at `/page`, so nothing has to be rewritten after the build.
+on:
+  workflow_call:
+    inputs:
+      site-dir:
+        description: Folder of the site inside the repository.
+        type: string
+        default: .
+      novon-repo:
+        description: Repository to build the site with.
+        type: string
+        default: QinYangWang/novon
+      novon-ref:
+        description: Branch, tag or commit of that repository.
+        type: string
+        default: main
+      bun-version:
+        description: Bun version; empty for the latest.
+        type: string
+        default: ''
+      build-command:
+        description: Build command, run in site-dir with $NOVON pointing at the novon checkout.
+        type: string
+        default: bun "$NOVON/bin/novon.ts" build
+      base:
+        description: Sub-path the site is served from, e.g. /my-site/. Empty keeps the config's.
+        type: string
+        default: ''
+      url:
+        description: Absolute URL the site is served from. Empty keeps the config's.
+        type: string
+        default: ''
+      cname:
+        description: Custom domain to publish as a CNAME file, e.g. example.com. Empty for none.
+        type: string
+        default: ''
+      artifact-path:
+        description: Built folder to publish, relative to site-dir.
+        type: string
+        default: dist
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # commit dates for "last updated" and git-based frontmatter dates
+
+      - name: Check out novon
+        env:
+          REPO: ${{ inputs.novon-repo }}
+          REF: ${{ inputs.novon-ref }}
+        run: |
+          dest="$RUNNER_TEMP/novon"
+          url="https://github.com/$REPO.git"
+          git clone --depth 1 --branch "$REF" "$url" "$dest" || { git clone "$url" "$dest" && git -C "$dest" checkout --detach "$REF"; }
+          echo "NOVON=$dest" >> "$GITHUB_ENV"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ inputs.bun-version || 'latest' }}
+
+      - name: Install novon
+        working-directory: ${{ runner.temp }}/novon
+        run: bun install --frozen-lockfile
+
+      - name: Where the site will be served
+        env:
+          BASE: ${{ inputs.base }}
+          URL: ${{ inputs.url }}
+        run: |
+          if [ -n "$BASE" ]; then
+            echo "NOVON_BASE=/$(echo "${BASE#/}" | sed 's:/*$::')/" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$URL" ]; then
+            echo "NOVON_URL=${URL%/}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        working-directory: ${{ inputs.site-dir }}
+        run: ${{ inputs.build-command }}
+
+      - name: Custom domain
+        if: inputs.cname != ''
+        working-directory: ${{ inputs.site-dir }}
+        env:
+          CNAME: ${{ inputs.cname }}
+          ARTIFACT: ${{ inputs.artifact-path }}
+        run: echo "$CNAME" > "$ARTIFACT/CNAME"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ inputs.site-dir }}/${{ inputs.artifact-path }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
