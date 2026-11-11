@@ -24,7 +24,9 @@ export function Link({ href: given, exact, onClick, onMouseEnter, ...props }: Li
   // (another site deployed beside it, a generated file) is a normal page load.
   const local = isInternal(href)
   const internal = local && site.pages.some((p) => p.route === normalizeRoute(href.split(/[?#]/)[0]))
-  const target = local ? withBase(site.base, href) : href
+  // A site-relative file (`/feed.xml`, `/images/a.png`) is not a route, but it is written under
+  // the base like everything else, so its href needs the prefix too.
+  const target = href.startsWith('/') && !href.startsWith('//') ? withBase(site.base, href) : href
   return (
     <a
       href={target}
