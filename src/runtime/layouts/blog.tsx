@@ -1,15 +1,15 @@
 import * as React from 'react'
+import { siGithub, siX } from 'simple-icons'
 import { FallbackNotice, LanguageSwitcher } from '../i18n.tsx'
 import { PageFeedback } from '../feedback.tsx'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
+import { BrandIcon } from '@/ui/brand-icon'
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/menu'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  ArrowUpRightIcon,
   ChevronDownIcon,
-  GithubIcon,
   HomeIcon,
   MailIcon,
   RssIcon,
@@ -44,20 +44,28 @@ function Container({ className, children }: { className?: string; children: Reac
 
 type Crumb = { label: string; href?: string }
 
-const SOCIAL_ICONS = { GitHub: GithubIcon, X: ArrowUpRightIcon, Email: MailIcon, RSS: RssIcon }
+type SocialKind = 'github' | 'x' | 'email' | 'rss'
 
-type Social = { label: keyof typeof SOCIAL_ICONS; href: string }
+type Social = { kind: SocialKind; label: string; href: string }
+
+/** Logos only: the label is the accessible name, not something drawn on the page. */
+function SocialIcon({ kind }: { kind: SocialKind }) {
+  if (kind === 'github') return <BrandIcon icon={siGithub} size={16} />
+  if (kind === 'x') return <BrandIcon icon={siX} size={16} />
+  if (kind === 'rss') return <RssIcon size={16} />
+  return <MailIcon size={16} />
+}
 
 function SocialLink({ social }: { social: Social }) {
-  const Icon = SOCIAL_ICONS[social.label]
   return (
     <a
       href={social.href}
       rel="noreferrer"
-      className="inline-flex items-baseline gap-1 rounded-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={social.label}
+      title={social.label}
+      className="inline-flex size-7 items-center justify-center rounded-control-sm text-muted-foreground transition-colors duration-150 outline-none hover:bg-foreground/6 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <Icon size={14} className="translate-y-0.5" />
-      {social.label}
+      <SocialIcon kind={social.kind} />
     </a>
   )
 }
@@ -176,22 +184,22 @@ function PostGroups({ posts }: { posts: PageMeta[] }) {
   )
 }
 
-/** The row of underlined links under the intro. */
+/** The row of logos under the intro. */
 function Elsewhere() {
   const { site } = useSite()
   const social = site.theme.social ?? {}
   const socials: Social[] = []
-  if (social.github) socials.push({ label: 'GitHub', href: social.github })
-  if (social.x) socials.push({ label: 'X', href: social.x })
-  if (social.email) socials.push({ label: 'Email', href: `mailto:${social.email}` })
-  if (social.rss && site.rss) socials.push({ label: 'RSS', href: withBase(site.base, site.rssPath) })
+  if (social.github) socials.push({ kind: 'github', label: 'GitHub', href: social.github })
+  if (social.x) socials.push({ kind: 'x', label: 'X', href: social.x })
+  if (social.email) socials.push({ kind: 'email', label: 'Email', href: `mailto:${social.email}` })
+  if (social.rss && site.rss) socials.push({ kind: 'rss', label: 'RSS', href: withBase(site.base, site.rssPath) })
   if (!socials.length) return null
   return (
-    <p className="mb-10 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-muted-foreground">
+    <div className="-ms-1.5 mb-10 flex items-center gap-0.5">
       {socials.map((social) => (
-        <SocialLink key={social.label} social={social} />
+        <SocialLink key={social.kind} social={social} />
       ))}
-    </p>
+    </div>
   )
 }
 
