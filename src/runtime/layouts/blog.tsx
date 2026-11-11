@@ -42,8 +42,6 @@ function Container({ className, children }: { className?: string; children: Reac
   return <div className={cn('mx-auto w-full max-w-reading px-5 pt-12 pb-20', className)}>{children}</div>
 }
 
-type Crumb = { label: string; href?: string }
-
 type SocialKind = 'github' | 'x' | 'email' | 'rss'
 
 type Social = { kind: SocialKind; label: string; href: string }
@@ -92,8 +90,9 @@ function SiteMenu() {
   )
 }
 
-/** Home, the site menu, the breadcrumb trail, then search, language and the theme toggle. */
-function DefaultTopBar({ trail = [] }: { trail?: Crumb[] }) {
+/** Home, the site menu, then search, language and the theme toggle. No trail: at narrow widths it
+ *  cut the page title short, and every page says what it is in its own heading. */
+function DefaultTopBar() {
   const { site } = useSite()
   const t = useLabels()
   return (
@@ -104,22 +103,6 @@ function DefaultTopBar({ trail = [] }: { trail?: Crumb[] }) {
           <span className="truncate">{site.title}</span>
         </Link>
         <SiteMenu />
-        {trail.map((crumb) => (
-          <React.Fragment key={crumb.label}>
-            <span aria-hidden className="shrink-0 text-muted-foreground/60">
-              /
-            </span>
-            {crumb.href ? (
-              <Link href={crumb.href} className={crumbLink}>
-                {crumb.label}
-              </Link>
-            ) : (
-              <span aria-current="page" className="min-w-0 truncate">
-                {crumb.label}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
       </nav>
       <div className="ms-auto flex shrink-0 items-center gap-0.5">
         <Search compact />
@@ -130,9 +113,9 @@ function DefaultTopBar({ trail = [] }: { trail?: Crumb[] }) {
   )
 }
 
-function TopBar({ trail }: { trail?: Crumb[] }) {
+function TopBar() {
   const Header = useOverride('Header', DefaultTopBar)
-  return <Header trail={trail} />
+  return <Header />
 }
 
 /** `08/19`, the short form in a year group. */
@@ -245,7 +228,7 @@ function Post({ page }: { page: PageMeta }) {
   const count = fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })
   return (
     <Container>
-      <TopBar trail={[{ label: t.allPosts, href: page.layer }, { label: page.title }]} />
+      <TopBar />
       <main>
         <FallbackNotice page={page} />
         <article>
@@ -307,7 +290,7 @@ function TagIndex({ page }: { page: PageMeta }) {
   const count = fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })
   return (
     <Container>
-      <TopBar trail={[{ label: t.allPosts, href: page.layer }, { label: `#${page.tag}` }]} />
+      <TopBar />
       <main>
         <header className="mb-8 flex flex-col gap-2">
           <h1 className="text-base font-medium text-balance wrap-anywhere">#{page.tag}</h1>
@@ -324,7 +307,7 @@ function TagIndex({ page }: { page: PageMeta }) {
 function Page({ page }: { page: PageMeta }) {
   return (
     <Container>
-      <TopBar trail={[{ label: page.title }]} />
+      <TopBar />
       <main>
         <FallbackNotice page={page} />
         <header className="mb-8 flex flex-col gap-3">
