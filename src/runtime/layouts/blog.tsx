@@ -72,7 +72,9 @@ function SocialLink({ social }: { social: Social }) {
 function SiteMenu() {
   const { site } = useSite()
   const t = useLabels()
-  const items = [...site.nav, ...(site.rss ? [{ label: 'RSS', href: site.rssPath }] : [])]
+  // The feed is one destination: if the nav already links to it (`订阅`), do not add RSS beside it.
+  const items = [...site.nav]
+  if (site.rss && !items.some((item) => item.href === site.rssPath)) items.push({ label: 'RSS', href: site.rssPath })
   if (!items.length) return null
   return (
     <Menu>
