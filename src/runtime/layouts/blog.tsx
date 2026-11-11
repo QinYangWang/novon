@@ -288,10 +288,9 @@ function PostsIndex({ page }: { page: PageMeta }) {
     <Container>
       <TopBar />
       <main>
-        <header className="mb-4 flex flex-col gap-0.5">
-          <h1 className="text-base font-medium text-balance">{site.title}</h1>
-          {description && <p className="text-pretty text-muted-foreground first-letter:uppercase">{description}</p>}
-        </header>
+        {/* The top bar already spells the site name, so the heading stays for assistive tech only. */}
+        <h1 className="sr-only">{site.title}</h1>
+        {description && <p className="mb-4 text-pretty text-muted-foreground first-letter:uppercase">{description}</p>}
         <Elsewhere />
         <PostGroups posts={posts} />
         {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
