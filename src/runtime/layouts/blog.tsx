@@ -3,261 +3,333 @@ import { FallbackNotice, LanguageSwitcher } from '../i18n.tsx'
 import { PageFeedback } from '../feedback.tsx'
 import { cn } from '@/lib/utils'
 import { Button } from '@/ui/button'
-import { ScrollProgress } from '@/ui/scroll-progress'
-import { ArrowLeftIcon } from '@/components/icons'
-import { formatDate, postsOf, withBase } from '../../shared.ts'
+import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/ui/menu'
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowUpRightIcon,
+  ChevronDownIcon,
+  GithubIcon,
+  HomeIcon,
+  MailIcon,
+  RssIcon,
+} from '@/components/icons'
+import { formatDate, postsOf, tagRoute, withBase } from '../../shared.ts'
 import type { PageMeta } from '../../types.ts'
-import { AuthorAvatar, useAuthor } from '../author.tsx'
-import { Footer, NotFound, PageActions, PageContent, Search, SocialLinks, ThemeButton } from '../chrome.tsx'
+import { NotFound, PageContent, Search, ThemeButton } from '../chrome.tsx'
 import { Banner } from '../extras.tsx'
 import { Link } from '../link.tsx'
-import { Outline, OutlinePopover } from '../outline.tsx'
-import { PostCard, PostCover, PostList, PostMeta, PostTags, TagList } from '../posts.tsx'
 import { useLabels, useOverride, useSite } from '../site.tsx'
 import { fill } from '../../labels.ts'
 
+/**
+ * The blog is one column of text: a quiet top bar, base-size titles, dates in mono, and every post
+ * as a row under its year. This is the PaneUI "Personal Blog" template shape, with novon's search,
+ * tags, language switcher and theme toggle kept as quiet extras.
+ */
+
+const crumbLink =
+  'shrink-0 rounded-xs transition-colors duration-150 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+
+const rowLink =
+  'flex items-baseline gap-4 rounded-md px-2 py-1.5 leading-6 transition-colors duration-150 outline-none hover:bg-foreground/6 focus-visible:ring-2 focus-visible:ring-ring'
+
+const pagerLink =
+  'flex min-w-0 flex-col gap-1 rounded-md px-2 py-2 transition-colors duration-150 outline-none hover:bg-foreground/6 focus-visible:ring-2 focus-visible:ring-ring'
+
+/** The single column the blog lives in: one measure, centred, with room above the title. */
 function Container({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn('mx-auto w-full max-w-5xl px-5 sm:px-8', className)}>{children}</div>
+  return <div className={cn('mx-auto w-full max-w-reading px-5 pt-12 pb-20', className)}>{children}</div>
 }
 
-function Eyebrow({ id, children }: { id?: string; children: React.ReactNode }) {
+type Crumb = { label: string; href?: string }
+
+const SOCIAL_ICONS = { GitHub: GithubIcon, X: ArrowUpRightIcon, Email: MailIcon, RSS: RssIcon }
+
+type Social = { label: keyof typeof SOCIAL_ICONS; href: string }
+
+function SocialLink({ social }: { social: Social }) {
+  const Icon = SOCIAL_ICONS[social.label]
   return (
-    <h2 id={id} className="text-ui-xs font-medium tracking-wider text-muted-foreground uppercase">
-      {children}
-    </h2>
+    <a
+      href={social.href}
+      rel="noreferrer"
+      className="inline-flex items-baseline gap-1 rounded-xs text-foreground underline decoration-border underline-offset-4 transition-colors duration-150 outline-none hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Icon size={14} className="translate-y-0.5" />
+      {social.label}
+    </a>
   )
 }
 
-function BlogBrand() {
+/** The site's pages behind one chevron, so the top bar stays a single quiet line. */
+function SiteMenu() {
   const { site } = useSite()
-  const { logo, logoDark } = site.theme
+  const t = useLabels()
+  const items = [...site.nav, ...(site.rss ? [{ label: 'RSS', href: site.rssPath }] : [])]
+  if (!items.length) return null
   return (
-    <Link href="/" className="flex min-w-0 items-center gap-2.5 rounded-full font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-      {logo ? (
-        <>
-          <img src={withBase(site.base, logo)} alt="" className={cn('h-6 w-auto', logoDark && 'dark:hidden')} />
-          {logoDark && <img src={withBase(site.base, logoDark)} alt="" className="hidden h-6 w-auto dark:block" />}
-        </>
-      ) : (
-        <AuthorAvatar name={site.title} size="sm" />
-      )}
-      <span className="truncate">{site.title}</span>
-    </Link>
+    <Menu>
+      <MenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={t.mainNav} />}>
+        <ChevronDownIcon />
+      </MenuTrigger>
+      <MenuContent>
+        {items.map((item) => (
+          <MenuItem key={item.href} render={<Link href={item.href} />}>
+            {item.label}
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </Menu>
   )
 }
 
-function DefaultHeader() {
-  const { site, current } = useSite()
+/** Home, the site menu, the breadcrumb trail, then search, language and the theme toggle. */
+function DefaultTopBar({ trail = [] }: { trail?: Crumb[] }) {
+  const { site } = useSite()
   const t = useLabels()
   return (
-    <header data-novon-chrome="" className="sticky top-0 z-40 h-14 border-b border-border bg-background/80 backdrop-blur">
-      <Container className="flex h-full items-center gap-3">
-        <BlogBrand />
-        <nav aria-label={t.mainNav} className="ms-auto flex items-center gap-1">
-          {site.nav.map((l) => {
-            const active = l.href === '/' ? current.route === '/' : current.route === l.href || current.route.startsWith(`${l.href}/`)
-            return (
-              <Button key={l.href} variant="ghost" size="sm" className={cn(!active && 'text-muted-foreground')} nativeButton={false} render={<Link href={l.href} />}>
-                {l.label}
-              </Button>
-            )
-          })}
-          <Search compact />
-          <LanguageSwitcher size="responsive" fallbackClassName="text-ui-sm" />
-          <span className="flex items-center max-sm:hidden">
-            <SocialLinks />
-          </span>
-          <ThemeButton />
-        </nav>
-      </Container>
+    <header className="mb-10 flex min-h-7 items-center gap-2 text-sm text-muted-foreground">
+      <nav aria-label={t.mainNav} className="flex min-w-0 items-center gap-2">
+        <Link href="/" className={cn('inline-flex min-w-0 items-center gap-1.5', crumbLink)}>
+          <HomeIcon size={14} />
+          <span className="truncate">{site.title}</span>
+        </Link>
+        <SiteMenu />
+        {trail.map((crumb) => (
+          <React.Fragment key={crumb.label}>
+            <span aria-hidden className="shrink-0 text-muted-foreground/60">
+              /
+            </span>
+            {crumb.href ? (
+              <Link href={crumb.href} className={crumbLink}>
+                {crumb.label}
+              </Link>
+            ) : (
+              <span aria-current="page" className="min-w-0 truncate">
+                {crumb.label}
+              </span>
+            )}
+          </React.Fragment>
+        ))}
+      </nav>
+      <div className="ms-auto flex shrink-0 items-center gap-0.5">
+        <Search compact />
+        <LanguageSwitcher size="responsive" fallbackClassName="text-ui-sm" />
+        <ThemeButton />
+      </div>
     </header>
   )
 }
 
-function BackLink({ layer }: { layer: string }) {
-  const t = useLabels()
+function TopBar({ trail }: { trail?: Crumb[] }) {
+  const Header = useOverride('Header', DefaultTopBar)
+  return <Header trail={trail} />
+}
+
+/** `08/19`, the short form in a year group. */
+function shortDate(date?: string): string {
+  return date ? `${date.slice(5, 7)}/${date.slice(8, 10)}` : ''
+}
+
+function PostRows({ posts }: { posts: PageMeta[] }) {
   return (
-    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={layer} />} className="-ms-3 text-muted-foreground">
-      <ArrowLeftIcon data-icon="inline-start" />
-      {t.allPosts}
-    </Button>
+    <ul className="-mx-2 flex flex-col">
+      {posts.map((post) => (
+        <li key={post.route}>
+          <Link href={post.route} className={rowLink}>
+            <span className="min-w-0 wrap-anywhere">{post.title}</span>
+            <time dateTime={post.date} className="ms-auto shrink-0 font-mono text-muted-foreground tabular-nums">
+              {shortDate(post.date)}
+            </time>
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }
 
+/** Posts newest first, grouped under the year in their date. */
+function PostGroups({ posts }: { posts: PageMeta[] }) {
+  const groups = new Map<string, PageMeta[]>()
+  for (const post of posts) {
+    const year = (post.date ?? '').slice(0, 4) || '—'
+    const group = groups.get(year)
+    if (group) group.push(post)
+    else groups.set(year, [post])
+  }
+  return (
+    <div className="flex flex-col gap-8">
+      {[...groups].map(([year, group]) => (
+        <section
+          key={year}
+          aria-labelledby={`year-${year}`}
+          className="grid grid-cols-1 gap-2 sm:grid-cols-[4rem_minmax(0,1fr)] sm:gap-4"
+        >
+          <h2 id={`year-${year}`} className="font-mono text-base font-normal text-balance text-muted-foreground sm:py-1.5">
+            {year}
+          </h2>
+          <PostRows posts={group} />
+        </section>
+      ))}
+    </div>
+  )
+}
+
+/** The row of underlined links under the intro. */
+function Elsewhere() {
+  const { site } = useSite()
+  const social = site.theme.social ?? {}
+  const socials: Social[] = []
+  if (social.github) socials.push({ label: 'GitHub', href: social.github })
+  if (social.x) socials.push({ label: 'X', href: social.x })
+  if (social.email) socials.push({ label: 'Email', href: `mailto:${social.email}` })
+  if (social.rss && site.rss) socials.push({ label: 'RSS', href: withBase(site.base, site.rssPath) })
+  if (!socials.length) return null
+  return (
+    <p className="mb-10 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-muted-foreground">
+      {socials.map((social) => (
+        <SocialLink key={social.label} social={social} />
+      ))}
+    </p>
+  )
+}
+
+function FooterLine() {
+  const { site } = useSite()
+  const text = site.theme.footer?.text
+  if (!text) return null
+  return <p className="mt-16 border-t border-border pt-6 text-sm text-pretty text-muted-foreground">{text}</p>
+}
+
+/** Title, date, tags and the generated header image. */
 function DefaultPostHeader({ page }: { page: PageMeta }) {
   const { site } = useSite()
   const t = useLabels()
   const updated = site.theme.lastUpdated !== false && page.updated && page.date && page.updated > page.date ? page.updated : undefined
+  const tags = page.tags.filter(Boolean)
   return (
-    <header className="flex max-w-3xl flex-col items-start gap-5">
-      <BackLink layer={page.layer} />
-      <PostTags post={page} />
-      <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
-      {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
-      <div className="flex w-full flex-wrap items-center gap-3">
-        {page.author && <AuthorAvatar name={page.author} />}
-        <div className="flex flex-col leading-tight">
-          {page.author && <span className="text-ui-sm font-medium">{page.author}</span>}
-          <PostMeta post={page} />
-          {updated && (
-            <time dateTime={updated} className="mt-1 text-ui-xs text-muted-foreground tabular-nums">
-              {fill(t.updated, { date: formatDate(updated, site.lang) })}
-            </time>
-          )}
-        </div>
-        {/* Blog posts show page actions only when the site lists them. */}
-        {site.theme.pageActions && (
-          <div className="ms-auto">
-            <PageActions />
-          </div>
-        )}
+    <header className="mb-8 flex flex-col gap-3">
+      <h1 className="text-base font-medium text-balance wrap-anywhere">{page.title}</h1>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground tabular-nums">
+        {page.date && <time dateTime={page.date}>{formatDate(page.date, site.lang)}</time>}
+        {updated && <time dateTime={updated}>{fill(t.updated, { date: formatDate(updated, site.lang) })}</time>}
       </div>
+      {tags.length > 0 && (
+        <p className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {tags.map((tag) => (
+            <Link key={tag} href={tagRoute(page.layer, tag, site.tags)} className={crumbLink}>
+              #{tag}
+            </Link>
+          ))}
+        </p>
+      )}
     </header>
   )
 }
 
-function AuthorCard({ name }: { name: string }) {
-  const author = useAuthor(name)
-  const t = useLabels()
-  if (!author?.bio) return null
-  return (
-    <section aria-label={t.aboutAuthor} className="flex max-w-reading flex-col gap-4 rounded-2xl bg-card p-6 shadow-raised sm:flex-row sm:items-center sm:gap-5">
-      <AuthorAvatar name={name} size="xl" />
-      <div className="flex flex-col gap-1">
-        <p className="font-semibold">{name}</p>
-        <p className="text-ui leading-relaxed text-pretty text-muted-foreground">{author.bio}</p>
-      </div>
-      {author.url && (
-        <Button variant="secondary" size="sm" className="shrink-0 sm:ms-auto" nativeButton={false} render={<a href={author.url} target="_blank" rel="noreferrer" />}>
-          {t.follow}
-        </Button>
-      )}
-    </section>
-  )
-}
-
-/** Up to three other posts: shared tags first, then the most recent. */
-function related(posts: PageMeta[], page: PageMeta): PageMeta[] {
-  const others = posts.filter((p) => p.route !== page.route)
-  const shared = (p: PageMeta) => p.tags.filter((t) => page.tags.includes(t)).length
-  return [...others].sort((a, b) => shared(b) - shared(a)).slice(0, 3)
-}
-
 function Post({ page }: { page: PageMeta }) {
   const { site } = useSite()
-  const PostHeader = useOverride('PostHeader', DefaultPostHeader)
-  const more = related(postsOf(site.pages, page.layer), page)
-  const toc = site.theme.toc && (page.headings?.length ?? 0) > 1
   const t = useLabels()
+  const PostHeader = useOverride('PostHeader', DefaultPostHeader)
+  const posts = postsOf(site.pages, page.layer)
+  const next = posts[posts.findIndex((post) => post.route === page.route) + 1]
+  const count = fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })
   return (
-    <>
-      <ScrollProgress className="top-14" label={t.readingProgress} />
-      <Container className="flex flex-col gap-10 pt-10 pb-24 sm:pt-14">
+    <Container>
+      <TopBar trail={[{ label: t.allPosts, href: page.layer }, { label: page.title }]} />
+      <main>
         <FallbackNotice page={page} />
-        <PostHeader page={page} />
-        <PostCover post={page} className="aspect-video rounded-2xl outline -outline-offset-1 outline-image-outline sm:aspect-[21/9]" />
-        <div className="flex justify-between gap-12">
-          <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-10">
-            {toc && (
-              <div className="sticky top-14 z-30 -my-4 bg-background py-2 lg:hidden">
-                <OutlinePopover headings={page.headings} activeLine={136} className="max-w-sm" />
-              </div>
-            )}
-            <article className="typeset typeset-reading">
-              <PageContent />
-            </article>
-            <PageFeedback page={page} />
+        <article>
+          <PostHeader page={page} />
+          <div className="typeset typeset-reading">
+            <PageContent />
           </div>
-          {toc && (
-            <aside data-novon-chrome="" className="sticky top-24 w-56 shrink-0 self-start max-lg:hidden">
-              <Outline headings={page.headings} activeLine={136} maxHeight="calc(100svh - 8rem)" />
-            </aside>
+          <PageFeedback page={page} />
+        </article>
+        <nav aria-label={t.allPosts} className="-mx-2 mt-16 grid grid-cols-2 gap-4">
+          <Link href={page.layer} className={pagerLink}>
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+              <ArrowLeftIcon size={14} className="rtl:-scale-x-100" />
+              {t.allPosts}
+            </span>
+            <span className="truncate tabular-nums">{count}</span>
+          </Link>
+          {next && (
+            <Link href={next.route} className={cn(pagerLink, 'items-end text-end')}>
+              <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                {t.next}
+                <ArrowRightIcon size={14} className="rtl:-scale-x-100" />
+              </span>
+              <span className="max-w-full truncate">{next.title}</span>
+            </Link>
           )}
-        </div>
-        {page.author && <AuthorCard name={page.author} />}
-        {more.length > 0 && (
-          <section aria-labelledby="more-title" className="flex flex-col gap-6 pt-6">
-            <Eyebrow id="more-title">{t.keepReading}</Eyebrow>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {more.map((p) => (
-                <PostCard key={p.route} post={p} />
-              ))}
-            </div>
-          </section>
-        )}
-      </Container>
-    </>
+        </nav>
+      </main>
+      <FooterLine />
+    </Container>
   )
 }
 
 function PostsIndex({ page }: { page: PageMeta }) {
   const { site } = useSite()
-  const posts = postsOf(site.pages, page.layer)
-  const [latest] = posts
-  const home = (page.key ?? page.layer) === '/'
-  const description = page.description ?? (home ? site.description : undefined)
   const t = useLabels()
+  const posts = postsOf(site.pages, page.layer)
+  const description = page.description ?? site.description
   return (
-    <Container className="flex flex-col gap-20 py-16 sm:py-24">
-      <header className="flex max-w-2xl flex-col items-start gap-6">
-        {home && !site.theme.logo && <AuthorAvatar name={site.title} size="xl" />}
-        <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{page.title}</h1>
-        {description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{description}</p>}
-      </header>
-      {latest && (
-        <section aria-labelledby="latest-title" className="flex flex-col gap-6">
-          <Eyebrow id="latest-title">{t.latest}</Eyebrow>
-          <PostCard post={latest} featured />
-        </section>
-      )}
-      {posts.length > 1 && (
-        <section aria-labelledby="all-title" className="flex flex-col gap-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <Eyebrow id="all-title">{t.allWriting}</Eyebrow>
-            <span className="text-ui-sm text-muted-foreground tabular-nums">{fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })}</span>
-          </div>
-          <PostList layer={page.layer} skip={1} />
-        </section>
-      )}
-      <section aria-labelledby="topics-title" className="flex flex-col gap-4">
-        <Eyebrow id="topics-title">{t.topics}</Eyebrow>
-        <TagList layer={page.layer} />
-      </section>
-      {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
+    <Container>
+      <TopBar />
+      <main>
+        <header className="mb-4 flex flex-col gap-0.5">
+          <h1 className="text-base font-medium text-balance">{site.title}</h1>
+          {description && <p className="text-pretty text-muted-foreground first-letter:uppercase">{description}</p>}
+        </header>
+        <Elsewhere />
+        <PostGroups posts={posts} />
+        {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
+      </main>
+      <FooterLine />
     </Container>
   )
 }
 
 function TagIndex({ page }: { page: PageMeta }) {
   const { site } = useSite()
-  const count = postsOf(site.pages, page.layer).filter((p) => p.tags.includes(page.tag!)).length
   const t = useLabels()
+  const posts = postsOf(site.pages, page.layer).filter((post) => post.tags.includes(page.tag!))
+  const count = fill(posts.length === 1 ? t.postCountOne : t.postCount, { n: posts.length })
   return (
-    <Container className="flex flex-col gap-10 py-10 sm:py-14">
-      <header className="flex flex-col items-start gap-4">
-        <BackLink layer={page.layer} />
-        <h1 className="text-4xl leading-tight font-semibold tracking-tight">{page.tag}</h1>
-        <p className="text-ui-sm text-muted-foreground tabular-nums">{fill(count === 1 ? t.postCountOne : t.postCount, { n: count })}</p>
-      </header>
-      <PostList layer={page.layer} tag={page.tag} />
+    <Container>
+      <TopBar trail={[{ label: t.allPosts, href: page.layer }, { label: `#${page.tag}` }]} />
+      <main>
+        <header className="mb-8 flex flex-col gap-2">
+          <h1 className="text-base font-medium text-balance wrap-anywhere">#{page.tag}</h1>
+          <p className="font-mono text-sm text-muted-foreground tabular-nums">{count}</p>
+        </header>
+        <PostGroups posts={posts} />
+        {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
+      </main>
+      <FooterLine />
     </Container>
   )
 }
 
 function Page({ page }: { page: PageMeta }) {
   return (
-    <Container className="py-10 sm:py-14">
-      <div className="mx-auto flex max-w-reading flex-col gap-8">
+    <Container>
+      <TopBar trail={[{ label: page.title }]} />
+      <main>
         <FallbackNotice page={page} />
-        <header className="flex flex-col gap-3">
-          <h1 className="text-4xl leading-tight font-semibold tracking-tight text-balance">{page.title}</h1>
-          {page.description && <p className="text-lg leading-relaxed text-pretty text-muted-foreground">{page.description}</p>}
+        <header className="mb-8 flex flex-col gap-3">
+          <h1 className="text-base font-medium text-balance wrap-anywhere">{page.title}</h1>
+          {page.description && <p className="text-pretty text-muted-foreground">{page.description}</p>}
         </header>
-        <article className="typeset typeset-reading">
+        <div className="typeset typeset-reading">
           <PageContent />
-        </article>
+        </div>
         <PageFeedback page={page} />
-      </div>
+      </main>
+      <FooterLine />
     </Container>
   )
 }
@@ -268,6 +340,7 @@ function BlogBody() {
   if (!page) {
     return (
       <Container>
+        <TopBar />
         <NotFound />
       </Container>
     )
@@ -280,18 +353,11 @@ function BlogBody() {
 }
 
 export function BlogLayout() {
-  const Header = useOverride('Header', DefaultHeader)
   return (
     <div className="flex min-h-dvh flex-col bg-background">
       <Banner />
-      <Header />
-      <main className="flex-1">
+      <div className="flex-1">
         <BlogBody />
-      </main>
-      <div className="border-t border-border py-10">
-        <Container>
-          <Footer />
-        </Container>
       </div>
     </div>
   )
