@@ -64,3 +64,7 @@ Clean URLs need no work: with `trailingSlash: false` the build writes
 `page.html`, and Pages serves that file at `/page`. On Pages there is no
 `_redirects`, so move old paths into `redirectFrom` in frontmatter or `redirects`
 in the config; both build forwarding pages.
+
+Give the feed an extension: `rss: { path: '/feed.xml' }`. Pages sets the media
+type from the file name, so an extension-less `/feed` arrives as a download
+rather than a feed.

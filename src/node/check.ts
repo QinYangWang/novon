@@ -559,12 +559,14 @@ export async function check(config: ResolvedConfig, options: CheckOptions = {}):
     if (files.length > 1) issues.push({ severity: 'warning', rule: 'redirect', file: files[1], message: `Redirect from ${from} is also set in ${files[0]}; the first one wins` })
     if (byRoute.has(from)) issues.push({ severity: 'error', rule: 'redirect', file: files[0], message: `Redirect from ${from} would replace the page ${byRoute.get(from)!.file || from}` })
   }
+  // A redirect may also point at a file the build writes (`/feed.xml`, `/sitemap.xml`).
+  const emitted = generatedFiles(config)
   for (const [from, to] of Object.entries(redirects)) {
     if (isExternal(to)) continue
     const target = normalizeRoute(to.split(/[?#]/)[0])
     const file = sources.get(from)?.[0]
     if (redirects[target]) issues.push({ severity: 'warning', rule: 'redirect', file, message: `Redirect ${from} → ${target} leads to another redirect (→ ${redirects[target]})` })
-    else if (!byRoute.has(target) && !publicFile(config, target)) issues.push({ severity: 'error', rule: 'redirect', file, message: `Redirect ${from} points to ${to}, which is not a page` })
+    else if (!byRoute.has(target) && !publicFile(config, target) && !emitted.has(target)) issues.push({ severity: 'error', rule: 'redirect', file, message: `Redirect ${from} points to ${to}, which is not a page or a file the build writes` })
   }
 
   // Internal links, anchors and assets.
@@ -652,4 +654,3 @@ export function formatIssues(issues: Issue[]): string {
 export function summarize(issues: Issue[]): { errors: number; warnings: number } {
   return { errors: issues.filter((i) => i.severity === 'error').length, warnings: issues.filter((i) => i.severity === 'warning').length }
 }
-
