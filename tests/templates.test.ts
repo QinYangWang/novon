@@ -13,36 +13,31 @@ describe('blog template', async () => {
     for (const f of ['index.html', 'about/index.html', 'posts/plain-text/index.html', 'tags/writing/index.html', 'rss.xml', 'covers/small-web.svg'])
       expect(existsSync(join(dist, f))).toBe(true)
   })
-  test('home features the newest post and lists the rest', async () => {
+  test('home lists every post under its year', async () => {
     const html = await read('index.html')
     expect(html).toContain('Mira Chen')
-    // The newest post has no cover image, so it gets generated cover art.
-    expect(html).toContain('data-slot="cover-art"')
-    expect(html.indexOf('Writing in plain text')).toBeLessThan(html.indexOf('A week without notifications'))
-    expect(html).toContain('min read')
+    // One row per post, newest first, with the year in a gutter and the date in mono.
+    expect(html).toContain('id="year-2026"')
+    expect(html.indexOf('Writing in plain text')).toBeLessThan(html.indexOf('Reading list: summer'))
+    expect(html).toContain('10/02')
+    // The blog is text only: no cover art, cards or reading time.
+    expect(html).not.toContain('data-slot="cover-art"')
+    expect(html).not.toContain('min read')
   })
-  test('a post has its author card, outline and related posts', async () => {
+  test('a post ends with the pager instead of an author card, outline or related posts', async () => {
     const html = await read('posts/plain-text/index.html')
-    expect(html).toContain('About the author')
-    expect(html).toContain('Lives in Lisbon')
-    expect(html).toContain('On this page')
-    expect(html).toContain('Keep reading')
-    // The full outline is in the prerendered HTML.
-    for (const id of ['files-outlast-apps', 'the-setup', 'what-i-gave-up', 'what-i-got']) expect(html).toContain(`data-outline-id="${id}"`)
+    expect(html).toContain('All posts')
+    expect(html).toContain('5 posts')
+    expect(html).toContain('Next')
+    expect(html).not.toContain('About the author')
+    expect(html).not.toContain('On this page')
+    expect(html).not.toContain('Keep reading')
   })
-  test('posts without a cover image get distinct cover art', async () => {
-    const looks = new Set<string>()
-    for (const slug of ['hello-world', 'no-notifications', 'plain-text', 'summer-reading']) {
-      const html = await read(`posts/${slug}/index.html`)
-      const m = html.match(/data-slot="cover-art" data-variant="gradient"[\s\S]*?data-slot="cover-art-gradient"[^>]*style="([^"]+)"/)
-      expect(m).not.toBeNull()
-      looks.add(m![1])
-    }
-    expect(looks.size).toBe(4)
-  })
-  test('a cover image wins over cover art', async () => {
+  test('covers are frontmatter only, never rendered', async () => {
+    // `cover:` still sets the share image and the feed, but the layout shows no picture.
     const html = await read('posts/small-websites/index.html')
-    expect(html).toContain('/demo/blog/covers/small-web.svg')
+    expect(html).not.toContain('data-slot="cover-art"')
+    expect(html).not.toContain('covers/small-web.svg')
   })
   test('root-relative file links keep the base', async () => {
     expect(await read('about/index.html')).toContain('href="/demo/blog/rss.xml"')
