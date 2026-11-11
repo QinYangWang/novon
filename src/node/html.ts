@@ -1,3 +1,4 @@
+import { fontHeadTags } from './fonts.ts'
 import type { HeadTag, PageMeta, ResolvedConfig } from '../types.ts'
 import { bannerKey, withBase } from '../shared.ts'
 import { imageUrl, type OgImage } from './og.ts'
@@ -159,6 +160,7 @@ export function renderDocument({ config, page, title, body, head = '', scripts, 
     `<script>${themeScript}</script>`,
     bannerScript(config),
     page && `<script type="application/ld+json">${JSON.stringify(structuredData(config, page, pages, img || undefined)).replace(/</g, '\\u003c')}</script>`,
+    ...fontHeadTags(config).map(headTag),
     ...[...extraHead, ...(config.head ?? []), ...(page?.head ?? [])].map(headTag),
   ].filter(Boolean)
   return `<!doctype html>

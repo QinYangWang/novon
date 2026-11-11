@@ -68,6 +68,38 @@ export default defineConfig({
 })
 ```
 
+## Typography
+
+`font` sets the text face for the whole site in one line. A Google Fonts family by name:
+
+```ts
+font: { google: 'Noto Sans SC' },
+```
+
+Or any stylesheet that declares the face — the [中文网字计划](https://chinese-font.netlify.app/zh-cn/)
+ships CJK fonts split into subsets that way:
+
+```ts
+font: {
+  css: 'https://cn-font.claude-code-best.win/packages/hcqyt/dist/ChillRoundFRegular/result.css',
+  family: '寒蝉全圆体',
+},
+```
+
+| Key | |
+| --- | --- |
+| `google` | a family or a list: `'Noto Sans SC'`, `['Inter', 'Noto Sans SC:wght@400..700']`. novon links `fonts.googleapis.com`. |
+| `css` | a stylesheet URL, or a list, for faces Google does not host. |
+| `family` | the family to set on text. Defaults to the single Google family. |
+| `mono` | the code face. Defaults to the theme's mono stack with `family` behind it, so CJK inside `code` matches the page while latin stays monospaced. |
+
+With a family, novon writes one `<style>` that points `--default-font-family`, `--font-sans`,
+`--font-serif`, `--font-heading` and `--font-mono` at it. Every component and the prose styles read
+those variables, so code, tables, badges and the article body follow along; styles of your own should
+use them rather than a font name.
+
+To host the face yourself, put a stylesheet in `theme.css` and name its family in `font.family`.
+
 ## Language
 
 `lang` sets `<html lang>`, date formats and the words the layouts print.

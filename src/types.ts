@@ -169,9 +169,38 @@ export interface OgOptions {
   accent?: Accent
 }
 
+/** Where the text face comes from: a Google Fonts family, a stylesheet that declares one, or both. */
+export interface FontOptions {
+  /** Google Fonts families, e.g. `'Noto Sans SC'` or `'Noto Sans SC:wght@400..700'`. */
+  google?: string | string[]
+  /** Stylesheet URLs that declare the face, e.g. a 中文网字计划 `result.css`. */
+  css?: string | string[]
+  /** Family to set on text. Defaults to the single Google family. */
+  family?: string
+  /** Family for code and numbers. Defaults to the theme's mono stack with `family` as the CJK fallback. */
+  mono?: string
+}
+
+/** The font option as the build uses it: every source listed, the family picked. */
+export interface ResolvedFont {
+  google: string[]
+  css: string[]
+  family?: string
+  mono?: string
+}
+
 export interface Config {
   title: string
   description?: string
+  /**
+   * Typography: where the text face comes from. One line restyles the whole site — a Google Fonts
+   * family by name, or any stylesheet that declares the face, such as a
+   * [中文网字计划](https://chinese-font.netlify.app/zh-cn/) `result.css`.
+   *
+   *   font: { google: 'Noto Sans SC' }
+   *   font: { css: 'https://…/result.css', family: '寒蝉全圆体' }
+   */
+  font?: FontOptions
   /** Absolute site URL, used for sitemap, feeds and canonical links. */
   url?: string
   /** Sub-path the site is served from, e.g. `/docs/`. Default `/`. */
@@ -545,8 +574,9 @@ export interface TagOptions {
   lowercase?: boolean
 }
 
-export interface ResolvedConfig extends Omit<Config, 'i18n' | 'versions'> {
+export interface ResolvedConfig extends Omit<Config, 'i18n' | 'versions' | 'font'> {
   base: string
+  font?: ResolvedFont
   lang: string
   layout: LayoutKind
   layers: Layer[]

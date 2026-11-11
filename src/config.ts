@@ -1,4 +1,4 @@
-import type { Config, CustomSource, Layer, Meta, NovonPlugin, ResolvedConfig, ResolvedI18n, ResolvedVersions } from './types.ts'
+import type { Config, CustomSource, Layer, Meta, NovonPlugin, ResolvedConfig, ResolvedFont, ResolvedI18n, ResolvedVersions } from './types.ts'
 
 export type * from './types.ts'
 
@@ -32,6 +32,21 @@ function normalizeBase(base = '/'): string {
 function normalizePrefix(path: string): string {
   const p = `/${path.replace(/^\/+|\/+$/g, '')}`
   return p === '/' ? '/' : p
+}
+
+/**
+ * The font option, as the build uses it: sources listed, family picked. A single Google family is
+ * also the text family, so `font: { google: 'Noto Sans SC' }` is the whole setup.
+ */
+export function resolveFont(font: Config['font']): ResolvedFont | undefined {
+  if (!font) return undefined
+  const list = (value?: string | string[]) => (value === undefined ? [] : Array.isArray(value) ? value : [value]).map((s) => s.trim()).filter(Boolean)
+  const google = list(font.google)
+  const css = list(font.css)
+  if (!google.length && !css.length) return undefined
+  const family = font.family?.trim() || (google.length === 1 ? google[0].split(':')[0].trim() : undefined)
+  const mono = font.mono?.trim()
+  return { google, css, ...(family ? { family } : {}), ...(mono ? { mono } : {}) }
 }
 
 export function resolveI18n(config: Config): ResolvedI18n | undefined {
@@ -93,15 +108,17 @@ export function resolveConfig(config: Config, root: string): ResolvedConfig {
   const i18n = resolveI18n(config)
   const versions = resolveVersions(config)
   const lang = i18n ? (i18n.locales.find((l) => l.code === i18n.defaultLocale)?.lang ?? config.lang ?? 'en') : (config.lang ?? 'en')
-  const { i18n: _i18n, versions: _versions, ...rest } = config
+  const { i18n: _i18n, versions: _versions, font: _font, ...rest } = config
   // Where the site is served is a deploy-time fact: a GitHub Pages project site lives at
   // `/<repo>/`, a preview gets its own host. `NOVON_BASE` and `NOVON_URL` override the config
   // so one checkout can be built for each, and an empty value leaves the config alone.
   const envBase = process.env.NOVON_BASE?.trim()
   const envUrl = process.env.NOVON_URL?.trim()
+  const font = resolveFont(config.font)
   const resolved: ResolvedConfig = {
     ...rest,
     ...(envUrl ? { url: envUrl } : {}),
+    ...(font ? { font } : {}),
     root,
     base: normalizeBase(envBase || config.base),
     lang,

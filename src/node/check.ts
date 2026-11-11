@@ -105,6 +105,12 @@ export const configSchema: Schema = S.object({
   layout: S.enum(...LAYOUTS),
   layers: S.array(S.object({ path: S.required(S.string), layout: S.required(S.enum(...LAYOUTS)), title: S.string })),
   nav: S.array(nav),
+  font: S.object({
+    google: S.union(S.string, S.array(S.string)),
+    css: S.union(S.string, S.array(S.string)),
+    family: S.string,
+    mono: S.string,
+  }),
   theme: S.object({
     accent: S.enum(...ACCENTS),
     radius: S.string,
