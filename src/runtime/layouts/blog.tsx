@@ -132,7 +132,7 @@ function PostRows({ posts }: { posts: PageMeta[] }) {
         <li key={post.route}>
           <Link href={post.route} className={rowLink}>
             <span className="min-w-0 wrap-anywhere">{post.title}</span>
-            <time dateTime={post.date} className="ms-auto shrink-0 font-mono text-muted-foreground tabular-nums">
+            <time dateTime={post.date} className="ms-auto shrink-0 text-muted-foreground tabular-nums">
               {shortDate(post.date)}
             </time>
           </Link>
@@ -159,7 +159,7 @@ function PostGroups({ posts }: { posts: PageMeta[] }) {
           aria-labelledby={`year-${year}`}
           className="grid grid-cols-1 gap-2 sm:grid-cols-[4rem_minmax(0,1fr)] sm:gap-4"
         >
-          <h2 id={`year-${year}`} className="font-mono text-base font-normal text-balance text-muted-foreground sm:py-1.5">
+          <h2 id={`year-${year}`} className="text-base font-normal text-balance text-muted-foreground sm:py-1.5">
             {year}
           </h2>
           <PostRows posts={group} />
@@ -204,7 +204,7 @@ function DefaultPostHeader({ page }: { page: PageMeta }) {
   return (
     <header className="mb-8 flex flex-col gap-3">
       <h1 className="text-base font-medium text-balance wrap-anywhere">{page.title}</h1>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-sm text-muted-foreground tabular-nums">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
         {page.date && <time dateTime={page.date}>{formatDate(page.date, site.lang)}</time>}
         {updated && <time dateTime={updated}>{fill(t.updated, { date: formatDate(updated, site.lang) })}</time>}
       </div>
@@ -296,7 +296,7 @@ function TagIndex({ page }: { page: PageMeta }) {
       <main>
         <header className="mb-8 flex flex-col gap-2">
           <h1 className="text-base font-medium text-balance wrap-anywhere">#{page.tag}</h1>
-          <p className="font-mono text-sm text-muted-foreground tabular-nums">{count}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">{count}</p>
         </header>
         <PostGroups posts={posts} />
         {!posts.length && <p className="text-muted-foreground">{t.noPosts}</p>}
